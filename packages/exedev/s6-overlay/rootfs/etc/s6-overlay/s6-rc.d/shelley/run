@@ -1,0 +1,18 @@
+#!/command/with-contenv sh
+mkdir -p /home/exedev/.config/shelley
+chown 1000:1000 /home/exedev/.config /home/exedev/.config/shelley
+# s6-setuidgid resolves the exedev user from /etc/passwd, drops uid/gid, and
+# initializes supplementary groups — the s6-native way to run as a user.
+exec s6-setuidgid exedev \
+  env \
+    HOME=/home/exedev \
+    USER=exedev \
+    SHELL=/bin/sh \
+    XDG_CONFIG_HOME=/home/exedev/.config \
+    PATH=/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin \
+    SSL_CERT_FILE=/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt \
+    GIT_SSL_CAINFO=/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt \
+    NIX_SSL_CERT_FILE=/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt \
+    NIX_REMOTE=daemon \
+  shelley -config /exe.dev/shelley.json -db /home/exedev/.config/shelley/shelley.db \
+    serve -port 9999 -require-header X-Exedev-Userid

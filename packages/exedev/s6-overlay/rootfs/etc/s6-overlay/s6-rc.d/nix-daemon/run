@@ -1,0 +1,2 @@
+#!/command/with-contenv sh
+exec nix-daemon --daemon

@@ -1,0 +1,14 @@
+Port 22
+HostKey /run/ssh_host_ed25519_key
+HostKey /run/ssh_host_rsa_key
+PidFile /run/sshd.pid
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+PubkeyAuthentication yes
+UsePAM no
+X11Forwarding no
+AllowTcpForwarding yes
+PermitTTY yes
+PrintMotd no
+Subsystem sftp internal-sftp

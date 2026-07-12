@@ -1,0 +1,14 @@
+#!/bin/sh
+# Set up the exedev user's home and install the SSH key exe.dev injects
+# (EXE_DEV_AUTHORIZED_KEYS). The user exists in the static /etc/passwd, but its
+# home is created + owned here at runtime (the key only arrives via env at boot).
+# Runs under with-contenv, so that env var is present.
+set -eu
+mkdir -p /home/exedev/.ssh
+chmod 0700 /home/exedev/.ssh
+if [ -n "${EXE_DEV_AUTHORIZED_KEYS:-}" ]; then
+  printf '%s\n' "$EXE_DEV_AUTHORIZED_KEYS" > /home/exedev/.ssh/authorized_keys
+  chmod 0600 /home/exedev/.ssh/authorized_keys
+fi
+chown 1000:1000 /home/exedev
+chown -R 1000:1000 /home/exedev/.ssh

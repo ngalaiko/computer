@@ -1,0 +1,3 @@
+#!/command/with-contenv sh
+# sshd refuses to start unless invoked with an absolute path; resolve it on PATH.
+exec "$(command -v sshd)" -D -e -f /etc/ssh/sshd_config
