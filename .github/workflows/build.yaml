@@ -1,0 +1,56 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build + push ${{ matrix.system }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { system: x86_64-linux, runner: ubuntu-24.04, task: "exedev:push:x86" }
+          - { system: aarch64-linux, runner: ubuntu-24.04-arm, task: "exedev:push:aarch64" }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: jdx/mise-action@v2
+      - name: Build + push ${{ matrix.system }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # skopeo (via nix) would otherwise read the runner's v1 registries.conf
+          # and refuse to start; point it at a minimal v2 file we write below.
+          CONTAINERS_REGISTRIES_CONF: ${{ runner.temp }}/registries.conf
+        run: |
+          printf 'unqualified-search-registries = []\n' > "$CONTAINERS_REGISTRIES_CONF"
+          mise run ${{ matrix.task }}
+
+  manifest:
+    name: Publish multi-arch manifest
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@v2
+      - name: Initialize jj
+        run: jj git init --colocate
+      - name: Stitch manifest + tags
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise run exedev:push:manifest

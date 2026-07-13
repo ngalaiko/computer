@@ -8,13 +8,13 @@ IMAGE = "ghcr.io/ngalaiko/computer.exe"
 TAG = "latest"
 GHCR_USER = "ngalaiko"
 GHCR_TOKEN = "{{ env.GHCR_TOKEN | default(value=exec(command='gh auth token 2>/dev/null || true')) }}"
-GIT_SHA = "{{ exec(command='git rev-parse --short HEAD 2>/dev/null || true') }}"
-JJ_REV = "{{ exec(command='jj log --no-graph -r \"git_head()\" -T \"change_id.short()\" 2>/dev/null || true') }}"
+GIT_SHA = "{{ exec(command='git rev-parse --short HEAD') }}"
+JJ_REV = "{{ exec(command='jj log --no-graph -r \"trunk()\" -T \"change_id.short()\"') }}"
 
 [tasks."ghr:auth"]
 description = "Grant gh the write:packages scope (once, for GHCR pushes)"
 run = '''
-set -euo pipefail
+set -eu
 if gh auth status -h github.com >/dev/null 2>&1; then
   gh auth refresh -h github.com -s write:packages
 else
@@ -25,7 +25,7 @@ fi
 [tasks."exedev:build:aarch64"]
 description = "Build the aarch64-linux exedev image -> dist/"
 run = '''
-set -euo pipefail
+set -eu
 mkdir -p dist
 nix build .#packages.aarch64-linux.exedev \
   -o dist/computer.exe.aarch64-linux.tar.gz --print-build-logs
@@ -34,7 +34,7 @@ nix build .#packages.aarch64-linux.exedev \
 [tasks."exedev:build:x86"]
 description = "Build the x86_64-linux exedev image -> dist/"
 run = '''
-set -euo pipefail
+set -eu
 mkdir -p dist
 nix build .#packages.x86_64-linux.exedev \
   -o dist/computer.exe.x86_64-linux.tar.gz --print-build-logs
@@ -44,7 +44,7 @@ nix build .#packages.x86_64-linux.exedev \
 description = "Build + push the aarch64 exedev image to $IMAGE:$TAG-arm64"
 depends = ["exedev:build:aarch64"]
 run = '''
-set -euo pipefail
+set -eu
 nix run nixpkgs#skopeo -- --insecure-policy copy \
   --dest-creds "${GHCR_USER}:${GHCR_TOKEN}" \
   docker-archive:dist/computer.exe.aarch64-linux.tar.gz \
@@ -55,7 +55,7 @@ nix run nixpkgs#skopeo -- --insecure-policy copy \
 description = "Build + push the x86_64 exedev image to $IMAGE:$TAG-amd64"
 depends = ["exedev:build:x86"]
 run = '''
-set -euo pipefail
+set -eu
 nix run nixpkgs#skopeo -- --insecure-policy copy \
   --dest-creds "${GHCR_USER}:${GHCR_TOKEN}" \
   docker-archive:dist/computer.exe.x86_64-linux.tar.gz \
@@ -65,7 +65,7 @@ nix run nixpkgs#skopeo -- --insecure-policy copy \
 [tasks."exedev:push:manifest"]
 description = "Stitch the multi-arch $TAG manifest + git sha / jj rev tags (arch images must already be pushed)"
 run = '''
-set -euo pipefail
+set -eu
 printf "%s" "$GHCR_TOKEN" | regctl registry login ghcr.io -u "$GHCR_USER" --pass-stdin
 regctl index create "$IMAGE:$TAG" \
   --ref "$IMAGE:$TAG-amd64" \
