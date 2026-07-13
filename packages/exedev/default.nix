@@ -1,6 +1,8 @@
 {
   pkgs,
   nixSource,
+  # the nix the image ships; from nixSource so it matches docker.nix below
+  nixPackage ? pkgs.nix,
   imageName ? "computer.exe",
 }:
 
@@ -34,16 +36,14 @@ let
     ./s6-overlay
     ./sshd
     ./shelley
-    ./nix-daemon
   ];
   packages = basePackages ++ lib.concatMap (c: c.packages or [ ]) components;
 
   usersRootfs = import ./users.nix { inherit pkgs; };
-  rootfsDirs =
-    lib.filter (d: d != null) (map (c: c.rootfs or null) components) ++ [
-      usersRootfs
-      ./rootfs
-    ];
+  rootfsDirs = lib.filter (d: d != null) (map (c: c.rootfs or null) components) ++ [
+    usersRootfs
+    ./rootfs
+  ];
 
   # All rootfs trees overlaid at /. `cp -a` preserves s6-overlay's symlinks;
   # `chmod -R u+w` after each copy lets the next merge into from-store dirs.
@@ -74,6 +74,7 @@ let
   nixBase = pkgs.callPackage "${nixSource}/docker.nix" {
     name = "computer-exe-bootstrap";
     tag = "latest";
+    nix = nixPackage;
     bundleNixpkgs = false;
     extraPkgs = packages;
     maxLayers = 110;

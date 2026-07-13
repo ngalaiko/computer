@@ -1,10 +1,6 @@
-# Release tooling: build the image and push it to ghcr.io. Impure by design
-# (network + credentials), so these run *around* `nix build`, not inside it.
-# Registry coordinates are baked in but overridable via IMAGE/TAG/GHCR_USER;
-# GHCR_TOKEN falls back to `gh auth token`.
+# Build + push scripts; IMAGE/TAG/GHCR_USER/GHCR_TOKEN override the defaults.
 { pkgs }:
 let
-  # Shared preamble for every script that talks to ghcr.io.
   registryEnv = ''
     image="''${IMAGE:-ghcr.io/ngalaiko/computer.exe}"
     tag="''${TAG:-latest}"
@@ -13,7 +9,7 @@ let
   '';
 in
 rec {
-  # One-time: grant gh the write:packages scope for GHCR pushes.
+  # One-time: grant gh the write:packages scope.
   ghcr-auth = pkgs.writeShellApplication {
     name = "ghcr-auth";
     runtimeInputs = [ pkgs.gh ];
@@ -26,9 +22,8 @@ rec {
     '';
   };
 
-  # Build one arch image (-> dist/) and push it to $IMAGE:$TAG-<arch>.
-  # `nix` itself comes from the caller's environment so local builds keep
-  # using the host's config (linux-builder offload on the Mac).
+  # `nix` comes from the caller's PATH so builds keep the host's config
+  # (linux-builder offload on the Mac).
   push-image = pkgs.writeShellApplication {
     name = "push-image";
     runtimeInputs = [
@@ -47,8 +42,7 @@ rec {
       esac
       ${registryEnv}
 
-      # skopeo refuses the v1-format registries.conf GitHub runners ship;
-      # point it at a minimal v2 file of our own.
+      # GitHub runners ship a v1-format registries.conf that skopeo refuses
       conf="$(mktemp)"
       trap 'rm -f "$conf"' EXIT
       printf 'unqualified-search-registries = []\n' > "$conf"
@@ -64,8 +58,7 @@ rec {
     '';
   };
 
-  # Stitch the pushed per-arch images into the multi-arch $TAG manifest and
-  # copy it to immutable git-sha / jj-trunk tags. Arch images must exist.
+  # Arch images must already be pushed.
   push-manifest = pkgs.writeShellApplication {
     name = "push-manifest";
     runtimeInputs = [
@@ -84,8 +77,7 @@ rec {
         --ref "$image:$tag-amd64" \
         --ref "$image:$tag-arm64"
 
-      # CI checkouts are plain git; jj change ids are derived from git history,
-      # so a colocated init there yields the same rev as the local repo.
+      # jj change ids derive from git history, so a fresh CI init tags the same rev
       jj root >/dev/null 2>&1 || jj git init --colocate
       git_sha="$(git rev-parse --short HEAD)"
       jj_rev="$(jj log --no-graph -r 'trunk()' -T 'change_id.short()')"
@@ -95,7 +87,6 @@ rec {
     '';
   };
 
-  # The whole release: both arches, then the manifest.
   release = pkgs.writeShellApplication {
     name = "release";
     runtimeInputs = [

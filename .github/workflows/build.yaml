@@ -39,7 +39,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # full history so jj can derive the trunk change id
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v22
       - name: Stitch manifest + tags

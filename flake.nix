@@ -3,11 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    # Provides docker.nix (the nixos/nix bootstrap image builder).
-    nixSource = {
-      url = "github:NixOS/nix/2.31.5";
-      flake = false;
-    };
+    # Provides docker.nix and the nix package the image ships.
+    nixSource.url = "github:NixOS/nix/2.35.0";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -42,10 +39,9 @@
         import ./packages/exedev {
           pkgs = nixpkgs.legacyPackages.${linuxSystem};
           inherit nixSource;
+          nixPackage = nixSource.packages.${linuxSystem}.nix;
         };
 
-      # Impure build+push scripts (see packages/release), built for the host
-      # system so they run natively on darwin too.
       releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
     in
     {
@@ -56,7 +52,6 @@
       };
 
       # `nix build .#exedev` (current system) or `.#packages.<sys>.exedev`.
-      # Release scripts: `nix run .#release` (or push-image / push-manifest).
       packages = lib.genAttrs allSystems (
         system:
         let
