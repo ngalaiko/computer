@@ -9,8 +9,18 @@ permissions:
   contents: read
 
 jobs:
+  check:
+    name: Flake check + format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - run: nix flake check --all-systems
+      - run: nix fmt . && git diff --exit-code
+
   build:
     name: Build + push ${{ matrix.system }}
+    needs: check
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read

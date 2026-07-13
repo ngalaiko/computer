@@ -23,12 +23,20 @@ let
     .${pkgs.stdenv.hostPlatform.system}
       or (throw "unsupported s6-overlay platform: ${pkgs.stdenv.hostPlatform.system}");
 
-  overlay = pkgs.runCommand "s6-overlay-${version}" { nativeBuildInputs = [ pkgs.gnutar pkgs.xz ]; } ''
-    mkdir -p $out
-    tar -C $out -Jxf ${noarch}
-    tar -C $out -Jxf ${arch}
-    cp -R ${./rootfs}/. $out/
-  '';
+  overlay =
+    pkgs.runCommand "s6-overlay-${version}"
+      {
+        nativeBuildInputs = [
+          pkgs.gnutar
+          pkgs.xz
+        ];
+      }
+      ''
+        mkdir -p $out
+        tar -C $out -Jxf ${noarch}
+        tar -C $out -Jxf ${arch}
+        cp -R ${./rootfs}/. $out/
+      '';
 in
 {
   packages = [ ];

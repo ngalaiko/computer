@@ -19,7 +19,7 @@
 
   nix.linux-builder = {
     enable = true;
-    ephemeral = true; 
+    ephemeral = true;
     maxJobs = 4;
     systems = [
       "aarch64-linux"

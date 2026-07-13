@@ -73,9 +73,7 @@ let
 
   passwdLine =
     name: u:
-    "${name}:x:${toString u.uid}:${toString u.gid}:${u.description or ""}:${u.home or "/var/empty"}:${
-      u.shell or "/bin/sh"
-    }";
+    "${name}:x:${toString u.uid}:${toString u.gid}:${u.description or ""}:${u.home or "/var/empty"}:${u.shell or "/bin/sh"}";
   shadowLine = name: u: "${name}:${if (u.locked or false) then "!" else "*"}:1::::::";
   groupLine =
     name: gid: "${name}:x:${toString gid}:${lib.concatStringsSep "," (groupMembers.${name} or [ ])}";
