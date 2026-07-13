@@ -20,7 +20,11 @@ sudo darwin-rebuild switch --flake .#mac
 ## Build & publish
 
 ```bash
-mise run exedev
+# one-time: grant gh the write:packages scope for GHCR
+nix run .#ghcr-auth
+
+# build both arches, push, stitch the multi-arch manifest
+nix run .#release
 ```
 
 ## Launch

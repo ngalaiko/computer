@@ -43,6 +43,10 @@
           pkgs = nixpkgs.legacyPackages.${linuxSystem};
           inherit nixSource;
         };
+
+      # Impure build+push scripts (see packages/release), built for the host
+      # system so they run natively on darwin too.
+      releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
     in
     {
       # This Mac, configured with a Linux builder VM (so it can build *-linux).
@@ -52,6 +56,7 @@
       };
 
       # `nix build .#exedev` (current system) or `.#packages.<sys>.exedev`.
+      # Release scripts: `nix run .#release` (or push-image / push-manifest).
       packages = lib.genAttrs allSystems (
         system:
         let
@@ -61,7 +66,25 @@
           exedev = img;
           default = img;
         }
+        // releaseFor system
       );
+
+      devShells = lib.genAttrs allSystems (system: {
+        default =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.mkShell {
+            packages = [
+              pkgs.gh
+              pkgs.gitMinimal
+              pkgs.regctl
+              pkgs.jujutsu
+              pkgs.skopeo
+            ]
+            ++ lib.attrValues (releaseFor system);
+          };
+      });
 
       formatter = lib.genAttrs allSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
     };
