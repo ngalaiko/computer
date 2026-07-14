@@ -27,10 +27,12 @@ nix run .#ghcr-auth
 nix run .#release
 ```
 
-## Launch
+## Configuration
 
-```fish
-ssh exe.dev new --image=ghcr.io/ngalaiko/computer.exe:latest --name computer \
-  --env TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
-ssh computer.exe.xyz
-```
+### Backups
+
+| --- | --- | --- |
+| `RESTIC_REPOSITORY` | B2 restic repo, e.g. `b2:my-bucket:hermes` | 
+| `RESTIC_PASSWORD` | restic repo encryption password |
+| `B2_ACCOUNT_ID` | B2 key id | 
+| `B2_ACCOUNT_KEY` | B2 application key (scope to the bucket) | 

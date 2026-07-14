@@ -1,14 +1,3 @@
-# Nix in the image: a multi-user daemon over a registered store, so the agent
-# (and ssh users) can `nix profile install nixpkgs#…` or build at runtime.
-#
-# The store is root-owned (baked by the image build), so installs must go
-# through a root daemon — hence the daemon + nixbld build users + NIX_REMOTE.
-# The store db is empty in a from-scratch image, so a first-boot oneshot loads
-# it from a build-time closure manifest (closureInfo). That manifest is scoped
-# to image.packages and never image.rootPaths: the loader is an s6 service, so
-# it lives under rootPaths, and feeding rootPaths back into the closure would
-# be an eval cycle. A handful of thin generated scripts stay unregistered as a
-# result — fine for install/build, just don't `nix-collect-garbage` the world.
 {
   pkgs,
   config,
@@ -31,6 +20,8 @@ let
     }) (lib.range 1 32)
   );
 
+  # scoped to image.packages, never image.rootPaths (the loader is a rootPaths
+  # service — feeding rootPaths back into the closure is an eval cycle).
   storeReg = pkgs.closureInfo { rootPaths = config.image.packages; };
 in
 {
@@ -43,8 +34,6 @@ in
   config = lib.mkIf config.nix.enable {
     image.packages = [ pkgs.nix ];
 
-    # nix-aware container env (overrides core's default): daemon client + the
-    # default profile on PATH + cert vars for substituter/flake fetches.
     image.env = [
       "PATH=/command:${profile}/bin:${profile}/sbin:/bin:/sbin:/usr/bin"
       "NIX_REMOTE=daemon"
@@ -70,8 +59,7 @@ in
         trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWGuJSngDLi9PB0dxEIoH5U8vKf1c=
         sandbox = false
       '';
-      # login shells (ssh): the container env already carries these, but sshd
-      # resets it, so /etc/profile sources this.
+      # sshd resets the env, so login shells re-source this via /etc/profile.
       "profile.d/nix.sh".text = ''
         export PATH="$HOME/.nix-profile/bin:${profile}/bin:${profile}/sbin:$PATH"
         export NIX_REMOTE=daemon
@@ -79,7 +67,6 @@ in
       '';
     };
 
-    # Load the baked store into the db once, before the daemon serves clients.
     s6.services.nix-db = {
       type = "oneshot";
       run = ''

@@ -1,5 +1,3 @@
-# The renderer: environment.etc + image.* lowered into build.rootfs and
-# build.image. Mechanism only — services and users live in their own modules.
 {
   pkgs,
   config,
@@ -46,8 +44,7 @@ let
     )
   );
 
-  # All rootfs trees overlaid at /. `cp -a` preserves symlinks; `chmod -R u+w`
-  # after each copy lets the next merge into from-store dirs.
+  # chmod -R u+w after each copy so the next tree can merge into store dirs.
   rootfs = pkgs.runCommand "exedev-rootfs" { } (
     ''
       mkdir -p $out
@@ -57,9 +54,8 @@ let
       chmod -R u+w $out
     '') config.image.rootPaths
     + ''
-      # /bin and /sbin as real directories of symlinks: a top-level dir that is
-      # itself a symlink survives docker's overlayfs but not every OCI->rootfs
-      # converter (exe.dev boots the image with its own kernel).
+      # /bin and /sbin must be real dirs, not symlinks: a top-level symlinked
+      # dir survives docker but not exe.dev's OCI->rootfs conversion.
       for d in bin sbin; do
         mkdir -p $out/$d
         if [ -d ${systemPath}/$d ]; then
@@ -126,7 +122,7 @@ in
               mode = mkOption {
                 type = types.str;
                 default = "0644";
-                description = "Octal file mode (the store keeps only the executable bit).";
+                description = "Octal file mode.";
               };
             };
           }
@@ -152,7 +148,7 @@ in
       rootPaths = mkOption {
         type = types.listOf types.package;
         default = [ ];
-        description = "Store paths overlaid onto the image root / — each $out mirrors the target fs.";
+        description = "Store paths overlaid onto the image root /.";
       };
       env = mkOption {
         type = types.listOf types.str;
@@ -168,11 +164,11 @@ in
       fakeRootCommands = mkOption {
         type = types.lines;
         default = "";
-        description = "Commands run under fakeroot over the image root (paths relative, ./…) — the only way to bake ownership or modes the store can't hold.";
+        description = "Commands run under fakeroot over the image root (relative ./… paths) to bake ownership/modes.";
       };
       cmd = mkOption {
         type = types.listOf types.str;
-        description = "Image Cmd (the s6 module defaults this to the init wrapper).";
+        description = "Image Cmd.";
       };
       workingDir = mkOption {
         type = types.str;
@@ -233,8 +229,7 @@ in
       "ssl/certs/ca-certificates.crt".source = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       protocols.source = "${pkgs.iana-etc}/etc/protocols";
       services.source = "${pkgs.iana-etc}/etc/services";
-      # sshd resets PATH to its compiled default; login shells restore the
-      # image's and pull in any /etc/profile.d drop-ins (e.g. nix).
+      # sshd resets PATH; login shells restore it and source /etc/profile.d.
       profile.text = ''
         export PATH=/command:/bin:/sbin:/usr/bin
         export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt

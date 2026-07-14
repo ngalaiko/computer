@@ -1,7 +1,3 @@
-# Accounts: users.users / users.groups in the NixOS shape, rendered into
-# /etc/{passwd,group,shadow} via environment.etc. Service modules take a user
-# *name* option and resolve it here at eval time; at runtime s6-setuidgid and
-# sshd resolve names against the rendered files.
 {
   pkgs,
   config,
@@ -15,9 +11,8 @@ let
 
   passwdLine =
     name: u: "${name}:x:${toString u.uid}:${toString (gidOf u)}:${u.description}:${u.home}:${u.shell}";
-  # locked → '!' (no login at all); else '*' (no password, pubkey still allowed).
-  # sshd with `UsePAM no` refuses even pubkey for a locked account, so login
-  # accounts must stay unlocked.
+  # locked → '!'; else '*' (pubkey ok). sshd UsePAM no refuses pubkey for '!',
+  # so login accounts must stay unlocked.
   shadowLine = name: u: "${name}:${if u.locked then "!" else "*"}:1::::::";
   groupLine = name: g: "${name}:x:${toString g.gid}:${lib.concatStringsSep "," g.members}";
 
@@ -67,7 +62,8 @@ in
             createHome = mkOption {
               type = types.bool;
               default = false;
-              description = "Bake the home directory into the image, owned by the user. Required for the account image.workingDir points into: exe.dev's init fails on a missing working directory.";
+              # exe.dev's init fails if image.workingDir is missing.
+              description = "Bake the home dir into the image, owned by the user.";
             };
           };
         }
@@ -129,8 +125,7 @@ in
 
     image.rootPaths = [ varEmpty ];
 
-    # Ownership can't be expressed in store paths; the image's fakeroot pass
-    # writes it (numeric ids — the build env can't resolve names).
+    # store paths are root-owned; fakeroot bakes ownership (numeric ids only).
     image.fakeRootCommands = lib.concatStrings (
       lib.mapAttrsToList (
         _: u:

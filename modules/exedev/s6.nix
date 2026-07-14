@@ -1,5 +1,3 @@
-# s6-overlay as PID 1: the overlay runtime, the s6-rc service graph generated
-# from s6.services (cf. systemd.services), and the init wrapper the image boots.
 {
   pkgs,
   config,
@@ -11,57 +9,80 @@ let
   cfg = config.s6;
 
   enabledServices = lib.filterAttrs (_: s: s.enable) cfg.services;
+  longruns = lib.filterAttrs (_: s: s.type == "longrun") enabledServices;
+  oneshots = lib.filterAttrs (_: s: s.type == "oneshot") enabledServices;
 
+  # longrun stdout+stderr flow to its logger.
   runFile =
     name: svc:
     pkgs.writeScript "s6-${name}-run" ''
       #!/command/with-contenv sh
+      exec 2>&1
       ${svc.run}
     '';
+  # oneshots have no logger pipe; self-redirect to the same log path.
   upFile =
     name: svc:
     pkgs.writeScript "s6-${name}-up" ''
       #!/bin/sh
+      mkdir -p ${cfg.logDir}/${name}
+      exec >>${cfg.logDir}/${name}/current 2>&1
       ${svc.run}
     '';
+  logFile =
+    name:
+    pkgs.writeScript "s6-${name}-log" ''
+      #!/bin/sh
+      mkdir -p ${cfg.logDir}/${name}
+      exec ${cfg.package}/command/s6-log -b T n${toString cfg.logKeep} s${toString cfg.logSize} ${cfg.logDir}/${name}
+    '';
 
-  # The s6-rc source graph: <name>/{type,run|up,dependencies.d/*} plus
-  # registration in the `user` bundle the overlay's base tarball defines.
+  deps = svc: lib.concatMapStrings (d: "touch $dir/dependencies.d/${d}\n") svc.dependencies;
+
   serviceGraph = pkgs.runCommand "s6-rc-services" { } (
     ''
       mkdir -p $out/etc/s6-overlay/s6-rc.d/user/contents.d
+      root=$out/etc/s6-overlay/s6-rc.d
     ''
     + lib.concatStrings (
-      lib.mapAttrsToList (name: svc: ''
-        d=$out/etc/s6-overlay/s6-rc.d/${name}
-        mkdir -p $d/dependencies.d
-        printf '%s' ${svc.type} > $d/type
-        ${
-          if svc.type == "longrun" then
-            "cp ${runFile name svc} $d/run"
-          else
-            # a oneshot's up file holds a single execline command line
-            ''printf '%s\n' "/command/with-contenv ${upFile name svc}" > $d/up''
-        }
-        ${lib.concatMapStrings (dep: ''
-          touch $d/dependencies.d/${dep}
-        '') svc.dependencies}
-        touch $out/etc/s6-overlay/s6-rc.d/user/contents.d/${name}
-      '') enabledServices
+      lib.mapAttrsToList (
+        name: svc:
+        if svc.type == "longrun" then
+          ''
+            dir=$root/${name}
+            mkdir -p $dir/dependencies.d
+            printf longrun > $dir/type
+            cp ${runFile name svc} $dir/run
+            printf '%s' ${name}-log > $dir/producer-for
+            ${deps svc}
+            l=$root/${name}-log
+            mkdir -p $l
+            printf longrun > $l/type
+            cp ${logFile name} $l/run
+            printf '%s' ${name} > $l/consumer-for
+            printf '%s' ${name}-pipeline > $l/pipeline-name
+            touch $root/user/contents.d/${name}-pipeline
+          ''
+        else
+          ''
+            dir=$root/${name}
+            mkdir -p $dir/dependencies.d
+            printf oneshot > $dir/type
+            printf '%s\n' "/command/with-contenv ${upFile name svc}" > $dir/up
+            ${deps svc}
+            touch $root/user/contents.d/${name}
+          ''
+      ) enabledServices
     )
   );
 
-  longruns = lib.filterAttrs (_: s: s.type == "longrun") enabledServices;
-  oneshots = lib.filterAttrs (_: s: s.type == "oneshot") enabledServices;
-
-  # Oneshots in dependency order for the non-PID1 path (s6-rc does this itself
-  # on the PID1 path).
+  # dependency order for the non-PID1 path (s6-rc handles it on the PID1 path).
   sortedOneshots =
     (lib.toposort (a: b: lib.elem a.name b.value.dependencies) (
       lib.mapAttrsToList (name: value: { inherit name value; }) oneshots
     )).result or (throw "s6: dependency cycle among oneshot services");
 
-  # Scan directory for the non-PID1 path: longruns only, same run scripts.
+  # bare s6-svscan logs a service when its dir holds a log/ subdir.
   svscanDir = pkgs.runCommand "s6-svscan-services" { } (
     ''
       mkdir -p $out
@@ -69,20 +90,16 @@ let
     + lib.concatStrings (
       lib.mapAttrsToList (name: svc: ''
         install -D ${runFile name svc} $out/${name}/run
+        install -D ${logFile name} $out/${name}/log/run
       '') longruns
     )
   );
 
-  # The image's Cmd. Two runtimes boot this image:
-  #  - docker and plain OCI hosts run it as PID 1: mount the pseudo-filesystems
-  #    the runtime didn't provide (must happen in the full-privilege PID-1
-  #    context — a supervised mount did not fix sshd's PTY), then hand off to
-  #    s6-overlay's /init.
-  #  - exe.dev's exe-init keeps PID 1 for itself and runs this as a child with
-  #    /proc and /dev/pts already mounted. s6-overlay refuses to run there
-  #    ("can only run as pid 1"), so: publish the container env where
-  #    with-contenv expects it, run the oneshots in dependency order, and
-  #    supervise the longruns with s6-svscan, which is PID-agnostic.
+  # Dual boot path. As PID 1 (docker): mount the pseudo-filesystems (must be
+  # PID 1 — a supervised mount didn't fix sshd's PTY) then exec s6-overlay's
+  # /init. As a child (exe.dev's exe-init keeps PID 1): s6-overlay refuses to
+  # run, so dump the container env, run oneshots in order, and supervise
+  # longruns with s6-svscan (PID-agnostic).
   initWrapper = pkgs.writeScript "init-wrapper" ''
     #!/bin/sh
     set -u
@@ -107,7 +124,7 @@ let
     exec /command/s6-svscan /run/service
   '';
 
-  # /proc and /dev/pts pre-created: initWrapper's mkdir can't cover a read-only /dev.
+  # pre-created: initWrapper's mkdir can't cover a read-only /dev.
   bootTree = pkgs.runCommand "s6-boot" { } ''
     mkdir -p $out/proc $out/dev/pts
     cp ${initWrapper} $out/init-wrapper
@@ -120,6 +137,22 @@ in
       default = import ../../packages/s6-overlay { inherit pkgs; };
       defaultText = lib.literalExpression "the s6-overlay packaged in packages/s6-overlay";
       description = "Unpacked s6-overlay tree (/init, /command, /package).";
+    };
+
+    logDir = mkOption {
+      type = types.str;
+      default = "/var/log";
+      description = "Per-service logs written to <logDir>/<service>/current.";
+    };
+    logKeep = mkOption {
+      type = types.int;
+      default = 10;
+      description = "Rotated log files to retain per service.";
+    };
+    logSize = mkOption {
+      type = types.int;
+      default = 1000000;
+      description = "Rotate a service log at this size (bytes).";
     };
 
     services = mkOption {
@@ -143,7 +176,7 @@ in
             };
             run = mkOption {
               type = types.lines;
-              description = "Shell body: exec a long-running process (longrun) or perform setup (oneshot). Runs with the container env (with-contenv).";
+              description = "Shell body, run with the container env (with-contenv).";
             };
             dependencies = mkOption {
               type = types.listOf types.str;

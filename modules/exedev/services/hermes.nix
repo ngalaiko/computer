@@ -1,29 +1,3 @@
-# Hermes (Nous Research's coding agent) under s6, running as its own account:
-#
-#  - hermes-setup   (oneshot) seeds the nix-managed config.yaml + owns the
-#                   state dir; the two long-runs depend on it.
-#  - hermes         (longrun) the web dashboard (chat UI + API).
-#  - hermes-proxy   (longrun) caddy bridging 0.0.0.0:<port> to the dashboard.
-#  - hermes-gateway (longrun) the messaging gateway (Telegram etc). Dormant
-#                   until its token env var is present, so it ships ready but
-#                   idle — set the token (e.g. exe.dev new --env
-#                   TELEGRAM_BOT_TOKEN=…) and it connects on next boot.
-#
-# No dashboard auth: exe.dev's HTTPS proxy authenticates in front. Hermes
-# hard-requires an auth provider on any non-loopback bind (June 2026
-# hardening, no opt-out) but treats loopback as trusted — so hermes binds
-# 127.0.0.1:<internalPort> and caddy bridges the public port to it. caddy
-# rewrites two headers so hermes's loopback guards accept the proxied request:
-#   - Host  → the loopback upstream (else the HTTP Host guard 400s).
-#   - Origin → the loopback upstream. Hermes's WebSocket guard rejects an
-#     Origin whose host isn't the bound (loopback) one, so without this the
-#     browser's https://<vm>.exe.xyz Origin fails the chat + PTY wss upgrades
-#     ("origin_mismatch"). The DNS-rebinding defence this guards is moot here
-#     since caddy is the only client and exe.dev's proxy fronts it.
-#
-# LLM access goes through exe.dev's metadata gateway, configured as named
-# providers in settings.providers; the gateway authenticates the VM, so each
-# api_key is a placeholder.
 {
   pkgs,
   config,
@@ -39,8 +13,6 @@ let
   hermesHome = "${user.home}/.hermes";
   configFile = settingsFormat.generate "hermes-config.yaml" cfg.settings;
 
-  # `env <overrides> cmd` keeps the inherited (with-contenv) environment and
-  # adds ours on top, so tokens from the container env pass through to hermes.
   runAsHermes =
     args:
     ''
@@ -64,8 +36,6 @@ in
 {
   options.services.hermes = {
     enable = lib.mkEnableOption "the Hermes agent (dashboard + messaging gateway), supervised by s6";
-    # nixpkgs has no hermes-agent; the flake wires in the package from the
-    # hermes-agent input (it builds itself with uv2nix against its own pin).
     package = mkOption {
       type = types.package;
       description = "Hermes package (must expose bin/hermes).";
@@ -83,17 +53,17 @@ in
     internalPort = mkOption {
       type = types.port;
       default = 9119;
-      description = "Loopback port hermes itself binds (auth-exempt).";
+      description = "Loopback port hermes itself binds.";
     };
     gateway.tokenEnv = mkOption {
       type = types.str;
       default = "TELEGRAM_BOT_TOKEN";
-      description = "Env var whose presence activates the messaging gateway (and, for Telegram, the bot token hermes reads directly).";
+      description = "Env var whose presence activates the messaging gateway.";
     };
     settings = mkOption {
       type = settingsFormat.type;
       default = { };
-      description = "Hermes config.yaml contents (nix-managed: rewritten on every boot).";
+      description = "Seed config.yaml, written only on first boot when none exists (backup/edits win after).";
     };
     environment = mkOption {
       type = types.attrsOf types.str;
@@ -113,12 +83,16 @@ in
     };
     users.groups.${cfg.user}.gid = 2000;
 
-    # Shared state setup, once, before the long-runs (runs as root).
     s6.services.hermes-setup = {
       type = "oneshot";
+      dependencies = [
+        "base"
+      ]
+      ++ lib.optional config.services.backup.enable "backup-restore";
+      # seed config.yaml only when absent; a restored or hand-edited one wins.
       run = ''
         mkdir -p ${hermesHome}
-        cp ${configFile} ${hermesHome}/config.yaml
+        [ -e ${hermesHome}/config.yaml ] || cp ${configFile} ${hermesHome}/config.yaml
         chown -R ${toString user.uid}:${gid} ${hermesHome}
       '';
     };
@@ -134,6 +108,9 @@ in
       '';
     };
 
+    # caddy binds the public port and rewrites Host+Origin to the loopback
+    # upstream; hermes's loopback Host/Origin guards 400 the proxied request
+    # (and reject the wss upgrade) otherwise.
     s6.services.hermes-proxy = {
       dependencies = [
         "base"
@@ -157,12 +134,9 @@ in
         "base"
         "hermes-setup"
       ];
-      # Idle (supervised, no restart loop) until the token env var appears, so
-      # the service ships ready but dormant. with-contenv has populated the
-      # container env by the time this runs.
       run = ''
         if [ -z "$(printenv ${cfg.gateway.tokenEnv} 2>/dev/null || true)" ]; then
-          echo "hermes-gateway: ${cfg.gateway.tokenEnv} unset — idling; set it and restart to enable messaging." >&2
+          echo "hermes-gateway: ${cfg.gateway.tokenEnv} unset — idling." >&2
           exec ${pkgs.coreutils}/bin/sleep infinity
         fi
       ''
@@ -173,7 +147,6 @@ in
 
     image.packages = [ cfg.package ];
     image.exposedPorts.tcp = [ cfg.port ];
-    # read by exe.dev at VM creation (keeps the platform's agent UI wiring)
     image.labels."exe.dev/install-shelley" = "true";
   };
 }

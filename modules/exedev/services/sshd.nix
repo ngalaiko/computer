@@ -1,7 +1,3 @@
-# OpenSSH under s6: explicit sshd_config in /etc, host keys generated into
-# /run by a oneshot, and the login user's authorized_keys installed at boot
-# from the env var exe.dev injects (the key only arrives at VM creation, so
-# this stays a runtime step — no keys are baked into the image).
 {
   pkgs,
   config,
@@ -65,8 +61,6 @@ in
       Subsystem sftp internal-sftp
     '';
 
-    # Host keys live in /run: they're effectively internal, the client only
-    # ever sees exe.dev's gateway cert.
     s6.services.sshd-keygen = {
       type = "oneshot";
       run = ''
@@ -77,8 +71,7 @@ in
       '';
     };
 
-    # The user exists in the static /etc/passwd, but its home is created +
-    # owned here at runtime (the key only arrives via env at boot).
+    # keys arrive via env only at boot, so this is a runtime step.
     s6.services.authorized-keys = {
       type = "oneshot";
       run = ''
@@ -99,8 +92,7 @@ in
         "base"
         "sshd-keygen"
       ];
-      # sshd refuses to start unless invoked with an absolute path; resolve it
-      # on PATH (openssh installs it in bin or sbin depending on the package).
+      # sshd refuses to start unless invoked by absolute path.
       run = ''
         exec "$(command -v sshd)" -D -e -f /etc/ssh/sshd_config
       '';

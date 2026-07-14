@@ -7,8 +7,7 @@
       url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # The Hermes coding agent; keeps its own nixpkgs pin — its uv2nix build is
-    # tested against it.
+    # own nixpkgs pin (no follows): its uv2nix build is tied to it.
     hermes-agent.url = "github:NousResearch/hermes-agent";
   };
 
@@ -26,8 +25,7 @@
         "x86_64-linux"
         "aarch64-linux"
       ];
-      # darwin maps to the matching-arch Linux image so `nix build` works on a
-      # Mac (offloaded to the linux-builder VM).
+      # darwin builds the matching-arch Linux image via the linux-builder VM.
       darwinToLinux = {
         "aarch64-darwin" = "aarch64-linux";
         "x86_64-darwin" = "x86_64-linux";
@@ -35,7 +33,6 @@
       allSystems = linuxSystems ++ builtins.attrNames darwinToLinux;
       linuxOf = system: darwinToLinux.${system} or system;
 
-      # The system instance: which services are on and which accounts exist.
       exedevFor =
         linuxSystem:
         let
@@ -49,7 +46,6 @@
                 labels = {
                   "org.opencontainers.image.title" = "computer.exe";
                   "org.opencontainers.image.description" = "exe.dev image: s6-overlay, OpenSSH, and Hermes";
-                  # read by exe.dev at VM creation
                   "exe.dev/login-user" = "exedev";
                 };
                 packages = with pkgs; [
@@ -73,30 +69,17 @@
                 enable = true;
                 package = hermes-agent.packages.${linuxSystem}.minimal.override {
                   extraDependencyGroups = [
-                    "anthropic" # native Anthropic API to the gateway
-                    "mcp" # attach MCP tool servers
-                    "computer-use" # computer-use tooling
-                    "youtube" # youtube transcript tool
-                    "messaging" # telegram (bundles discord+slack too)
+                    "anthropic"
+                    "mcp"
+                    "computer-use"
+                    "youtube"
+                    "messaging"
                   ];
-                  # runtime-PATH tool only (not linked into the venv), so our
-                  # nixpkgs' headless build is safe — drops the gtk/pipewire/
-                  # gstreamer closure the default ffmpeg drags in
+                  # headless: drops the gtk/pipewire/gstreamer closure.
                   ffmpeg = nixpkgs.legacyPackages.${linuxSystem}.ffmpeg-headless;
                 };
+                # exe.dev LLM integration (llm.int.exe.xyz, attached auto:all).
                 settings =
-                  # Named providers over the exe.dev LLM integration
-                  # (llm.int.exe.xyz — must be attached to the VM, `auto:all`).
-                  # Each upstream needs its own wire protocol: anthropic →
-                  # /v1/messages, openai → /v1/responses (the gpt-5.x reasoning
-                  # models reject tools on chat/completions), fireworks →
-                  # chat/completions. openai + fireworks self-populate the picker
-                  # via discover_models (hermes GETs <base_url>/models);
-                  # anthropic's /models lists nothing, so claude is enumerated by
-                  # hand. Every model still needs a model_aliases entry: a bare
-                  # known name (claude-*, gpt-*) otherwise resolves to hermes's
-                  # built-in provider, not ours. Fireworks ids also carry a
-                  # `fireworks/` prefix on the wire.
                   let
                     base = "https://llm.int.exe.xyz";
                     claudeModels = [
@@ -130,8 +113,8 @@
                       "gpt-oss-120b"
                     ];
                     fireworksId = m: "fireworks/${m}";
-                    # model_aliases pin each short name to its provider (bare id
-                    # for claude/gpt, `fireworks/`-prefixed for fireworks).
+                    # a bare known model name resolves to hermes's built-in
+                    # provider unless an alias pins it to ours.
                     aliasList =
                       provider: toId: names:
                       map (m: {
@@ -146,8 +129,7 @@
                       ++ aliasList "exe-openai" (m: m) gptModels
                       ++ aliasList "exe-fireworks" fireworksId fireworksShort
                     );
-                    # hermes resolves aliases for runtime `-m`/the picker but NOT
-                    # for model.default, so resolve the cold-start model here.
+                    # aliases aren't resolved for model.default; resolve here.
                     defaultModel = "deepseek-v4-flash";
                   in
                   {
@@ -160,7 +142,7 @@
                         base_url = "${base}/anthropic";
                         api_mode = "anthropic_messages";
                         api_key = "irrelevant";
-                        discover_models = false; # integration lists no anthropic models
+                        discover_models = false; # /models lists no anthropic
                         default_model = "claude-opus-4-6";
                         models = claudeModels;
                       };
@@ -180,6 +162,11 @@
                     };
                     model_aliases = aliases;
                   };
+              };
+
+              services.backup = {
+                enable = true;
+                paths = [ "/var/lib/hermes/.hermes" ];
               };
 
               users.users.exedev = {

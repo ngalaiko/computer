@@ -1,5 +1,3 @@
-# s6-overlay (/init + supervision runtime), unpacked. The service graph is NOT
-# here — the s6 module generates it from s6.services.
 # tar without -p: the Nix store can't hold s6-overlay-suexec's setuid bit.
 { pkgs }:
 let

@@ -1,0 +1,72 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: image tag to deploy (blank = the built commit's short SHA)
+        default: ""
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+    branches: [master]
+
+# exe.dev VM names are global; keep this unique. Defined once, used below.
+env:
+  VM_NAME: ngalaiko-computer
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Redeploy
+    runs-on: ubuntu-24.04
+    # manual dispatch always; auto only when the build actually succeeded.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # the commit that was built (workflow_run), else the dispatched ref.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Resolve image tag
+        id: tag
+        env:
+          IN_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          tag="$IN_TAG"
+          [ -n "$tag" ] || tag="$(git rev-parse --short HEAD)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pin exe.dev by its documented host-key fingerprint (faq/host-key).
+          ssh-keyscan exe.dev > ~/.ssh/known_hosts 2>/dev/null
+          ssh-keygen -lf ~/.ssh/known_hosts \
+            | grep -q "SHA256:JJOP/lwiBGOMilfONPWZCXUrfK154cnJFXcqlsi6lPo" \
+            || { echo "exe.dev host-key fingerprint mismatch"; exit 1; }
+
+      - name: Redeploy
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
+          B2_ACCOUNT_KEY: ${{ secrets.B2_ACCOUNT_KEY }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 exe.dev rm "$VM_NAME" || true
+          ssh -i ~/.ssh/id_ed25519 exe.dev new \
+            --image="ghcr.io/ngalaiko/computer.exe:$IMAGE_TAG" \
+            --name "$VM_NAME" \
+            --env RESTIC_REPOSITORY=b2:ngalaiko-backups:exedev \
+            --env RESTIC_PASSWORD="$RESTIC_PASSWORD" \
+            --env B2_ACCOUNT_ID=0036cfed748e70c0000000002 \
+            --env B2_ACCOUNT_KEY="$B2_ACCOUNT_KEY"
