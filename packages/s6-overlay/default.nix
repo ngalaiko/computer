@@ -1,5 +1,5 @@
-# s6-overlay (/init + supervision) plus ./rootfs, which holds the ENTIRE service
-# graph (etc/s6-overlay/s6-rc.d/) — the one place it's declared.
+# s6-overlay (/init + supervision runtime), unpacked. The service graph is NOT
+# here — the s6 module generates it from s6.services.
 # tar without -p: the Nix store can't hold s6-overlay-suexec's setuid bit.
 { pkgs }:
 let
@@ -22,23 +22,16 @@ let
     }
     .${pkgs.stdenv.hostPlatform.system}
       or (throw "unsupported s6-overlay platform: ${pkgs.stdenv.hostPlatform.system}");
-
-  overlay =
-    pkgs.runCommand "s6-overlay-${version}"
-      {
-        nativeBuildInputs = [
-          pkgs.gnutar
-          pkgs.xz
-        ];
-      }
-      ''
-        mkdir -p $out
-        tar -C $out -Jxf ${noarch}
-        tar -C $out -Jxf ${arch}
-        cp -R ${./rootfs}/. $out/
-      '';
 in
-{
-  packages = [ ];
-  rootfs = overlay;
-}
+pkgs.runCommand "s6-overlay-${version}"
+  {
+    nativeBuildInputs = [
+      pkgs.gnutar
+      pkgs.xz
+    ];
+  }
+  ''
+    mkdir -p $out
+    tar -C $out -Jxf ${noarch}
+    tar -C $out -Jxf ${arch}
+  ''

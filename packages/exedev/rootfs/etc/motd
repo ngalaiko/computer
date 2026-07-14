@@ -1,4 +1,0 @@
-exe.dev Nix image
-
-This image is built by Nix and includes a PTY-capable login environment,
-OpenSSH, and the Nix CLI with flakes enabled.

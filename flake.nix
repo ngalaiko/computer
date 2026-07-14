@@ -3,8 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    # Provides docker.nix and the nix package the image ships.
-    nixSource.url = "github:NixOS/nix/2.35.0";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,7 +13,6 @@
     inputs@{
       self,
       nixpkgs,
-      nixSource,
       nix-darwin,
     }:
     let
@@ -34,13 +31,66 @@
       allSystems = linuxSystems ++ builtins.attrNames darwinToLinux;
       linuxOf = system: darwinToLinux.${system} or system;
 
+      # The system instance: which services are on and which accounts exist.
       exedevFor =
         linuxSystem:
-        import ./packages/exedev {
-          pkgs = nixpkgs.legacyPackages.${linuxSystem};
-          inherit nixSource;
-          nixPackage = nixSource.packages.${linuxSystem}.nix;
-        };
+        let
+          exedev = import ./modules/exedev { pkgs = nixpkgs.legacyPackages.${linuxSystem}; };
+          system = exedev.eval (
+            { pkgs, ... }:
+            {
+              image = {
+                name = "computer.exe";
+                workingDir = "/home/exedev";
+                labels = {
+                  "org.opencontainers.image.title" = "computer.exe";
+                  "org.opencontainers.image.description" = "exe.dev image: s6-overlay, OpenSSH, and Shelley";
+                  # read by exe.dev at VM creation
+                  "exe.dev/login-user" = "exedev";
+                };
+                packages = with pkgs; [
+                  bashInteractive
+                  coreutils-full
+                  findutils
+                  gnugrep
+                  gnused
+                  iproute2
+                  procps
+                  tzdata
+                  util-linux
+                ];
+              };
+
+              services.sshd = {
+                enable = true;
+                authorizedKeys.user = "exedev";
+              };
+              services.shelley = {
+                enable = true;
+                user = "exedev";
+                settings.llm_gateway = "http://169.254.169.254/gateway/llm";
+              };
+
+              users.users.exedev = {
+                uid = 1000;
+                group = "exedev";
+                home = "/home/exedev";
+                createHome = true;
+                shell = "/bin/sh";
+                description = "exe.dev user";
+              };
+              users.groups.exedev.gid = 1000;
+
+              environment.etc.motd.text = ''
+                exe.dev image
+
+                This image is built by Nix and includes a PTY-capable login
+                environment, OpenSSH, and Shelley.
+              '';
+            }
+          );
+        in
+        system.build.image;
 
       releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
     in
