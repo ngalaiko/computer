@@ -233,11 +233,15 @@ in
       "ssl/certs/ca-certificates.crt".source = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       protocols.source = "${pkgs.iana-etc}/etc/protocols";
       services.source = "${pkgs.iana-etc}/etc/services";
-      # sshd resets PATH to its compiled default; login shells restore the image's.
+      # sshd resets PATH to its compiled default; login shells restore the
+      # image's and pull in any /etc/profile.d drop-ins (e.g. nix).
       profile.text = ''
         export PATH=/command:/bin:/sbin:/usr/bin
         export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
         export GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt
+        for f in /etc/profile.d/*.sh; do
+          [ -r "$f" ] && . "$f"
+        done
       '';
     };
   };

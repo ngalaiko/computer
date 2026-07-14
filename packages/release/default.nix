@@ -80,7 +80,7 @@ rec {
       # jj change ids derive from git history, so a fresh CI init tags the same rev
       jj root >/dev/null 2>&1 || jj git init --colocate
       git_sha="$(git rev-parse --short HEAD)"
-      jj_rev="$(jj log --no-graph -r 'trunk()' -T 'change_id.short()')"
+      jj_rev="$(jj log --no-graph -r '@' -T 'change_id.short()')"
       for t in "$git_sha" "$jj_rev"; do
         regctl image copy "$image:$tag" "$image:$t"
       done

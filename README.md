@@ -6,7 +6,7 @@ A Nix-built OCI image to bootstrap [exe.dev](https://exe.dev) machine.
 
 ## Mac setup
 
-Local builds offload to a nix-darwin **linux-builder VM** (both arches,
+Local builds offload to a nix-darwin linux-builder VM (both arches,
 x86_64 via emulation), configured in `hosts/mac/default.nix`:
 
 ```bash
@@ -30,6 +30,7 @@ nix run .#release
 ## Launch
 
 ```fish
-ssh exe.dev new --image=ghcr.io/ngalaiko/computer.exe:latest --name computer
+ssh exe.dev new --image=ghcr.io/ngalaiko/computer.exe:latest --name computer \
+  --env TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
 ssh computer.exe.xyz
 ```
