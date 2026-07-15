@@ -59,6 +59,7 @@
                   tzdata
                   util-linux
                   curl
+                  gh
                   git
                   jq
                   chromium
