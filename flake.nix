@@ -64,7 +64,7 @@
                   jq
                   chromium
                   (import ./packages/agent-browser { inherit pkgs; })
-				  gh
+                  gh
                 ];
               };
 
