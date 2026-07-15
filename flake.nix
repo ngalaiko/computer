@@ -61,9 +61,9 @@
                   curl
                   git
                   jq
-                  # browser tool: system chromium + the agent-browser CLI.
                   chromium
                   (import ./packages/agent-browser { inherit pkgs; })
+				  gh
                 ];
               };
 
