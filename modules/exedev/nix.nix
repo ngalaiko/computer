@@ -81,7 +81,9 @@ in
         "base"
         "nix-db"
       ];
-      run = "exec ${pkgs.nix}/bin/nix-daemon --daemon";
+      # must use the local store; inheriting NIX_REMOTE=daemon (image.env) makes
+      # it connect to its own socket and fork-bomb the store until PIDs exhaust.
+      run = "NIX_REMOTE= exec ${pkgs.nix}/bin/nix-daemon --daemon";
     };
   };
 }
