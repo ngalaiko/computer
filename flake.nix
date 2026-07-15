@@ -172,7 +172,7 @@
 
               services.backup = {
                 enable = true;
-                paths = [ "/var/lib/hermes/.hermes" ];
+                paths = [ "/var/lib/hermes" ];
               };
 
               users.users.exedev = {
