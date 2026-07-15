@@ -56,7 +56,9 @@ in
         build-users-group = nixbld
         trusted-users = root exedev hermes
         substituters = https://cache.nixos.org/
+        extra-substituters = https://nix-community.cachix.org
         trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWGuJSngDLi9PB0dxEIoH5U8vKf1c=
+        extra-trusted-public-keys = nix-community.cachix.org-1:6B2OlI2s8yNqBi0A5HheB1jO31v3eB/OlG5RAnFiRbQ=
         sandbox = false
       '';
       # sshd resets the env, so login shells re-source this via /etc/profile.
@@ -73,6 +75,12 @@ in
         mkdir -p /nix/var/nix/profiles/per-user /nix/var/nix/gcroots/per-user
         if [ ! -f /nix/var/nix/db/db.sqlite ]; then
           NIX_REMOTE= ${pkgs.nix}/bin/nix-store --load-db < ${storeReg}/registration
+        fi
+        # Seed a default nixpkgs channel if none is configured.
+        # Using nixos-25.11 to match the flake's pinned nixpkgs revision.
+        if ! ${pkgs.nix}/bin/nix-channel --list 2>/dev/null | grep -q nixpkgs; then
+          ${pkgs.nix}/bin/nix-channel --add https://nixos.org/channels/nixos-25.11 nixpkgs 2>&1
+          ${pkgs.nix}/bin/nix-channel --update 2>&1 || true
         fi
       '';
     };
