@@ -36,3 +36,12 @@ nix run .#release
 | `RESTIC_PASSWORD` | restic repo encryption password |
 | `B2_ACCOUNT_ID` | B2 key id | 
 | `B2_ACCOUNT_KEY` | B2 application key (scope to the bucket) | 
+
+## Skills
+
+This repo ships [Hermes Agent skills](docs/skills/) for agents running on this VM,
+covering the update workflow and environment conventions.
+
+| Skill | Description |
+|-------|-------------|
+| `computer-self-update` | PR workflow for updating the VM through changes to this repo | 
