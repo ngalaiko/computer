@@ -1,6 +1,7 @@
 name: build
 
 on:
+  pull_request:
   push:
     branches: [master]
   workflow_dispatch:
@@ -8,23 +9,28 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
     name: Flake check + format
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: nixbuild/nix-quick-install-action@v35
       - run: nix flake check --all-systems
       - run: nix fmt . && git diff --exit-code
 
   build:
-    name: Build + push ${{ matrix.system }}
+    name: Build ${{ matrix.system }}
     needs: check
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
+      actions: write # cache purge
     strategy:
       fail-fast: false
       matrix:
@@ -33,14 +39,31 @@ jobs:
           - { system: aarch64-linux, runner: ubuntu-24.04-arm }
     steps:
       - uses: actions/checkout@v5
-      - uses: DeterminateSystems/nix-installer-action@v22
-      - name: Build + push ${{ matrix.system }}
+      # single-user install: /nix is owned by the runner, so it can be cached.
+      - uses: nixbuild/nix-quick-install-action@v35
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'flake.nix', 'modules/**', 'packages/**') }}
+          restore-prefixes-first-match: nix-${{ matrix.system }}-
+          # PR saves count against the repo quota and would evict master's caches.
+          save: ${{ github.event_name != 'pull_request' }}
+          gc-max-store-size-linux: 6G
+          purge: true
+          purge-prefixes: nix-${{ matrix.system }}-
+          purge-created: 0
+          purge-primary-key: never
+      - name: Build ${{ matrix.system }}
+        # out-link roots the image closure so the pre-save GC keeps it.
+        run: nix build .#packages.${{ matrix.system }}.exedev --out-link /tmp/image
+      - name: Push ${{ matrix.system }}
+        if: github.event_name != 'pull_request'
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: nix run .#push-image -- ${{ matrix.system }}
 
   manifest:
     name: Publish multi-arch manifest
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -50,7 +73,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: nixbuild/nix-quick-install-action@v35
       - name: Stitch manifest + tags
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
