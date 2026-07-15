@@ -55,11 +55,6 @@ in
       default = 9119;
       description = "Loopback port hermes itself binds.";
     };
-    gateway.tokenEnv = mkOption {
-      type = types.str;
-      default = "TELEGRAM_BOT_TOKEN";
-      description = "Env var whose presence activates the messaging gateway.";
-    };
     settings = mkOption {
       type = settingsFormat.type;
       default = { };
@@ -133,14 +128,9 @@ in
       dependencies = [
         "base"
         "hermes-setup"
-      ];
-      run = ''
-        if [ -z "$(printenv ${cfg.gateway.tokenEnv} 2>/dev/null || true)" ]; then
-          echo "hermes-gateway: ${cfg.gateway.tokenEnv} unset — idling." >&2
-          exec ${pkgs.coreutils}/bin/sleep infinity
-        fi
-      ''
-      + runAsHermes ''
+      ]
+      ++ lib.optional config.services.backup.enable "backup-restore";
+      run = runAsHermes ''
         ${cfg.package}/bin/hermes gateway run
       '';
     };
