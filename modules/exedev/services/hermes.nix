@@ -45,13 +45,13 @@ in
       default = "hermes";
       description = "Account to run Hermes as; declared by this module.";
     };
-    port = mkOption {
-      type = types.port;
-      default = 9999;
-      description = "Public port caddy serves the dashboard on.";
+    ports = mkOption {
+      type = types.listOf types.port;
+      default = [ 9999 ];
+      description = "Public ports to expose; the first is used for the dashboard proxy.";
     };
     internalPort = mkOption {
-      type = types.port;
+      type = types.listOf types.port;
       default = 9119;
       description = "Loopback port hermes itself binds.";
     };
@@ -117,7 +117,7 @@ in
         exec /command/s6-setuidgid ${cfg.user} \
           env HOME=${user.home} XDG_DATA_HOME=/run/caddy XDG_CONFIG_HOME=/run/caddy \
           ${pkgs.caddy}/bin/caddy reverse-proxy \
-            --from http://:${toString cfg.port} \
+            --from http://:${toString (builtins.head cfg.ports)} \
             --to 127.0.0.1:${toString cfg.internalPort} \
             --change-host-header \
             --header-up "Origin: http://127.0.0.1:${toString cfg.internalPort}"
@@ -136,7 +136,7 @@ in
     };
 
     image.packages = [ cfg.package ];
-    image.exposedPorts.tcp = [ cfg.port ];
+    image.exposedPorts.tcp = cfg.ports;
     image.labels."exe.dev/install-shelley" = "true";
   };
 }

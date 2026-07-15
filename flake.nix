@@ -58,6 +58,9 @@
                   procps
                   tzdata
                   util-linux
+                  curl
+                  git
+                  jq
                   # browser tool: system chromium + the agent-browser CLI.
                   chromium
                   (import ./packages/agent-browser { inherit pkgs; })
@@ -84,6 +87,7 @@
                 };
                 # agent-browser uses this instead of downloading its own chromium.
                 environment.AGENT_BROWSER_EXECUTABLE_PATH = "/bin/chromium";
+                ports = [ 9999 8644 ];
                 # exe.dev LLM integration (llm.int.exe.xyz, attached auto:all).
                 settings =
                   let
