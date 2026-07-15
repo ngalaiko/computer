@@ -58,6 +58,9 @@
                   procps
                   tzdata
                   util-linux
+                  # browser tool: system chromium + the agent-browser CLI.
+                  chromium
+                  (import ./packages/agent-browser { inherit pkgs; })
                 ];
               };
 
@@ -74,10 +77,13 @@
                     "computer-use"
                     "youtube"
                     "messaging"
+                    "edge-tts"
                   ];
                   # headless: drops the gtk/pipewire/gstreamer closure.
                   ffmpeg = nixpkgs.legacyPackages.${linuxSystem}.ffmpeg-headless;
                 };
+                # agent-browser uses this instead of downloading its own chromium.
+                environment.AGENT_BROWSER_EXECUTABLE_PATH = "/bin/chromium";
                 # exe.dev LLM integration (llm.int.exe.xyz, attached auto:all).
                 settings =
                   let
