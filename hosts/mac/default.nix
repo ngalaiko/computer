@@ -13,6 +13,9 @@
       "root"
       "nikita.galaiko"
     ];
+    # the linux-builder VM fetches inputs from cache.nixos.org itself instead
+    # of the mac substituting linux paths locally and uploading them.
+    builders-use-substitutes = true;
   };
 
   programs.fish.enable = true;

@@ -22,7 +22,8 @@ let
 
   # scoped to image.packages, never image.rootPaths (the loader is a rootPaths
   # service — feeding rootPaths back into the closure is an eval cycle).
-  storeReg = pkgs.closureInfo { rootPaths = config.image.packages; };
+  # pkgs.path must be db-registered or flake refs reject it as an invalid path.
+  storeReg = pkgs.closureInfo { rootPaths = config.image.packages ++ [ pkgs.path ]; };
 in
 {
   options.nix.enable = mkOption {
@@ -37,6 +38,7 @@ in
     image.env = [
       "PATH=/command:${profile}/bin:${profile}/sbin:/bin:/sbin:/usr/bin"
       "NIX_REMOTE=daemon"
+      "NIX_PATH=nixpkgs=${pkgs.path}"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       "GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt"
@@ -51,6 +53,7 @@ in
     };
 
     environment.etc = {
+      # nix-path covers env-scrubbed non-login contexts (e.g. `ssh host cmd`).
       "nix/nix.conf".text = ''
         experimental-features = nix-command flakes
         build-users-group = nixbld
@@ -58,12 +61,37 @@ in
         substituters = https://cache.nixos.org/
         trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWGuJSngDLi9PB0dxEIoH5U8vKf1c=
         sandbox = false
+        nix-path = nixpkgs=${pkgs.path}
       '';
+      # pins nixpkgs flake refs to the image's rev — the nixos-25.11 pin is
+      # fully covered by cache.nixos.org, unlike the registry default
+      # (unstable), which rotates out of cache and rebuilds from source.
+      "nix/registry.json".text = builtins.toJSON {
+        version = 2;
+        flakes = [
+          {
+            exact = true;
+            from = {
+              type = "indirect";
+              id = "nixpkgs";
+            };
+            to = {
+              type = "path";
+              path = "${pkgs.path}";
+            };
+          }
+        ];
+      };
       # sshd resets the env, so login shells re-source this via /etc/profile.
       "profile.d/nix.sh".text = ''
         export PATH="$HOME/.nix-profile/bin:${profile}/bin:${profile}/sbin:$PATH"
         export NIX_REMOTE=daemon
         export NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
+        export NIX_PATH="nixpkgs=${pkgs.path}"
+        # nix-env -iA nixpkgs.* reads ~/.nix-defexpr, not NIX_PATH.
+        if [ ! -e "$HOME/.nix-defexpr/nixpkgs" ]; then
+          mkdir -p "$HOME/.nix-defexpr" && ln -sfn ${pkgs.path} "$HOME/.nix-defexpr/nixpkgs"
+        fi
       '';
     };
 
