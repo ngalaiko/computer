@@ -36,3 +36,4 @@ nix run .#release
 | `RESTIC_PASSWORD` | restic repo encryption password |
 | `B2_ACCOUNT_ID` | B2 key id | 
 | `B2_ACCOUNT_KEY` | B2 application key (scope to the bucket) | 
+# Test PR for webhook verification
