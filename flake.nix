@@ -88,6 +88,7 @@
                 };
                 # agent-browser uses this instead of downloading its own chromium.
                 environment.AGENT_BROWSER_EXECUTABLE_PATH = "/bin/chromium";
+                environment.GH_HOST = "computer.int.exe.xyz";
                 ports = [ 8644 ];
                 # exe.dev LLM integration (llm.int.exe.xyz, attached auto:all).
                 settings =
