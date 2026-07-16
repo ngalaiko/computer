@@ -3,6 +3,7 @@
   imports = [
     ./atuin.nix
     ./fish
+    ./jj.nix
     ./neovim
   ];
 

@@ -22,4 +22,13 @@
       curl
     ];
   };
+
+  # fish reads no /etc/profile; wire the nix profiles for fish logins
+  # (nikita's shell) — cf. hosts/mac/home/nix-paths.nix for the mac side.
+  environment.etc."fish/config.fish".text = ''
+    fish_add_path --global --move --path \
+      "$HOME/.nix-profile/bin" \
+      /etc/profiles/per-user/(whoami)/bin \
+      /nix/var/nix/profiles/default/bin
+  '';
 }
