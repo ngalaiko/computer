@@ -108,7 +108,6 @@
           "$right"
         ];
         diff-editor = ":builtin";
-        merge-editor = "smerge";
       };
     };
   };

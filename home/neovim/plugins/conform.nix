@@ -11,15 +11,11 @@
         typescriptreact = [ "prettierd" ];
         go = [ "golangci-lint" ];
         python = [ "ruff_format" ];
-        terraform = [ "terraform_fmt" ];
-        terraform-vars = [ "terraform_fmt" ];
-        sql = [ "sqlfmt" ];
         rust = [ "rustfmt" ];
       };
     };
 
-    # ruff comes with the lsp server; terraform (unfree), rustfmt (rustup's),
-    # sqlfmt (unpackaged)
+    # ruff comes with the lsp server; rustfmt (rustup's) resolves from PATH.
     extraPackages = with pkgs; [
       stylua
       prettierd
