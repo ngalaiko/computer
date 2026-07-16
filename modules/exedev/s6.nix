@@ -29,6 +29,14 @@ let
       exec >>${cfg.logDir}/${name}/current 2>&1
       ${svc.run}
     '';
+  downFile =
+    name: svc:
+    pkgs.writeScript "s6-${name}-down" ''
+      #!/bin/sh
+      mkdir -p ${cfg.logDir}/${name}
+      exec >>${cfg.logDir}/${name}/current 2>&1
+      ${svc.down}
+    '';
   logFile =
     name:
     pkgs.writeScript "s6-${name}-log" ''
@@ -69,6 +77,9 @@ let
             mkdir -p $dir/dependencies.d
             printf oneshot > $dir/type
             printf '%s\n' "/command/with-contenv ${upFile name svc}" > $dir/up
+            ${lib.optionalString (
+              svc.down != ""
+            ) ''printf '%s\n' "/command/with-contenv ${downFile name svc}" > $dir/down''}
             ${deps svc}
             touch $root/user/contents.d/${name}
           ''
@@ -177,6 +188,11 @@ in
             run = mkOption {
               type = types.lines;
               description = "Shell body, run with the container env (with-contenv).";
+            };
+            down = mkOption {
+              type = types.lines;
+              default = "";
+              description = "Oneshot shutdown body; only runs on the PID1 path (exe.dev's exe-init gives no orderly shutdown).";
             };
             dependencies = mkOption {
               type = types.listOf types.str;

@@ -23,6 +23,11 @@
     ];
   };
 
+  services.tailscale = {
+    enable = true;
+    hostname = "exedev";
+  };
+
   # fish reads no /etc/profile; wire the nix profiles for fish logins
   # (nikita's shell) — cf. hosts/mac/home/nix-paths.nix for the mac side.
   environment.etc."fish/config.fish".text = ''
