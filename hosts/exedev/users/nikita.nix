@@ -4,6 +4,7 @@ let
   home = "/home/${name}";
   hm = inputs.home-manager.lib.homeManagerConfiguration {
     inherit pkgs;
+    extraSpecialArgs = { inherit inputs; };
     modules = [
       ../../../home
       {
