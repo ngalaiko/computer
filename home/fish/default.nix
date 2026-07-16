@@ -107,6 +107,11 @@
               set prompt_status $status_color "[" $last_status "]" $normal
           end
 
+          # host label (set per machine via nix)
+          if set -q prompt_host
+              echo -n -s (set_color brblack) $prompt_host $normal ' '
+          end
+
           echo -s $cwd_color (prompt_pwd) $vcs_color (fish_vcs_prompt) $normal ' ' $prompt_status
           echo -n -s $status_color $suffix ' ' $normal
         '';

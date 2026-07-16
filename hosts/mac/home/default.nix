@@ -10,4 +10,6 @@
   ];
 
   home.file.".hushlogin".text = "";
+
+  programs.fish.interactiveShellInit = "set --global prompt_host mac";
 }

@@ -10,6 +10,7 @@ let
       {
         home.username = name;
         home.homeDirectory = home;
+        programs.fish.interactiveShellInit = "set --global prompt_host exedev";
       }
     ];
   };
