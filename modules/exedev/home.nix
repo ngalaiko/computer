@@ -34,7 +34,6 @@ let
     env: lib.concatStrings (lib.mapAttrsToList (k: v: "  export ${k}=${lib.escapeShellArg v}\n") env);
 in
 {
-  # extends the users.users submodule declared in users.nix.
   options.users.users = mkOption {
     type = types.attrsOf (
       types.submodule {

@@ -53,6 +53,11 @@ in
       default = [ ];
       description = "Extra store paths to register in the image's nix db; anything shipped via image.rootPaths is unregistered (= garbage to nix gc) unless listed here.";
     };
+    trustedUsers = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      description = "Accounts the nix daemon trusts (root is always included).";
+    };
   };
 
   config = lib.mkIf config.nix.enable {
@@ -80,7 +85,7 @@ in
       "nix/nix.conf".text = ''
         experimental-features = nix-command flakes
         build-users-group = nixbld
-        trusted-users = root exedev hermes
+        trusted-users = ${lib.concatStringsSep " " (lib.unique ([ "root" ] ++ config.nix.trustedUsers))}
         substituters = https://cache.nixos.org/
         trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
         sandbox = false

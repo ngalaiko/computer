@@ -1,5 +1,3 @@
-# the agent account: the hermes service runs as it, and its state is what
-# gets backed up.
 {
   pkgs,
   lib,

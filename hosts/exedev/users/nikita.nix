@@ -1,8 +1,6 @@
-# the login account: exe.dev shells in as this user (see the login-user
-# label in ../default.nix); exe-init requires workingDir to exist.
 { ... }:
 let
-  name = "exedev";
+  name = "nikita";
   home = "/home/${name}";
 in
 {
@@ -13,13 +11,18 @@ in
     authorizedKeys.user = name;
   };
 
+  security.sudo.enable = true;
+
+  nix.trustedUsers = [ name ];
+
   users.users.${name} = {
     uid = 1000;
     group = name;
     inherit home;
     createHome = true;
     shell = "/bin/sh";
-    description = "exe.dev user";
+    description = "Nikita Galaiko";
   };
   users.groups.${name}.gid = 1000;
+  users.groups.wheel.members = [ name ];
 }

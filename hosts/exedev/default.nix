@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
   imports = [
-    ./users/exedev.nix
+    ./users/nikita.nix
     ./users/hermes.nix
   ];
 
@@ -10,7 +10,7 @@
     labels = {
       "org.opencontainers.image.title" = "computer.exe";
       "org.opencontainers.image.description" = "exe.dev image: s6-overlay, OpenSSH, and Hermes";
-      "exe.dev/login-user" = "exedev";
+      "exe.dev/login-user" = "nikita";
     };
     packages = with pkgs; [
       bashInteractive
