@@ -61,10 +61,10 @@
                   curl
                   gh
                   git
+                  himalaya
                   jq
                   chromium
                   (import ./packages/agent-browser { inherit pkgs; })
-                  gh
                 ];
               };
 
