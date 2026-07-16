@@ -46,8 +46,8 @@ in
 
     environment.etc."ssh/sshd_config".text = ''
       Port ${toString cfg.port}
-      HostKey /run/ssh_host_ed25519_key
-      HostKey /run/ssh_host_rsa_key
+      HostKey /etc/ssh/ssh_host_ed25519_key
+      HostKey /etc/ssh/ssh_host_rsa_key
       PidFile /run/sshd.pid
       PasswordAuthentication no
       KbdInteractiveAuthentication no
@@ -65,15 +65,20 @@ in
       type = "oneshot";
       run = ''
         set -eu
-        mkdir -p /run/sshd
-        [ -f /run/ssh_host_ed25519_key ] || ${cfg.package}/bin/ssh-keygen -q -t ed25519 -f /run/ssh_host_ed25519_key -N ""
-        [ -f /run/ssh_host_rsa_key ]     || ${cfg.package}/bin/ssh-keygen -q -t rsa -b 4096 -f /run/ssh_host_rsa_key -N ""
+        mkdir -p /run/sshd /etc/ssh
+        [ -f /etc/ssh/ssh_host_ed25519_key ] || ${cfg.package}/bin/ssh-keygen -q -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
+        [ -f /etc/ssh/ssh_host_rsa_key ]     || ${cfg.package}/bin/ssh-keygen -q -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N ""
       '';
     };
 
-    # keys arrive via env only at boot, so this is a runtime step.
+    # keys arrive via env only at boot, so this is a runtime step; must win
+    # over a restored authorized_keys, so it runs after backup-restore.
     s6.services.authorized-keys = {
       type = "oneshot";
+      dependencies = [
+        "base"
+      ]
+      ++ lib.optional config.services.backup.enable "backup-restore";
       run = ''
         set -eu
         mkdir -p ${keysUser.home}/.ssh
