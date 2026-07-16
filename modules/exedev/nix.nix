@@ -20,10 +20,23 @@ let
     }) (lib.range 1 32)
   );
 
+  # resolve via root.inputs — plain .nodes.nixpkgs can be another input's pin
+  # (node names shuffle on lock updates; ours is currently nixpkgs_2). The FOD
+  # makes the daemon verify narHash at build time.
+  nixpkgsLock =
+    let
+      lock = builtins.fromJSON (builtins.readFile ../../flake.lock);
+    in
+    lock.nodes.${lock.nodes.root.inputs.nixpkgs}.locked;
+  nixpkgsSrc = pkgs.fetchzip {
+    url = "https://github.com/${nixpkgsLock.owner}/${nixpkgsLock.repo}/archive/${nixpkgsLock.rev}.tar.gz";
+    hash = nixpkgsLock.narHash;
+  };
+
   # scoped to image.packages, never image.rootPaths (the loader is a rootPaths
   # service — feeding rootPaths back into the closure is an eval cycle).
-  # pkgs.path must be db-registered or flake refs reject it as an invalid path.
-  storeReg = pkgs.closureInfo { rootPaths = config.image.packages ++ [ pkgs.path ]; };
+  # nixpkgsSrc must be db-registered or flake refs reject it as an invalid path.
+  storeReg = pkgs.closureInfo { rootPaths = config.image.packages ++ [ nixpkgsSrc ]; };
 in
 {
   options.nix.enable = mkOption {
@@ -38,7 +51,7 @@ in
     image.env = [
       "PATH=/command:${profile}/bin:${profile}/sbin:/bin:/sbin:/usr/bin"
       "NIX_REMOTE=daemon"
-      "NIX_PATH=nixpkgs=${pkgs.path}"
+      "NIX_PATH=nixpkgs=${nixpkgsSrc}"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       "GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt"
@@ -59,9 +72,9 @@ in
         build-users-group = nixbld
         trusted-users = root exedev hermes
         substituters = https://cache.nixos.org/
-        trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWGuJSngDLi9PB0dxEIoH5U8vKf1c=
+        trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
         sandbox = false
-        nix-path = nixpkgs=${pkgs.path}
+        nix-path = nixpkgs=${nixpkgsSrc}
       '';
       # pins nixpkgs flake refs to the image's rev — the nixos-25.11 pin is
       # fully covered by cache.nixos.org, unlike the registry default
@@ -77,7 +90,7 @@ in
             };
             to = {
               type = "path";
-              path = "${pkgs.path}";
+              path = "${nixpkgsSrc}";
             };
           }
         ];
@@ -87,10 +100,10 @@ in
         export PATH="$HOME/.nix-profile/bin:${profile}/bin:${profile}/sbin:$PATH"
         export NIX_REMOTE=daemon
         export NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
-        export NIX_PATH="nixpkgs=${pkgs.path}"
+        export NIX_PATH="nixpkgs=${nixpkgsSrc}"
         # nix-env -iA nixpkgs.* reads ~/.nix-defexpr, not NIX_PATH.
         if [ ! -e "$HOME/.nix-defexpr/nixpkgs" ]; then
-          mkdir -p "$HOME/.nix-defexpr" && ln -sfn ${pkgs.path} "$HOME/.nix-defexpr/nixpkgs"
+          mkdir -p "$HOME/.nix-defexpr" && ln -sfn ${nixpkgsSrc} "$HOME/.nix-defexpr/nixpkgs"
         fi
       '';
     };
