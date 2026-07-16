@@ -1,10 +1,16 @@
-{ inputs, ... }:
+{ inputs, pkgs, ... }:
 {
-  imports = [ inputs.home-manager.darwinModules.home-manager ];
+  imports = [
+    inputs.home-manager.darwinModules.home-manager
+    ./homebrew.nix
+  ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
   system.primaryUser = "nikita.galaiko";
   system.stateVersion = 6;
+
+  # nix-darwin needs mas on PATH to install masApps
+  environment.systemPackages = [ pkgs.mas ];
 
   users.users."nikita.galaiko".home = "/Users/nikita.galaiko";
   home-manager = {
