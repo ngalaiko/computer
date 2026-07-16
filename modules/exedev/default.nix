@@ -1,4 +1,7 @@
-{ pkgs }:
+{
+  pkgs,
+  specialArgs ? { },
+}:
 let
   inherit (pkgs) lib;
 
@@ -12,7 +15,10 @@ let
   eval =
     module:
     (lib.evalModules {
-      specialArgs = { inherit pkgs; };
+      specialArgs = {
+        inherit pkgs;
+      }
+      // specialArgs;
       modules = [
         module
       ]

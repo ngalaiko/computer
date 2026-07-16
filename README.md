@@ -4,6 +4,14 @@
 
 A Nix-built OCI image to bootstrap [exe.dev](https://exe.dev) machine.
 
+## Layout
+
+- `flake.nix` — inputs and output plumbing
+- `modules/exedev/` — the image module system (mechanism, no policy)
+- `hosts/exedev/` — the image configuration; per-user packages/env under `users/`
+- `hosts/mac/` — this Mac (nix-darwin), including the linux-builder VM
+- `packages/` — standalone packages (agent-browser, s6-overlay, release scripts)
+
 ## Mac setup
 
 Local builds offload to a nix-darwin linux-builder VM (both arches,

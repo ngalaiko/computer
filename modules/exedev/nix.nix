@@ -33,16 +33,26 @@ let
     hash = nixpkgsLock.narHash;
   };
 
-  # scoped to image.packages, never image.rootPaths (the loader is a rootPaths
-  # service — feeding rootPaths back into the closure is an eval cycle).
+  # scoped to image.packages + explicit opt-ins, never all of image.rootPaths
+  # (the loader is a rootPaths service — feeding rootPaths back into the
+  # closure is an eval cycle).
   # nixpkgsSrc must be db-registered or flake refs reject it as an invalid path.
-  storeReg = pkgs.closureInfo { rootPaths = config.image.packages ++ [ nixpkgsSrc ]; };
+  storeReg = pkgs.closureInfo {
+    rootPaths = config.image.packages ++ config.nix.registerPaths ++ [ nixpkgsSrc ];
+  };
 in
 {
-  options.nix.enable = mkOption {
-    type = types.bool;
-    default = true;
-    description = "Ship a Nix daemon over a registered store (runtime installs).";
+  options.nix = {
+    enable = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Ship a Nix daemon over a registered store (runtime installs).";
+    };
+    registerPaths = mkOption {
+      type = types.listOf types.package;
+      default = [ ];
+      description = "Extra store paths to register in the image's nix db; anything shipped via image.rootPaths is unregistered (= garbage to nix gc) unless listed here.";
+    };
   };
 
   config = lib.mkIf config.nix.enable {

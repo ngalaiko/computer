@@ -21,13 +21,13 @@ let
           HOME=${user.home} \
           USER=${cfg.user} \
           SHELL=/bin/sh \
-          PATH=${user.home}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
+          PATH=${user.home}/.nix-profile/bin:/etc/profiles/per-user/${cfg.user}/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
           NIX_REMOTE=daemon \
           SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
           NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
           ${
             lib.concatStringsSep " \\\n          " (
-              lib.mapAttrsToList (k: v: "${k}=${lib.escapeShellArg v}") cfg.environment
+              lib.mapAttrsToList (k: v: "${k}=${lib.escapeShellArg v}") (user.environment // cfg.environment)
             )
           } \
     ''
@@ -68,7 +68,7 @@ in
     environment = mkOption {
       type = types.attrsOf types.str;
       default = { };
-      description = "Extra environment for the hermes processes.";
+      description = "Extra environment for the hermes processes; wins over users.users.<user>.environment.";
     };
   };
 
