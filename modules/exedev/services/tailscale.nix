@@ -21,7 +21,12 @@ in
     authKeyFile = mkOption {
       type = types.str;
       default = "/var/lib/tailscale/authkey";
-      description = "File holding a reusable+ephemeral+preauthorized tagged auth key; place it by hand once and let services.backup preserve it. No key -> tailscale is skipped.";
+      description = "File holding an OAuth client secret (tskey-client-...?preauthorized=true) or a tagged auth key; place it by hand once and let services.backup preserve it. No key -> tailscale is skipped.";
+    };
+    tags = mkOption {
+      type = types.listOf types.str;
+      default = [ "tag:exedev" ];
+      description = "Advertised device tags; mandatory when joining via an OAuth client secret.";
     };
   };
 
@@ -61,6 +66,7 @@ in
         until ${tailscale} up \
           --ssh \
           --hostname=${cfg.hostname} \
+          --advertise-tags=${lib.concatStringsSep "," cfg.tags} \
           --accept-dns=false \
           --auth-key=file:${cfg.authKeyFile}; do
           i=$((i + 1))
