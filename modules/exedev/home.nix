@@ -9,6 +9,7 @@ let
 
   withPackages = lib.filterAttrs (_: u: u.packages != [ ]) config.users.users;
   withEnv = lib.filterAttrs (_: u: u.environment != { }) config.users.users;
+  withFiles = lib.filterAttrs (_: u: u.files != null) config.users.users;
 
   profiles = pkgs.runCommand "per-user-profiles" { } (
     ''
@@ -48,6 +49,11 @@ in
             default = { };
             description = "Per-user environment: exported by login shells; service modules that run as the user inject it too (cf. services.hermes).";
           };
+          files = mkOption {
+            type = types.nullOr types.package;
+            default = null;
+            description = "Tree copied (dereferenced) into the user's home at build, owned by the user; its closure is shipped for store paths referenced from file contents.";
+          };
         };
       }
     );
@@ -55,7 +61,21 @@ in
 
   config = {
     image.rootPaths = lib.mkIf (withPackages != { }) [ profiles ];
-    nix.registerPaths = lib.mkIf (withPackages != { }) [ profiles ];
+    nix.registerPaths =
+      lib.optionals (withPackages != { }) [ profiles ] ++ lib.mapAttrsToList (_: u: u.files) withFiles;
+
+    # dereferenced: baked homes hold no store references to track.
+    image.fakeRootCommands = lib.concatStrings (
+      lib.mapAttrsToList (
+        _: u:
+        lib.optionalString (u.files != null) ''
+          mkdir -p .${u.home}
+          cp -RL ${u.files}/. .${u.home}/
+          chmod -R u+w .${u.home}
+          chown -R ${toString u.uid}:${toString config.users.groups.${u.group}.gid} .${u.home}
+        ''
+      ) config.users.users
+    );
 
     # sorts before nix.sh, so nix profiles stay ahead of the per-user profile.
     environment.etc."profile.d/home.sh".text = ''

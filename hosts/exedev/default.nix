@@ -1,9 +1,6 @@
 { pkgs, ... }:
 {
-  imports = [
-    ./users/nikita.nix
-    ./users/hermes.nix
-  ];
+  imports = [ ./users ];
 
   image = {
     name = "computer.exe";

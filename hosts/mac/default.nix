@@ -1,8 +1,20 @@
-{ ... }:
+{ inputs, ... }:
 {
+  imports = [ inputs.home-manager.darwinModules.home-manager ];
+
   nixpkgs.hostPlatform = "aarch64-darwin";
   system.primaryUser = "nikita.galaiko";
   system.stateVersion = 6;
+
+  users.users."nikita.galaiko".home = "/Users/nikita.galaiko";
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    users."nikita.galaiko".imports = [
+      ../../home
+      ./home
+    ];
+  };
 
   nix.settings = {
     experimental-features = [

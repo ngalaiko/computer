@@ -1,7 +1,17 @@
-{ ... }:
+{ pkgs, inputs, ... }:
 let
   name = "nikita";
   home = "/home/${name}";
+  hm = inputs.home-manager.lib.homeManagerConfiguration {
+    inherit pkgs;
+    modules = [
+      ../../../home
+      {
+        home.username = name;
+        home.homeDirectory = home;
+      }
+    ];
+  };
 in
 {
   image.workingDir = home;
@@ -20,8 +30,10 @@ in
     group = name;
     inherit home;
     createHome = true;
-    shell = "/bin/sh";
+    shell = "/etc/profiles/per-user/${name}/bin/fish";
     description = "Nikita Galaiko";
+    packages = [ hm.config.home.path ];
+    files = hm.config.home-files;
   };
   users.groups.${name}.gid = 1000;
   users.groups.wheel.members = [ name ];
