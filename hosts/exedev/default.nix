@@ -16,6 +16,7 @@
       gnugrep
       gnused
       iproute2
+      openssh
       procps
       tzdata
       util-linux
