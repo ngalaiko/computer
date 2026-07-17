@@ -1,8 +1,8 @@
 { pkgs, ... }:
 {
-  # upstream `make` compiles a swift helper into ~/.local/bin and loads it
-  # as a LaunchAgent; that part stays imperative (rerun on a fresh mac).
   programs.nixvim = {
+    # upstream `make` compiles a swift helper into ~/.local/bin and loads it
+    # as a LaunchAgent; that part stays imperative (rerun on a fresh mac).
     extraPlugins = [
       (pkgs.vimUtils.buildVimPlugin {
         pname = "ghostty-navigator.nvim";
@@ -16,5 +16,25 @@
       })
     ];
     extraConfigLua = ''require("ghostty-navigator").setup({})'';
+
+    # terraform tooling is mac-only; trivy alone is ~266M and unused remotely.
+    plugins.lsp.servers.terraformls.enable = true;
+    plugins.lint = {
+      enable = true;
+      lintersByFt = {
+        terraform = [
+          "tflint"
+          "trivy"
+        ];
+        terraform-vars = [
+          "tflint"
+          "trivy"
+        ];
+      };
+    };
+    extraPackages = with pkgs; [
+      tflint
+      trivy
+    ];
   };
 }
