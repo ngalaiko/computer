@@ -18,8 +18,9 @@ in
 {
   image.workingDir = home;
 
+  # ssh is via tailscale now; openssh kept but disabled.
   services.sshd = {
-    enable = true;
+    enable = false;
     authorizedKeys.user = name;
   };
 
