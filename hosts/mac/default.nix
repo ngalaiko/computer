@@ -37,24 +37,4 @@
   };
 
   programs.fish.enable = true;
-
-  nix.linux-builder = {
-    enable = true;
-    ephemeral = true;
-    maxJobs = 4;
-    systems = [
-      "aarch64-linux"
-      "x86_64-linux"
-    ];
-    config = {
-      virtualisation = {
-        cores = 6;
-        darwin-builder = {
-          diskSize = 40 * 1024; # MiB
-          memorySize = 8 * 1024; # MiB
-        };
-      };
-      boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
-    };
-  };
 }

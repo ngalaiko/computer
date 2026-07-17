@@ -7,7 +7,7 @@ A Nix-built OCI image to bootstrap [exe.dev](https://exe.dev) machine.
 ## Components
 
 - **exe.dev image** — s6-supervised: OpenSSH, the Hermes agent (behind a caddy
-  proxy), tailscaled (ephemeral tailnet node with Tailscale SSH), restic
+  proxy), tailscaled (persistent tailnet node with Tailscale SSH), restic
   backups to B2 with restore-on-boot, and a nix daemon for runtime installs.
 - **Users** — `nikita` (login user, fish shell, home-manager env, sudo) and
   `hermes` (the agent: own package set, no sudo, not nix-trusted).
