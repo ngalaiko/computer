@@ -24,8 +24,11 @@ let
     set -u
     ${guard}
     ${restic} cat config >/dev/null 2>&1 || ${restic} init
+    # hard VM stops strand locks (prune's is exclusive); drop the stale ones
+    ${restic} unlock
     ${restic} backup --tag auto ${excludeArgs} ${quotedPaths}
-    ${restic} forget --tag auto --keep-last ${toString cfg.keepLast} --prune
+    ${restic} forget --tag auto --keep-last ${toString cfg.keepLast} --prune \
+      || echo "backup: forget/prune failed — retention not applied." >&2
   '';
 
   # runs as root, so restic restores the snapshot's numeric owners.
