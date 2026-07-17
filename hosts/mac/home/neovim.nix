@@ -1,8 +1,7 @@
 { pkgs, ... }:
 {
-  # the plugin talks to a swift helper daemon that its upstream `make`
-  # compiles into ~/.local/bin and loads as a LaunchAgent — that part stays
-  # imperative (rerun `make` from the repo on a fresh mac).
+  # upstream `make` compiles a swift helper into ~/.local/bin and loads it
+  # as a LaunchAgent; that part stays imperative (rerun on a fresh mac).
   programs.nixvim = {
     extraPlugins = [
       (pkgs.vimUtils.buildVimPlugin {

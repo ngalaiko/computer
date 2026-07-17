@@ -35,11 +35,9 @@ in
 
     services.backup.paths = [ (builtins.dirOf cfg.authKeyFile) ];
 
-    # --state=mem:: a fresh ephemeral node every boot, auto-removed after
-    # going offline — recreated VMs never fight over a node key.
-    # kernel tun (userspace netstack never answered ssh in 1.90.9); the
-    # device node isn't pre-created in the image, and netfilter needs
-    # iptables the image doesn't ship.
+    # --state=mem:: ephemeral node per boot, so overlapping recreated VMs
+    # never share a node key. kernel tun — the userspace netstack doesn't
+    # answer ssh (1.90.9); netfilter is compiled out of the nixpkgs build.
     s6.services.tailscaled = {
       dependencies = [ "base" ];
       run = ''
@@ -50,7 +48,6 @@ in
         fi
         exec ${pkgs.tailscale}/bin/tailscaled \
           --state=mem: \
-          --netfilter-mode=off \
           --socket=${socket}
       '';
     };

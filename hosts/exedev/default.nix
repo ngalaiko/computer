@@ -28,8 +28,7 @@
     hostname = "exedev";
   };
 
-  # fish reads no /etc/profile; wire the nix profiles for fish logins
-  # (nikita's shell) — cf. hosts/mac/home/nix-paths.nix for the mac side.
+  # fish reads no /etc/profile; wire the nix profiles for fish logins.
   environment.etc."fish/config.fish".text = ''
     fish_add_path --global --move --path \
       "$HOME/.nix-profile/bin" \

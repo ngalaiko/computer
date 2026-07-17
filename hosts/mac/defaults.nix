@@ -1,4 +1,3 @@
-# macos.sh from dotfiles, mapped to nix-darwin
 { ... }:
 {
   system.defaults = {

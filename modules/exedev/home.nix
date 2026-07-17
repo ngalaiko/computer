@@ -64,7 +64,8 @@ in
     nix.registerPaths =
       lib.optionals (withPackages != { }) [ profiles ] ++ lib.mapAttrsToList (_: u: u.files) withFiles;
 
-    # dereferenced: baked homes hold no store references to track.
+    # dereferenced, so baked homes stay editable at runtime; store paths
+    # referenced from file contents ship via registerPaths below.
     image.fakeRootCommands = lib.concatStrings (
       lib.mapAttrsToList (
         _: u:

@@ -27,7 +27,7 @@ in
 
   nix.trustedUsers = [ name ];
 
-  # hand-generated per-machine key lives here; backup preserves it.
+  # hand-generated per-machine key; preserved by backup.
   services.backup.paths = [ "${home}/.ssh" ];
 
   users.users.${name} = {
