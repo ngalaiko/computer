@@ -36,8 +36,9 @@ in
     services.backup.paths = [ (builtins.dirOf cfg.authKeyFile) ];
 
     # --state=mem:: ephemeral node per boot, so overlapping recreated VMs
-    # never share a node key. kernel tun — the userspace netstack doesn't
-    # answer ssh (1.90.9); netfilter is compiled out of the nixpkgs build.
+    # never share a node key. --statedir must still be set: without a var
+    # root tailscaled has no ssh host keys and silently disables ssh.
+    # kernel tun — the userspace netstack doesn't answer ssh (1.90.9).
     s6.services.tailscaled = {
       dependencies = [ "base" ];
       run = ''
@@ -48,12 +49,15 @@ in
         fi
         exec ${pkgs.tailscale}/bin/tailscaled \
           --state=mem: \
+          --statedir=/var/lib/tailscale \
           --socket=${socket}
       '';
     };
 
+    # a longrun, not a oneshot: the non-PID1 boot path runs every oneshot
+    # before any longrun, so a oneshot could never wait for tailscaled.
+    # failures exit and s6's restart is the retry loop.
     s6.services.tailscale-up = {
-      type = "oneshot";
       dependencies = [
         "base"
         "tailscaled"
@@ -61,24 +65,30 @@ in
       ++ lib.optional config.services.backup.enable "backup-restore";
       run = ''
         if [ ! -f ${cfg.authKeyFile} ]; then
-          echo "tailscale: ${cfg.authKeyFile} missing — skipping." >&2
-          exit 0
+          echo "tailscale: ${cfg.authKeyFile} missing — sleeping." >&2
+          exec /command/s6-pause
         fi
         i=0
-        until ${tailscale} up \
+        until [ -S ${socket} ]; do
+          i=$((i + 1))
+          [ $i -ge 30 ] && exit 1
+          sleep 1
+        done
+        ${tailscale} up \
           --ssh \
           --hostname=${cfg.hostname} \
           --advertise-tags=${lib.concatStringsSep "," cfg.tags} \
           --accept-dns=false \
-          --auth-key=file:${cfg.authKeyFile}; do
-          i=$((i + 1))
-          [ $i -ge 10 ] && exit 1
+          --auth-key=file:${cfg.authKeyFile} || {
           sleep 2
-        done
+          exit 1
+        }
+        exec /command/s6-pause
       '';
-      # immediate node removal instead of the ephemeral timeout
-      down = ''
-        ${tailscale} logout || true
+      # immediate node removal instead of the ephemeral timeout; only on
+      # signal-death (shutdown), not on retry exits
+      finish = ''
+        [ "$1" = 256 ] && ${tailscale} logout || true
       '';
     };
   };

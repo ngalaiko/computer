@@ -62,6 +62,10 @@ let
           cp -a ${systemPath}/$d/. $out/$d/
         fi
       done
+      chmod -R u+w $out/bin $out/sbin
+      # no login(1): the image has no PAM login stack, and its absence sends
+      # tailscale ssh down its direct-exec path.
+      rm -f $out/bin/login
       mkdir -p $out/usr/bin
       ln -sfn ${systemPath}/share $out/usr/share
       ln -sfn ${pkgs.coreutils}/bin/env $out/usr/bin/env

@@ -45,6 +45,14 @@ let
       exec ${cfg.package}/command/s6-log -b T n${toString cfg.logKeep} s${toString cfg.logSize} ${cfg.logDir}/${name}
     '';
 
+  finishFile =
+    name: svc:
+    pkgs.writeScript "s6-${name}-finish" ''
+      #!/bin/sh
+      exec >>${cfg.logDir}/${name}/current 2>&1
+      ${svc.finish}
+    '';
+
   deps = svc: lib.concatMapStrings (d: "touch $dir/dependencies.d/${d}\n") svc.dependencies;
 
   serviceGraph = pkgs.runCommand "s6-rc-services" { } (
@@ -61,6 +69,7 @@ let
             mkdir -p $dir/dependencies.d
             printf longrun > $dir/type
             cp ${runFile name svc} $dir/run
+            ${lib.optionalString (svc.finish != "") "cp ${finishFile name svc} $dir/finish"}
             printf '%s' ${name}-log > $dir/producer-for
             ${deps svc}
             l=$root/${name}-log
@@ -101,6 +110,7 @@ let
     + lib.concatStrings (
       lib.mapAttrsToList (name: svc: ''
         install -D ${runFile name svc} $out/${name}/run
+        ${lib.optionalString (svc.finish != "") "install -D ${finishFile name svc} $out/${name}/finish"}
         install -D ${logFile name} $out/${name}/log/run
       '') longruns
     )
@@ -193,6 +203,11 @@ in
               type = types.lines;
               default = "";
               description = "Oneshot shutdown body; only runs on the PID1 path (exe.dev's exe-init gives no orderly shutdown).";
+            };
+            finish = mkOption {
+              type = types.lines;
+              default = "";
+              description = "Longrun finish body, run after each death of the run process with s6's exit-code args.";
             };
             dependencies = mkOption {
               type = types.listOf types.str;

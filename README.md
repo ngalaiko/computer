@@ -4,13 +4,55 @@
 
 A Nix-built OCI image to bootstrap [exe.dev](https://exe.dev) machine.
 
-## Layout
+## Components
 
-- `flake.nix` — inputs and output plumbing
-- `modules/exedev/` — the image module system (mechanism, no policy)
-- `hosts/exedev/` — the image configuration; per-user packages/env under `users/`
-- `hosts/mac/` — this Mac (nix-darwin), including the linux-builder VM
-- `packages/` — standalone packages (agent-browser, s6-overlay, release scripts)
+- **exe.dev image** — s6-supervised: OpenSSH, the Hermes agent (behind a caddy
+  proxy), tailscaled (ephemeral tailnet node with Tailscale SSH), restic
+  backups to B2 with restore-on-boot, and a nix daemon for runtime installs.
+- **Users** — `nikita` (login user, fish shell, home-manager env, sudo) and
+  `hermes` (the agent: own package set, no sudo, not nix-trusted).
+- **Mac** — nix-darwin + home-manager consuming the same `home/` modules;
+  remaining homebrew (casks, mas apps) declared in `hosts/mac/homebrew.nix`.
+
+## After creating a machine
+
+One-time steps that place secrets; backups persist them across recreations
+(confirm a snapshot ran: `cat /var/log/backup-cron/current`).
+
+1. Create the VM with the backup env vars below attached.
+2. Generate nikita's per-machine ssh key and register it with GitHub as both
+   auth and signing key:
+
+   ```
+   ssh-keygen -t ed25519
+   gh ssh-key add ~/.ssh/id_ed25519.pub --title exedev --type authentication
+   gh ssh-key add ~/.ssh/id_ed25519.pub --title exedev --type signing
+   ```
+
+3. Create the tailscale secret: an [OAuth client](https://login.tailscale.com/admin/settings/oauth)
+   with the **Keys → Auth Keys: write** scope, tagged `tag:exedev`. The
+   [tailnet policy](https://login.tailscale.com/admin/acls) must define the
+   tag and allow ssh into it:
+
+   ```jsonc
+   "tagOwners": { "tag:exedev": ["autogroup:admin"] },
+   "ssh": [{
+     "action": "accept",
+     "src":    ["ngalaiko@github"],
+     "dst":    ["tag:exedev"],
+     "users":  ["nikita"]
+   }]
+   ```
+
+   Place the secret on the machine, appending `?preauthorized=true`:
+
+   ```
+   sudo mkdir -p /var/lib/tailscale
+   sudo sh -c 'umask 077; printf %s "tskey-client-…?preauthorized=true" > /var/lib/tailscale/authkey'
+   ```
+
+   Reboot (or run the `tailscale up` from `modules/exedev/services/tailscale.nix`
+   by hand), then `ssh nikita@exedev` over the tailnet.
 
 ## Configuration
 
