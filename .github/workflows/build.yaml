@@ -43,11 +43,11 @@ jobs:
       - uses: nixbuild/nix-quick-install-action@v35
       - uses: nix-community/cache-nix-action@v7
         with:
-          primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'flake.nix', 'modules/**', 'packages/**') }}
+          primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'flake.nix', 'modules/**', 'packages/**', 'hosts/**', 'home/**') }}
           restore-prefixes-first-match: nix-${{ matrix.system }}-
           # PR saves count against the repo quota and would evict master's caches.
           save: ${{ github.event_name != 'pull_request' }}
-          gc-max-store-size-linux: 6G
+          gc-max-store-size-linux: 8G
           purge: true
           purge-prefixes: nix-${{ matrix.system }}-
           purge-created: 0
