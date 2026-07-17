@@ -44,11 +44,11 @@ One-time steps that place secrets; backups persist them across recreations
    }]
    ```
 
-   Place the secret on the machine, appending `?preauthorized=true`:
+   Place the secret on the machine (non-ephemeral, so the node persists):
 
    ```
    sudo mkdir -p /var/lib/tailscale
-   sudo sh -c 'umask 077; printf %s "tskey-client-…?preauthorized=true" > /var/lib/tailscale/authkey'
+   sudo sh -c 'umask 077; printf %s "tskey-client-…?preauthorized=true&ephemeral=false" > /var/lib/tailscale/authkey'
    ```
 
    Reboot (or run the `tailscale up` from `modules/exedev/services/tailscale.nix`

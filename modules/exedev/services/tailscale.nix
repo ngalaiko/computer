@@ -12,7 +12,7 @@ let
 in
 {
   options.services.tailscale = {
-    enable = lib.mkEnableOption "tailscale as an ephemeral tailnet node with tailscale ssh";
+    enable = lib.mkEnableOption "tailscale as a persistent tailnet node with tailscale ssh";
     hostname = mkOption {
       type = types.str;
       default = "computer";
@@ -35,12 +35,16 @@ in
 
     services.backup.paths = [ (builtins.dirOf cfg.authKeyFile) ];
 
-    # --state=mem:: ephemeral node per boot, so overlapping recreated VMs
-    # never share a node key. --statedir must still be set: without a var
-    # root tailscaled has no ssh host keys and silently disables ssh.
+    # persistent state in the backed-up statedir: a recreated VM restores the
+    # node key and reclaims the same device (and hostname, no -N suffix)
+    # instead of registering a fresh one. statedir also holds the ssh host
+    # keys, without which tailscaled silently disables ssh.
     # kernel tun — the userspace netstack doesn't answer ssh (1.90.9).
     s6.services.tailscaled = {
-      dependencies = [ "base" ];
+      dependencies = [
+        "base"
+      ]
+      ++ lib.optional config.services.backup.enable "backup-restore";
       run = ''
         mkdir -p /run/tailscale
         if [ ! -e /dev/net/tun ]; then
@@ -48,7 +52,6 @@ in
           mknod /dev/net/tun c 10 200 || true
         fi
         exec ${pkgs.tailscale}/bin/tailscaled \
-          --state=mem: \
           --statedir=/var/lib/tailscale \
           --socket=${socket}
       '';
@@ -84,11 +87,6 @@ in
           exit 1
         }
         exec /command/s6-pause
-      '';
-      # immediate node removal instead of the ephemeral timeout; only on
-      # signal-death (shutdown), not on retry exits
-      finish = ''
-        [ "$1" = 256 ] && ${tailscale} logout || true
       '';
     };
   };
