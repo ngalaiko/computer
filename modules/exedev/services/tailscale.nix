@@ -37,15 +37,20 @@ in
 
     # --state=mem:: a fresh ephemeral node every boot, auto-removed after
     # going offline — recreated VMs never fight over a node key.
-    # userspace networking: no /dev/net/tun dependency; inbound tailscale
-    # ssh terminates inside tailscaled, which is all this node serves.
+    # kernel tun (userspace netstack never answered ssh in 1.90.9); the
+    # device node isn't pre-created in the image, and netfilter needs
+    # iptables the image doesn't ship.
     s6.services.tailscaled = {
       dependencies = [ "base" ];
       run = ''
         mkdir -p /run/tailscale
+        if [ ! -e /dev/net/tun ]; then
+          mkdir -p /dev/net
+          mknod /dev/net/tun c 10 200 || true
+        fi
         exec ${pkgs.tailscale}/bin/tailscaled \
           --state=mem: \
-          --tun=userspace-networking \
+          --netfilter-mode=off \
           --socket=${socket}
       '';
     };
