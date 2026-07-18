@@ -3,6 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    # 25.11 atuin (18.10) is too old for a DB migrated by a newer atuin.
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -55,9 +57,9 @@
     in
     {
       # This Mac, configured with a Linux builder VM (so it can build *-linux).
-      darwinConfigurations.mac = nix-darwin.lib.darwinSystem {
+      darwinConfigurations.macbook = nix-darwin.lib.darwinSystem {
         specialArgs = { inherit inputs; };
-        modules = [ ./hosts/mac ];
+        modules = [ ./hosts/macbook ];
       };
 
       # `nix build .#exedev` (current system) or `.#packages.<sys>.exedev`.

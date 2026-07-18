@@ -12,7 +12,7 @@ A Nix-built OCI image to bootstrap [exe.dev](https://exe.dev) machine.
 - **Users** — `nikita` (login user, fish shell, home-manager env, sudo) and
   `hermes` (the agent: own package set, no sudo, not nix-trusted).
 - **Mac** — nix-darwin + home-manager consuming the same `home/` modules;
-  remaining homebrew (casks, mas apps) declared in `hosts/mac/homebrew.nix`.
+  remaining homebrew (casks, mas apps) declared in `hosts/macbook/homebrew.nix`.
 
 ## After creating a machine
 
@@ -52,7 +52,7 @@ One-time steps that place secrets; backups persist them across recreations
    ```
 
    Reboot (or run the `tailscale up` from `modules/exedev/services/tailscale.nix`
-   by hand), then `ssh nikita@exedev` over the tailnet.
+   by hand), then `tailscale ssh nikita@exedev` over the tailnet.
 
 ## Configuration
 
@@ -60,8 +60,9 @@ One-time steps that place secrets; backups persist them across recreations
 
 We have to store it outside of the machine to be able to restore everything else on startup.
 
+| Variable | Description |
 | --- | --- |
-| `RESTIC_REPOSITORY` | B2 restic repo, e.g. `b2:my-bucket:hermes` | 
+| `RESTIC_REPOSITORY` | B2 restic repo, e.g. `b2:my-bucket:hermes` |
 | `RESTIC_PASSWORD` | restic repo encryption password |
-| `B2_ACCOUNT_ID` | B2 key id | 
-| `B2_ACCOUNT_KEY` | B2 application key (scope to the bucket) | 
+| `B2_ACCOUNT_ID` | B2 key id |
+| `B2_ACCOUNT_KEY` | B2 application key (scope to the bucket) |

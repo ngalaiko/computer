@@ -7,18 +7,19 @@
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
-  system.primaryUser = "nikita.galaiko";
+  system.primaryUser = "nikita";
   system.stateVersion = 6;
 
   # nix-darwin needs mas on PATH to install masApps
   environment.systemPackages = [ pkgs.mas ];
 
-  users.users."nikita.galaiko".home = "/Users/nikita.galaiko";
+  users.users."nikita".home = "/Users/nikita";
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
+    backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
-    users."nikita.galaiko".imports = [
+    users."nikita".imports = [
       ../../home
       ./home
     ];
@@ -31,7 +32,7 @@
     ];
     trusted-users = [
       "root"
-      "nikita.galaiko"
+      "nikita"
     ];
     builders-use-substitutes = true;
   };

@@ -9,6 +9,12 @@
       keybind = [
         "ctrl+alt+s=new_split:down"
         "ctrl+alt+v=new_split:right"
+        # seamless nvim<->ghostty split nav: goto_split when a ghostty split
+        # exists in that direction, otherwise pass ctrl+hjkl through to nvim
+        "performable:ctrl+h=goto_split:left"
+        "performable:ctrl+j=goto_split:down"
+        "performable:ctrl+k=goto_split:up"
+        "performable:ctrl+l=goto_split:right"
         "super+t=new_tab"
         "super+w=close_surface"
         "ctrl+shift+l=next_tab"

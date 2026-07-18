@@ -38,6 +38,13 @@ in
     (raw "n" "<leader>v" "vim.cmd.vsp")
     (raw "n" "<leader>s" "vim.cmd.sp")
 
+    # move between nvim splits; ghostty passes <C-hjkl> through (via
+    # performable:goto_split) when there's no ghostty split in that direction
+    (key "n" "<C-h>" "<C-w>h")
+    (key "n" "<C-j>" "<C-w>j")
+    (key "n" "<C-k>" "<C-w>k")
+    (key "n" "<C-l>" "<C-w>l")
+
     # Move lines around (macOS <A-j> = ˚ <A-k> = ∆)
     (key "n" "∆" ":m+<CR>==")
     (key "n" "˚" ":m-2<CR>==")

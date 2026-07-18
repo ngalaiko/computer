@@ -1,13 +1,19 @@
 # casks and mas apps stay brew (nixpkgs darwin GUI coverage is poor); the
-# few remaining brews are unfree, tap-only, or missing/broken in nixpkgs.
+# remaining brews are unfree, tap-only, or missing/broken in nixpkgs. Anything
+# not listed here is uninstalled on rebuild (onActivation.cleanup).
 { ... }:
 {
   homebrew = {
     enable = true;
 
+    # brew is fully declarative: unlisted formulae/casks are removed on switch.
+    onActivation.cleanup = "uninstall";
+
     taps = [
+      "cooklang/tap"
       "hamed-elfayome/claude-usage"
       "jsattler/tap"
+      "qmk/qmk"
     ];
 
     brews = [
@@ -16,18 +22,22 @@
     ];
 
     casks = [
-      "jsattler/tap/bettercapture"
+      "1password"
       "calibre"
-      "hamed-elfayome/claude-usage/claude-usage-tracker"
       "ghostty"
+      "kicad"
       "mullvad-vpn"
       "netnewswire"
+      "podman-desktop"
       "postico@1"
       "raycast"
+      "slack"
       "sublime-merge"
       "tailscale-app"
       "telegram"
       "zoom"
+      "hamed-elfayome/claude-usage/claude-usage-tracker"
+      "jsattler/tap/bettercapture"
     ];
 
     masApps = {

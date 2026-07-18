@@ -1,6 +1,7 @@
 { ... }:
 {
   imports = [
+    ./atuin.nix
     ./brew.nix
     ./ghostty.nix
     ./jj.nix
@@ -11,5 +12,5 @@
 
   home.file.".hushlogin".text = "";
 
-  programs.fish.interactiveShellInit = "set --global prompt_host mac";
+  programs.fish.interactiveShellInit = "set --global prompt_host macbook";
 }
