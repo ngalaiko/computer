@@ -61,8 +61,20 @@ in
       Subsystem sftp internal-sftp
     '';
 
+    # persist host keys so the server identity survives redeploys; back up the
+    # key files only, not /etc/ssh, so a restore can't shadow the built config.
+    services.backup.paths = [
+      "/etc/ssh/ssh_host_ed25519_key"
+      "/etc/ssh/ssh_host_ed25519_key.pub"
+      "/etc/ssh/ssh_host_rsa_key"
+      "/etc/ssh/ssh_host_rsa_key.pub"
+    ];
+
     s6.services.sshd-keygen = {
       type = "oneshot";
+      # restored keys must win over fresh ones, so run after backup-restore;
+      # the -f guards then keep the restored keys instead of regenerating.
+      dependencies = lib.optional config.services.backup.enable "backup-restore";
       run = ''
         set -eu
         mkdir -p /run/sshd /etc/ssh
