@@ -5,6 +5,7 @@
     ./brew.nix
     ./ghostty.nix
     ./jj.nix
+    ./ledger.nix
     ./neovim.nix
     ./nix-paths.nix
     ./packages.nix
