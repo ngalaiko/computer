@@ -5,11 +5,11 @@ let
   urls = {
     x86_64-linux = {
       url = "https://github.com/JulienTant/blogwatcher-cli/releases/download/v${version}/blogwatcher-cli_linux_amd64.tar.gz";
-      hash = "sha256-rbGw1hdQurbubNPifN2U+ybHBWCEqSiSMVl7ImOz1Q0=";
+      hash = "sha256-DYBO+f+6Z6H6taBtzo+SC2f6i93+hOQIZ8nRICr0Qzk=";
     };
     aarch64-linux = {
       url = "https://github.com/JulienTant/blogwatcher-cli/releases/download/v${version}/blogwatcher-cli_linux_arm64.tar.gz";
-      hash = "sha256-J/monGDAep1MeVQDJfDSR5O0nVjCd7HRzSB2M8kAKH4=";
+      hash = "sha256-0vc0FXu8KS53Zoz7s60lvE46YkaySUnetdWqiut7Z4A=";
     };
   };
   src =
