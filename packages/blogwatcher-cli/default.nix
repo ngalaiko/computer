@@ -12,7 +12,9 @@ let
       hash = "sha256-J/monGDAep1MeVQDJfDSR5O0nVjCd7HRzSB2M8kAKH4=";
     };
   };
-  src = urls.${pkgs.stdenv.hostPlatform.system} or (throw "unsupported system for blogwatcher-cli: ${pkgs.stdenv.hostPlatform.system}");
+  src =
+    urls.${pkgs.stdenv.hostPlatform.system}
+      or (throw "unsupported system for blogwatcher-cli: ${pkgs.stdenv.hostPlatform.system}");
 in
 pkgs.stdenv.mkDerivation {
   pname = "blogwatcher-cli";
@@ -23,7 +25,10 @@ pkgs.stdenv.mkDerivation {
     hash = src.hash;
   };
 
-  nativeBuildInputs = [ pkgs.gnutar pkgs.gzip ];
+  nativeBuildInputs = [
+    pkgs.gnutar
+    pkgs.gzip
+  ];
 
   dontBuild = true;
   dontConfigure = true;
