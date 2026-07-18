@@ -25,6 +25,8 @@ pkgs.stdenv.mkDerivation {
     hash = src.hash;
   };
 
+  dontUnpack = true;
+
   nativeBuildInputs = [
     pkgs.gnutar
     pkgs.gzip
