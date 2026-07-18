@@ -114,6 +114,7 @@
       jq
       chromium
       (import ../../../packages/agent-browser { inherit pkgs; })
+      (import ../../../packages/blogwatcher-cli { inherit pkgs; })
     ];
     environment = {
       # agent-browser uses this instead of downloading its own chromium.
