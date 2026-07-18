@@ -12,8 +12,6 @@ let
   trust = pkgs.writeText "homebrew-trust.json" (
     builtins.toJSON {
       trustedtaps = [
-        "daveshanley/vacuum"
-        "encoredev/tap"
         "hamed-elfayome/claude-usage"
         "jsattler/tap"
       ];
@@ -21,10 +19,7 @@ let
         "hamed-elfayome/claude-usage/claude-usage-tracker"
         "jsattler/tap/bettercapture"
       ];
-      trustedformulae = [
-        "daveshanley/vacuum/vacuum"
-        "encoredev/tap/encore"
-      ];
+      trustedformulae = [ ];
     }
   );
 in
