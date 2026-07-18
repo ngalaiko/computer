@@ -28,8 +28,13 @@ in
 
   nix.trustedUsers = [ name ];
 
-  # hand-generated per-machine key; preserved by backup.
-  services.backup.paths = [ "${home}/.ssh" ];
+  services.backup.paths = [
+    # hand-generated per-machine key; preserved by backup.
+    "${home}/.ssh"
+    # atuin shell history + sync identity (host_id/key), so a recreated VM
+    # keeps its history instead of registering as a fresh atuin host.
+    "${home}/.local/share/atuin"
+  ];
 
   users.users.${name} = {
     uid = 1000;
