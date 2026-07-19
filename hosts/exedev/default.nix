@@ -29,6 +29,9 @@
     hostname = "exedev";
   };
 
+  # tenants registered per-user in hosts/exedev/users/*.nix.
+  services.ingress.enable = true;
+
   # fish reads no /etc/profile; wire the nix profiles for fish logins.
   environment.etc."fish/config.fish".text = ''
     fish_add_path --global --move --path \

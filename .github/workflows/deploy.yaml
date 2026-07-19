@@ -88,13 +88,13 @@ jobs:
                 --attach "vm:$VM_NAME"
           done
 
-      # rm/new also drops the public-share + port route. Re-publish: the
-      # HTTPS proxy at https://ngalaiko-computer.exe.xyz/ must forward to
-      # caddy on publicPort (9999), which routes /callback* → tink.py on
-      # :3000 and everything else → the hermes dashboard on the loopback.
-      # Port 8644 (webhook) is directly exposed via image.exposedPorts
-      # and needs no share route.
+      # rm/new also drops the public-share + port route. Re-publish:
+      #   8080 = services.ingress.publicPort (root ingress, tenant-routed).
+      #   9999 = hermes-proxy publicPort, routes /callback* → tink.py on
+      #         :3000 and everything else → hermes dashboard on loopback.
+      # Port 8644 (webhook) is in the image's exposedPorts (no share needed).
       - name: Expose public ports
         run: |
+          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 8080
           ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME"
           ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 9999
