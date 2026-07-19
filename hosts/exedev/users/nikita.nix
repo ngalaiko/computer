@@ -34,7 +34,14 @@ in
     # atuin shell history + sync identity (host_id/key), so a recreated VM
     # keeps its history instead of registering as a fresh atuin host.
     "${home}/.local/share/atuin"
+    # ingress routes for /nikita/* (see services.ingress below).
+    "${home}/.caddy"
   ];
+
+  # /nikita/* on the public port.
+  services.ingress.tenants.nikita = {
+    upstreamPort = 8082;
+  };
 
   users.users.${name} = {
     uid = 1000;

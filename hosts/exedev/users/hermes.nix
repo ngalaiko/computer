@@ -19,7 +19,6 @@
       # headless: drops the gtk/pipewire/gstreamer closure.
       ffmpeg = pkgs.ffmpeg-headless;
     };
-    ports = [ 8644 ];
     # exe.dev LLM integration (llm.int.exe.xyz, attached auto:all).
     settings =
       let
@@ -127,5 +126,14 @@
   services.backup = {
     enable = true;
     paths = [ "/var/lib/hermes" ];
+  };
+
+  # /hermes/* on the public port. Caddyfile under /var/lib/hermes is backed up.
+  services.ingress.tenants.hermes = {
+    upstreamPort = 8081;
+    routes = ''
+      # edit, then: caddy reload --config ~/.caddy/Caddyfile
+      reverse_proxy 127.0.0.1:8644
+    '';
   };
 }

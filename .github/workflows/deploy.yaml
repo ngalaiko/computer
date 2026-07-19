@@ -82,6 +82,8 @@ jobs:
               --repository "${{ github.repository }}" \
               --attach "vm:$VM_NAME"
 
-      - name: Make webhook port public
+      # 8080 = services.ingress.publicPort, the public root port.
+      - name: Publish the public ingress port
         run: |
+          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 8080
           ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME"
