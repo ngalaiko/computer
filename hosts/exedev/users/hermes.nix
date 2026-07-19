@@ -118,8 +118,6 @@
     environment = {
       # agent-browser uses this instead of downloading its own chromium.
       AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
-      # for exedev github integration
-      GH_HOST = "computer.int.exe.xyz";
     };
   };
 
