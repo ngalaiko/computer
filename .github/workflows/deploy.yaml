@@ -90,10 +90,11 @@ jobs:
 
       # rm/new also drops the public-share + port route. Re-publish: the
       # HTTPS proxy at https://ngalaiko-computer.exe.xyz/ must forward to
-      # port 3000 (Tink Link OAuth callback needs HTTPS, which only the
-      # share proxy provides; port 8644 for webhooks is directly exposed
-      # via image.exposedPorts and needs no share route).
+      # caddy on publicPort (9999), which routes /callback* → tink.py on
+      # :3000 and everything else → the hermes dashboard on the loopback.
+      # Port 8644 (webhook) is directly exposed via image.exposedPorts
+      # and needs no share route.
       - name: Expose public ports
         run: |
           ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME"
-          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 3000
+          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 9999
