@@ -32,6 +32,27 @@ let
           } \
     ''
     + args;
+
+  # caddy binds the public port and routes by path:
+  #   /callback* → tink.py OAuth listener on :3000 (Tink requires an
+  #                HTTPS redirect URI; exe.dev's share proxy terminates
+  #                TLS and forwards 443 → caddy, which routes here)
+  #   everything else → hermes dashboard on the loopback port.
+  # Hermes's loopback Host/Origin guards 400 the proxied request (and
+  # reject the wss upgrade) unless both headers match the loopback addr.
+  caddyfile = pkgs.writeText "hermes-Caddyfile" ''
+    http://:${toString cfg.publicPort} {
+        handle /callback* {
+            reverse_proxy 127.0.0.1:3000
+        }
+        handle {
+            reverse_proxy 127.0.0.1:${toString cfg.internalPort} {
+                header_up Host 127.0.0.1:${toString cfg.internalPort}
+                header_up Origin http://127.0.0.1:${toString cfg.internalPort}
+            }
+        }
+    }
+  '';
 in
 {
   options.services.hermes = {
@@ -108,26 +129,6 @@ in
       '';
     };
 
-    # caddy binds the public port and routes by path:
-    #   /callback* → tink.py OAuth listener on :3000 (Tink requires an
-    #                HTTPS redirect URI; exe.dev's share proxy terminates
-    #                TLS and forwards 443 → caddy, which routes here)
-    #   everything else → hermes dashboard on the loopback port.
-    # Hermes's loopback Host/Origin guards 400 the proxied request (and
-    # reject the wss upgrade) unless both headers match the loopback addr.
-    caddyfile = pkgs.writeText "hermes-Caddyfile" ''
-      http://:${toString cfg.publicPort} {
-          handle /callback* {
-              reverse_proxy 127.0.0.1:3000
-          }
-          handle {
-              reverse_proxy 127.0.0.1:${toString cfg.internalPort} {
-                  header_up Host 127.0.0.1:${toString cfg.internalPort}
-                  header_up Origin http://127.0.0.1:${toString cfg.internalPort}
-              }
-          }
-      }
-    '';
     s6.services.hermes-proxy = {
       dependencies = [
         "base"
