@@ -19,7 +19,8 @@
       # headless: drops the gtk/pipewire/gstreamer closure.
       ffmpeg = pkgs.ffmpeg-headless;
     };
-    ports = [ 8644 ];
+    # 8644 = hermes gateway (webhooks); 3000 = Tink Link OAuth callback.
+    ports = [ 8644 3000 ];
     # exe.dev LLM integration (llm.int.exe.xyz, attached auto:all).
     settings =
       let

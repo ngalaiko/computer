@@ -72,16 +72,28 @@ jobs:
             --env B2_ACCOUNT_ID=0036cfed748e70c0000000002 \
             --env B2_ACCOUNT_KEY="$B2_ACCOUNT_KEY"
 
-      # rm/new drops vm: attachments, so re-attach every deploy; first deploy
-      # creates the integration (the GitHub App link itself is web-UI one-time).
-      - name: Attach GitHub integration
+      # rm/new drops vm: attachments and public sharing, so re-attach every
+      # deploy; first deploy creates the integration (the GitHub App link
+      # itself is web-UI one-time). Two integrations: `computer` (this repo)
+      # and `finance` (ngalaiko/finance, used by the weekly finance review).
+      - name: Attach GitHub integrations
+        env:
+          FINANCE_INTEGRATION: finance
         run: |
-          ssh -i ~/.ssh/id_ed25519 exe.dev integrations attach "$GH_INTEGRATION" "vm:$VM_NAME" \
-            || ssh -i ~/.ssh/id_ed25519 exe.dev integrations add github \
-              --name "$GH_INTEGRATION" \
-              --repository "${{ github.repository }}" \
-              --attach "vm:$VM_NAME"
+          for integ in "$GH_INTEGRATION" "$FINANCE_INTEGRATION"; do
+            ssh -i ~/.ssh/id_ed25519 exe.dev integrations attach "$integ" "vm:$VM_NAME" \
+              || ssh -i ~/.ssh/id_ed25519 exe.dev integrations add github \
+                --name "$integ" \
+                --repository "ngalaiko/$integ" \
+                --attach "vm:$VM_NAME"
+          done
 
-      - name: Make webhook port public
+      # rm/new also drops the public-share + port route. Re-publish: the
+      # HTTPS proxy at https://ngalaiko-computer.exe.xyz/ must forward to
+      # port 3000 (Tink Link OAuth callback needs HTTPS, which only the
+      # share proxy provides; port 8644 for webhooks is directly exposed
+      # via image.exposedPorts and needs no share route).
+      - name: Expose public ports
         run: |
           ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME"
+          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 3000
