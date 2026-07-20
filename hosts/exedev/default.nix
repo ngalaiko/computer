@@ -31,6 +31,7 @@
 
   # tenants registered per-user in hosts/exedev/users/*.nix.
   services.ingress.enable = true;
+  nix-ld.enable = true;
 
   # fish reads no /etc/profile; wire the nix profiles for fish logins.
   environment.etc."fish/config.fish".text = ''
