@@ -117,7 +117,7 @@ let
   );
 
   # Dual boot path. As PID 1 (docker): mount the pseudo-filesystems (must be
-  # PID 1 — a supervised mount didn't fix sshd's PTY) then exec s6-overlay's
+  # PID 1 — a supervised mount didn't fix ssh PTYs) then exec s6-overlay's
   # /init. As a child (exe.dev's exe-init keeps PID 1): s6-overlay refuses to
   # run, so dump the container env, run oneshots in order, and supervise
   # longruns with s6-svscan (PID-agnostic).

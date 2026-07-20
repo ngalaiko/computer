@@ -18,12 +18,7 @@ in
 {
   image.workingDir = home;
 
-  # ssh is via tailscale now; openssh kept but disabled.
-  services.sshd = {
-    enable = false;
-    authorizedKeys.user = name;
-  };
-
+  # ssh access is via tailscale ssh; no sshd server ships.
   security.sudo.enable = true;
 
   nix.trustedUsers = [ name ];

@@ -6,7 +6,7 @@
     name = "computer.exe";
     labels = {
       "org.opencontainers.image.title" = "computer.exe";
-      "org.opencontainers.image.description" = "exe.dev image: s6-overlay, OpenSSH, and Hermes";
+      "org.opencontainers.image.description" = "exe.dev image: s6-overlay, Tailscale SSH, and Hermes";
       "exe.dev/login-user" = "nikita";
     };
     packages = with pkgs; [
@@ -16,7 +16,7 @@
       gnugrep
       gnused
       iproute2
-      openssh
+      openssh # ssh client + ssh-keygen (git/jj signing); no sshd server
       procps
       tzdata
       util-linux

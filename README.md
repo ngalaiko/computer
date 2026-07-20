@@ -6,9 +6,9 @@ A Nix-built OCI image to bootstrap [exe.dev](https://exe.dev) machine.
 
 ## Components
 
-- **exe.dev image** — s6-supervised: OpenSSH, the Hermes agent (behind a caddy
-  proxy), tailscaled (persistent tailnet node with Tailscale SSH), restic
-  backups to B2 with restore-on-boot, and a nix daemon for runtime installs.
+- **exe.dev image** — s6-supervised: the Hermes agent (behind a caddy proxy),
+  tailscaled (persistent tailnet node with Tailscale SSH), restic backups to B2
+  with restore-on-boot, and a nix daemon for runtime installs.
 - **Public ingress** — a root caddy binds the public port (8080, `share
   set-public`) and path-routes `/hermes/*` and `/nikita/*` to per-user
   self-serve caddies; each user edits their own `~/.caddy/Caddyfile` and `caddy

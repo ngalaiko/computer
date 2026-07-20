@@ -110,7 +110,7 @@ in
           }
         ];
       };
-      # sshd resets the env, so login shells re-source this via /etc/profile.
+      # ssh resets the env, so login shells re-source this via /etc/profile.
       "profile.d/nix.sh".text = ''
         export PATH="$HOME/.nix-profile/bin:${profile}/bin:${profile}/sbin:$PATH"
         export NIX_REMOTE=daemon

@@ -233,7 +233,7 @@ in
       "ssl/certs/ca-certificates.crt".source = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       protocols.source = "${pkgs.iana-etc}/etc/protocols";
       services.source = "${pkgs.iana-etc}/etc/services";
-      # sshd resets PATH; login shells restore it and source /etc/profile.d.
+      # ssh resets PATH; login shells restore it and source /etc/profile.d.
       profile.text = ''
         export PATH=/command:/bin:/sbin:/usr/bin
         export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt

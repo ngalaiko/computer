@@ -11,14 +11,13 @@ let
 
   passwdLine =
     name: u: "${name}:x:${toString u.uid}:${toString (gidOf u)}:${u.description}:${u.home}:${u.shell}";
-  # locked → '!'; else '*' (pubkey ok). sshd UsePAM no refuses pubkey for '!',
-  # so login accounts must stay unlocked.
+  # locked → '!' (account disabled); else '*' (active, no stored password).
   shadowLine = name: u: "${name}:${if u.locked then "!" else "*"}:1::::::";
   groupLine = name: g: "${name}:x:${toString g.gid}:${lib.concatStringsSep "," g.members}";
 
   joinLines = f: attrs: lib.concatLines (lib.mapAttrsToList f attrs);
 
-  # the default home; sshd's privilege separation requires it to exist
+  # the default home for accounts without one (e.g. nobody).
   varEmpty = pkgs.runCommand "var-empty" { } ''
     mkdir -p $out/var/empty
   '';
