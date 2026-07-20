@@ -17,6 +17,7 @@
     ];
 
     brews = [
+      "docker" # client-only CLI (not Desktop); talks to podman via DOCKER_HOST
       "mole"
       "podman" # nixpkgs podman lacks the machine/vm helpers on darwin
     ];

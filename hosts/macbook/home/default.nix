@@ -3,6 +3,7 @@
   imports = [
     ./atuin.nix
     ./brew.nix
+    ./docker.nix
     ./ghostty.nix
     ./jj.nix
     ./ledger.nix
