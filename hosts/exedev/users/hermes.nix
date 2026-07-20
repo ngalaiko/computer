@@ -112,6 +112,8 @@
       himalaya
       jq
       chromium
+      ledger
+      uv
       (import ../../../packages/agent-browser { inherit pkgs; })
       (import ../../../packages/blogwatcher-cli { inherit pkgs; })
     ];
