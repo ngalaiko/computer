@@ -1,5 +1,8 @@
-{ ... }:
+{ inputs, pkgs, ... }:
+let
+  unstable = import inputs.nixpkgs-unstable { inherit (pkgs.stdenv.hostPlatform) system; };
+in
 {
-  # enableFishIntegration defaults on: adds `mise activate fish | source`.
   programs.mise.enable = true;
+  programs.mise.package = unstable.mise;
 }
