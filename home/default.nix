@@ -5,6 +5,7 @@
     ./fish
     ./go.nix
     ./jj.nix
+    ./mise.nix
     ./neovim
     ./packages.nix
     ./rust.nix
