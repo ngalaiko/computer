@@ -11,6 +11,15 @@ let
   quotedPaths = lib.concatMapStringsSep " " lib.escapeShellArg cfg.paths;
   excludeArgs = lib.concatMapStringsSep " " (p: "--exclude=${lib.escapeShellArg p}") cfg.exclude;
 
+  # retention flags for `restic forget`; a null keep-* is omitted.
+  keepArgs = lib.concatStringsSep " " (
+    lib.optional (cfg.keepLast != null) "--keep-last ${toString cfg.keepLast}"
+    ++ lib.optional (cfg.keepHourly != null) "--keep-hourly ${toString cfg.keepHourly}"
+    ++ lib.optional (cfg.keepDaily != null) "--keep-daily ${toString cfg.keepDaily}"
+    ++ lib.optional (cfg.keepWeekly != null) "--keep-weekly ${toString cfg.keepWeekly}"
+    ++ lib.optional (cfg.keepMonthly != null) "--keep-monthly ${toString cfg.keepMonthly}"
+  );
+
   # no repo configured -> no-op (so the image runs without B2).
   guard = ''
     if [ -z "''${RESTIC_REPOSITORY:-}" ]; then
@@ -24,10 +33,24 @@ let
     set -u
     ${guard}
     ${restic} cat config >/dev/null 2>&1 || ${restic} init
-    # hard VM stops strand locks (prune's is exclusive); drop the stale ones
+    # hard VM stops strand locks; drop the stale ones before backing up.
     ${restic} unlock
     ${restic} backup --tag auto ${excludeArgs} ${quotedPaths}
-    ${restic} forget --tag auto --keep-last ${toString cfg.keepLast} --prune \
+  '';
+
+  # retention runs on its own, infrequent schedule: --prune repacks pack files
+  # (B2 API calls + egress), so running it per-backup is wasteful. Decoupled
+  # here so snapshots span days rather than the ~6h a 15-min keep-last-24 kept.
+  forgetScript = pkgs.writeShellScript "b2-forget" ''
+    set -u
+    ${guard}
+    if ! ${restic} cat config >/dev/null 2>&1; then
+      echo "forget: repo not initialized yet — skipping." >&2
+      exit 0
+    fi
+    # prune's lock is exclusive; drop locks stranded by hard stops first.
+    ${restic} unlock
+    ${restic} forget --tag auto ${keepArgs} --prune \
       || echo "backup: forget/prune failed — retention not applied." >&2
   '';
 
@@ -50,6 +73,7 @@ let
 
   crontab = pkgs.writeText "b2-crontab" ''
     ${cfg.schedule} ${backupScript}
+    ${cfg.pruneSchedule} ${forgetScript}
   '';
 in
 {
@@ -78,10 +102,35 @@ in
       default = "*/15 * * * *";
       description = "Backup cron schedule (supercronic 5-field format).";
     };
+    pruneSchedule = mkOption {
+      type = types.str;
+      default = "17 3 * * *";
+      description = "forget+prune (retention) cron schedule; runs far less often than backups because prune is expensive.";
+    };
     keepLast = mkOption {
-      type = types.int;
+      type = types.nullOr types.int;
       default = 24;
-      description = "Recent snapshots to retain; older ones are pruned.";
+      description = "restic forget --keep-last (null to omit).";
+    };
+    keepHourly = mkOption {
+      type = types.nullOr types.int;
+      default = 24;
+      description = "restic forget --keep-hourly (null to omit).";
+    };
+    keepDaily = mkOption {
+      type = types.nullOr types.int;
+      default = 14;
+      description = "restic forget --keep-daily (null to omit).";
+    };
+    keepWeekly = mkOption {
+      type = types.nullOr types.int;
+      default = null;
+      description = "restic forget --keep-weekly (null to omit).";
+    };
+    keepMonthly = mkOption {
+      type = types.nullOr types.int;
+      default = null;
+      description = "restic forget --keep-monthly (null to omit).";
     };
   };
 
