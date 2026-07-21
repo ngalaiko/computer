@@ -1,7 +1,11 @@
-{ pkgs, ... }:
+{ inputs, pkgs, ... }:
+let
+  unstable = import inputs.nixpkgs-unstable { inherit (pkgs.stdenv.hostPlatform) system; };
+in
 {
   programs.jujutsu = {
     enable = true;
+    package = unstable.jujutsu;
     settings = {
       user = {
         name = "Nikita Galaiko";
