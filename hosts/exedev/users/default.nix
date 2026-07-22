@@ -2,6 +2,6 @@
 {
   imports = [
     ./nikita.nix
-    ./open-webui.nix
+    ./cptr.nix
   ];
 }

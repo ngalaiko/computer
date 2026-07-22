@@ -39,10 +39,9 @@
   };
 
   # Linux builder VM so this Mac can build the aarch64-linux exedev image; nix
-  # offloads *-linux derivations to it (cf. flake.nix's darwinToLinux). The 3G
-  # default guest OOM-kills open-webui's vite frontend `npm build` (open-webui is
-  # unfree, so it's never in the binary cache — always built locally), hence the
-  # bumped memory. These are runtime qemu flags, so a re-switch is cheap.
+  # offloads *-linux derivations to it (cf. flake.nix's darwinToLinux). Bumped
+  # from the 3G / 1-core default for headroom building packages and assembling
+  # the image closure. These are runtime qemu flags, so a re-switch is cheap.
   nix.linux-builder = {
     enable = true;
     config.virtualisation = {
