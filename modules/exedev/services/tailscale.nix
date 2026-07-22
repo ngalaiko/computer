@@ -21,7 +21,7 @@ in
     authKeyFile = mkOption {
       type = types.str;
       default = "/var/lib/tailscale/authkey";
-      description = "File holding an OAuth client secret (tskey-client-...?preauthorized=true) or a tagged auth key; place it by hand once and let services.backup preserve it. No key -> tailscale is skipped.";
+      description = "File holding an OAuth client secret (tskey-client-...?preauthorized=true) or a tagged auth key; place it by hand on each machine recreation (the statedir is not backed up). No key -> tailscale is skipped.";
     };
     tags = mkOption {
       type = types.listOf types.str;
@@ -33,12 +33,12 @@ in
   config = lib.mkIf cfg.enable {
     image.packages = [ pkgs.tailscale ];
 
-    services.backup.paths = [ (builtins.dirOf cfg.authKeyFile) ];
-
-    # persistent state in the backed-up statedir: a recreated VM restores the
-    # node key and reclaims the same device (and hostname, no -N suffix)
-    # instead of registering a fresh one. statedir also holds the ssh host
-    # keys, without which tailscaled silently disables ssh.
+    # statedir (/var/lib/tailscale) is NOT backed up — its contents all
+    # regenerate: a recreated VM registers as a fresh node (delete the stale
+    # duplicate in the admin console; it may claim a -N hostname suffix until
+    # you do), and tailscaled regenerates the ssh host keys it needs or it
+    # silently disables ssh. The one non-regenerating bit, the authKeyFile, is
+    # placed by hand on each recreation (see authKeyFile / README).
     # kernel tun — the userspace netstack doesn't answer ssh (1.90.9).
     s6.services.tailscaled = {
       dependencies = [

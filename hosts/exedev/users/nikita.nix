@@ -26,9 +26,10 @@ in
   services.backup.paths = [
     # hand-generated per-machine key; preserved by backup.
     "${home}/.ssh"
-    # atuin shell history + sync identity (host_id/key), so a recreated VM
-    # keeps its history instead of registering as a fresh atuin host.
-    "${home}/.local/share/atuin"
+    # per-app state the image can't regenerate: atuin's history db + sync
+    # identity (host_id/key), fish history, etc. Home-manager owns the dotfiles
+    # (baked into the image under ~/.config), so nothing here shadows them.
+    "${home}/.local/share"
     # ingress routes for /nikita/* (see services.ingress below).
     "${home}/.caddy"
   ];

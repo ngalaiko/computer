@@ -8,6 +8,13 @@ let
   inherit (lib) mkOption types;
   cfg = config.services.backup;
   restic = "${pkgs.restic}/bin/restic";
+  # Every restic op is scoped to this machine's host. Without it, a repo shared
+  # with another machine breaks two ways: `restore latest` grabs whichever box
+  # wrote the globally-newest snapshot (so a foreign snapshot silently replaces
+  # this box's home), and `forget --prune` applies retention across both boxes'
+  # snapshots (so one box prunes the other's backups). --host confines both to
+  # our own snapshot lineage. MUST be unique per machine sharing a repo.
+  hostArg = "--host ${lib.escapeShellArg cfg.host}";
   quotedPaths = lib.concatMapStringsSep " " lib.escapeShellArg cfg.paths;
   excludeArgs = lib.concatMapStringsSep " " (p: "--exclude=${lib.escapeShellArg p}") cfg.exclude;
 
@@ -35,7 +42,7 @@ let
     ${restic} cat config >/dev/null 2>&1 || ${restic} init
     # hard VM stops strand locks; drop the stale ones before backing up.
     ${restic} unlock
-    ${restic} backup --tag auto ${excludeArgs} ${quotedPaths}
+    ${restic} backup ${hostArg} --tag auto ${excludeArgs} ${quotedPaths}
   '';
 
   # retention runs on its own, infrequent schedule: --prune repacks pack files
@@ -50,7 +57,7 @@ let
     fi
     # prune's lock is exclusive; drop locks stranded by hard stops first.
     ${restic} unlock
-    ${restic} forget --tag auto ${keepArgs} --prune \
+    ${restic} forget ${hostArg} --tag auto ${keepArgs} --prune \
       || echo "backup: forget/prune failed — retention not applied." >&2
   '';
 
@@ -62,12 +69,12 @@ let
       echo "restore: repo has no snapshots yet — nothing to restore." >&2
       exit 0
     fi
-    if ${restic} snapshots --tag auto --latest 1 >/dev/null 2>&1; then
-      echo "restore: restoring latest snapshot" >&2
-      ${restic} restore latest --tag auto --target / \
+    if ${restic} snapshots ${hostArg} --tag auto --latest 1 >/dev/null 2>&1; then
+      echo "restore: restoring latest snapshot for host ${cfg.host}" >&2
+      ${restic} restore latest ${hostArg} --tag auto --target / \
         || echo "restore: failed — continuing with current on-disk state." >&2
     else
-      echo "restore: no snapshots yet" >&2
+      echo "restore: no snapshots for host ${cfg.host} yet" >&2
     fi
   '';
 
@@ -79,6 +86,18 @@ in
 {
   options.services.backup = {
     enable = lib.mkEnableOption "periodic restic->B2 backup of services.backup.paths with restore-on-start";
+    host = mkOption {
+      type = types.str;
+      default = "exedev";
+      description = ''
+        restic --host tag for this machine's snapshots. backup, forget/prune,
+        and restore-on-boot are all confined to it. MUST be unique per machine
+        when several share one repo — otherwise restore grabs a foreign box's
+        latest snapshot and forget prunes across boxes. Defaults to a fixed
+        value rather than the OS hostname because exe.dev boxes share the
+        hostname "ngalaiko-computer", which is what caused them to collide.
+      '';
+    };
     paths = mkOption {
       type = types.listOf types.str;
       default = [ ];

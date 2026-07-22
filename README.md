@@ -8,8 +8,10 @@ nix files for:
 
 ## After creating a machine
 
-One-time steps that place secrets; backups persist them across recreations
-(confirm a snapshot ran: `cat /var/log/backup-cron/current`).
+Steps that place secrets. nikita's ssh key lives under `~/.ssh`, which is
+backed up, so step 2 is one-time — the backup restores it on recreation
+(confirm a snapshot ran: `cat /var/log/backup-cron/current`). The tailscale
+statedir is **not** backed up, so step 3 must be repeated on every recreation.
 
 1. Create the VM with the backup env vars below attached.
 2. Generate nikita's per-machine ssh key and register it with GitHub as both
@@ -44,7 +46,10 @@ One-time steps that place secrets; backups persist them across recreations
    ```
 
    Reboot (or run the `tailscale up` from `modules/exedev/services/tailscale.nix`
-   by hand), then `tailscale ssh nikita@exedev` over the tailnet.
+   by hand), then `tailscale ssh nikita@exedev` over the tailnet. Because the
+   statedir isn't backed up, each recreation registers a fresh tailnet node —
+   delete the stale `exedev` node in the admin console (it can otherwise claim
+   the name and push the new one to `exedev-1`).
 
 ## Configuration
 
