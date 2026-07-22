@@ -71,10 +71,11 @@ in
       '';
     };
 
-    # Runs unprivileged as ${cfg.user}: cptr serves that account's shell/files.
-    # --headless prints the one-time setup URL (with token) to the log instead
-    # of opening a browser; grab it from /var/log/cptr/current on first boot to
-    # create the admin account. exe.dev auth gates the port (install-shelley).
+    # Runs unprivileged as ${cfg.user}: cptr serves that account's shell/files,
+    # bound directly on the public port. --headless prints the one-time setup URL
+    # (with token) to the log instead of opening a browser; grab it from
+    # /var/log/cptr/current on first boot to create the admin account. exe.dev
+    # auth gates the port (install-shelley).
     s6.services.cptr = {
       dependencies = [
         "base"

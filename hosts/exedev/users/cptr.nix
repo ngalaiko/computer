@@ -29,9 +29,17 @@ in
     ffmpeg-headless
   ];
 
+  # cptr's self-serve public exposure. A per-cptr caddy on the shared 8080
+  # ingress with /cptr/* routed to it: from inside cptr, edit ~/.caddy/Caddyfile
+  # and `caddy reload` to reverse_proxy whatever you're running and publish it to
+  # the internet — the same facility nikita has. Separate from cptr's own UI
+  # (which stays on 9999); the seed just 404s until you point it somewhere.
+  services.ingress.tenants.cptr.upstreamPort = 8083;
+
   services.backup = {
     enable = true;
-    # cptr's admin account, db, and workspaces live here.
+    # cptr's admin account + db + workspaces, and the tenant caddy's Caddyfile
+    # (~/.caddy), all live here.
     paths = [ "/var/lib/cptr" ];
   };
 }
