@@ -6,7 +6,7 @@
     name = "computer.exe";
     labels = {
       "org.opencontainers.image.title" = "computer.exe";
-      "org.opencontainers.image.description" = "exe.dev image: s6-overlay, Tailscale SSH, and Hermes";
+      "org.opencontainers.image.description" = "exe.dev image: s6-overlay, Tailscale SSH, and Open WebUI";
       "exe.dev/login-user" = "nikita";
     };
     packages = with pkgs; [

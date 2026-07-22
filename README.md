@@ -2,21 +2,9 @@
 
 # computer
 
-A Nix-built OCI image to bootstrap [exe.dev](https://exe.dev) machine.
-
-## Components
-
-- **exe.dev image** — s6-supervised: the Hermes agent (behind a caddy proxy),
-  tailscaled (persistent tailnet node with Tailscale SSH), restic backups to B2
-  with restore-on-boot, and a nix daemon for runtime installs.
-- **Public ingress** — a root caddy binds the public port (8080, `share
-  set-public`) and path-routes `/hermes/*` and `/nikita/*` to per-user
-  self-serve caddies; each user edits their own `~/.caddy/Caddyfile` and `caddy
-  reload`s. The Hermes dashboard is on 9999, gated behind exe.dev auth.
-- **Users** — `nikita` (login user, fish shell, home-manager env, sudo) and
-  `hermes` (the agent: own package set, no sudo, not nix-trusted).
-- **Mac** — nix-darwin + home-manager consuming the same `home/` modules;
-  remaining homebrew (casks, mas apps) declared in `hosts/macbook/homebrew.nix`.
+nix files for:
+- my mac
+- remove [exe.dev](https://exe.dev) machine
 
 ## After creating a machine
 
@@ -66,7 +54,7 @@ We have to store it outside of the machine to be able to restore everything else
 
 | Variable | Description |
 | --- | --- |
-| `RESTIC_REPOSITORY` | B2 restic repo, e.g. `b2:my-bucket:hermes` |
+| `RESTIC_REPOSITORY` | B2 restic repo, e.g. `b2:backups:exedev` |
 | `RESTIC_PASSWORD` | restic repo encryption password |
 | `B2_ACCOUNT_ID` | B2 key id |
 | `B2_ACCOUNT_KEY` | B2 application key (scope to the bucket) |

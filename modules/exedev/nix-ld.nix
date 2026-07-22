@@ -59,7 +59,7 @@ in
     '';
 
     # nix-ld reads these to find the real loader + libraries. image.env covers
-    # PID1-descended processes (the hermes service); ssh scrubs the env, so
+    # PID1-descended processes (the open-webui service); ssh scrubs the env, so
     # login shells re-export via /etc/profile (cf. profile.d/nix.sh).
     image.env = [
       "NIX_LD=${nix-ld-libraries}/share/nix-ld/lib/ld.so"

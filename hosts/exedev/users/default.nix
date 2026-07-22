@@ -2,6 +2,6 @@
 {
   imports = [
     ./nikita.nix
-    ./hermes.nix
+    ./open-webui.nix
   ];
 }

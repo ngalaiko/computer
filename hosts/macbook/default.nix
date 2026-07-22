@@ -38,5 +38,20 @@
     builders-use-substitutes = true;
   };
 
+  # Linux builder VM so this Mac can build the aarch64-linux exedev image; nix
+  # offloads *-linux derivations to it (cf. flake.nix's darwinToLinux). The 3G
+  # default guest OOM-kills open-webui's vite frontend `npm build` (open-webui is
+  # unfree, so it's never in the binary cache — always built locally), hence the
+  # bumped memory. These are runtime qemu flags, so a re-switch is cheap.
+  nix.linux-builder = {
+    enable = true;
+    config.virtualisation = {
+      cores = 6;
+      # virtualisation.memorySize is derived from this by the darwin-builder
+      # profile, so set it here (setting memorySize directly conflicts).
+      darwin-builder.memorySize = 8192; # MiB
+    };
+  };
+
   programs.fish.enable = true;
 }

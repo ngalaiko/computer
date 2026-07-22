@@ -47,7 +47,7 @@ in
           environment = mkOption {
             type = types.attrsOf types.str;
             default = { };
-            description = "Per-user environment: exported by login shells; service modules that run as the user inject it too (cf. services.hermes).";
+            description = "Per-user environment: exported by login shells; service modules that run as the user inject it too (cf. services.open-webui).";
           };
           files = mkOption {
             type = types.nullOr types.package;
