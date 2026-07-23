@@ -33,6 +33,7 @@
       "postico@1"
       "raycast"
       "slack"
+      "snapzy"
       "sublime-merge"
       "tailscale-app"
       "telegram"
