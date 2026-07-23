@@ -27,6 +27,11 @@ in
     uv
     # pydub (cptr audio) shells out to ffmpeg/ffprobe; headless = no X/GUI closure.
     ffmpeg-headless
+    # read-only tailscale CLI: `tailscale --socket=… status/funnel status` to
+    # report the machine's current public hostname (see the public-hostname
+    # skill). The daemon socket is opened read-only to local users via
+    # services.tailscale.nodes.computer.localApiReadable; writes stay root-only.
+    tailscale
   ];
 
   # cptr's self-serve public exposure. A per-cptr caddy on the shared 8080
