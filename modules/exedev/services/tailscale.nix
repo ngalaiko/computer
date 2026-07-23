@@ -21,7 +21,7 @@ in
     authKeyFile = mkOption {
       type = types.str;
       default = "/var/lib/tailscale/authkey";
-      description = "File holding an OAuth client secret (tskey-client-...?preauthorized=true) or a tagged auth key; place it by hand on each machine recreation (the statedir is not backed up). No key -> tailscale is skipped.";
+      description = "File holding an OAuth client secret (tskey-client-...?preauthorized=true) or a tagged auth key; place it by hand once and let services.backup preserve it. No key -> tailscale is skipped.";
     };
     tags = mkOption {
       type = types.listOf types.str;
@@ -33,12 +33,17 @@ in
   config = lib.mkIf cfg.enable {
     image.packages = [ pkgs.tailscale ];
 
-    # statedir (/var/lib/tailscale) is NOT backed up — its contents all
-    # regenerate: a recreated VM registers as a fresh node (delete the stale
-    # duplicate in the admin console; it may claim a -N hostname suffix until
-    # you do), and tailscaled regenerates the ssh host keys it needs or it
-    # silently disables ssh. The one non-regenerating bit, the authKeyFile, is
-    # placed by hand on each recreation (see authKeyFile / README).
+    # Back up only the hand-placed OAuth authKeyFile (the one non-regenerating
+    # bit), so recreation is zero-touch. tailscaled's own state (node key + ssh
+    # host keys) lives in --statedir below on exe.dev's persistent disk and is
+    # deliberately NOT backed up: it regenerates — a fresh disk registers a new
+    # node (ephemeral auth key => the retired node auto-removes when it goes
+    # offline; see README), a restart reclaims the same node from the statedir.
+    services.backup.paths = [ cfg.authKeyFile ];
+
+    # --statedir is REQUIRED: tailscaled stores the Tailscale SSH host keys
+    # there and silently disables SSH without it ("no var root for ssh keys").
+    # --state=mem: has no such root, which is exactly what broke `tailscale ssh`.
     # kernel tun — the userspace netstack doesn't answer ssh (1.90.9).
     s6.services.tailscaled = {
       dependencies = [

@@ -8,10 +8,12 @@ nix files for:
 
 ## After creating a machine
 
-Steps that place secrets. nikita's ssh key lives under `~/.ssh`, which is
-backed up, so step 2 is one-time — the backup restores it on recreation
-(confirm a snapshot ran: `cat /var/log/backup-cron/current`). The tailscale
-statedir is **not** backed up, so step 3 must be repeated on every recreation.
+One-time steps that place secrets; backups persist them across recreations
+(confirm a snapshot ran: `cat /var/log/backup-cron/current`). nikita's ssh key
+(`~/.ssh`) and the tailscale authkey are both backed up, so neither is
+re-placed on recreation. tailscale's node state lives in a statedir on the
+persistent disk but isn't backed up, so a fresh machine registers a new node;
+use an ephemeral key so retired nodes auto-clean (see step 3).
 
 1. Create the VM with the backup env vars below attached.
 2. Generate nikita's per-machine ssh key and register it with GitHub as both
@@ -38,18 +40,19 @@ statedir is **not** backed up, so step 3 must be repeated on every recreation.
    }]
    ```
 
-   Place the secret on the machine (non-ephemeral, so the node persists):
+   Place the secret on the machine (ephemeral, so retired VMs' nodes auto-clean):
 
    ```
    sudo mkdir -p /var/lib/tailscale
-   sudo sh -c 'umask 077; printf %s "tskey-client-…?preauthorized=true&ephemeral=false" > /var/lib/tailscale/authkey'
+   sudo sh -c 'umask 077; printf %s "tskey-client-…?preauthorized=true&ephemeral=true" > /var/lib/tailscale/authkey'
    ```
 
    Reboot (or run the `tailscale up` from `modules/exedev/services/tailscale.nix`
-   by hand), then `tailscale ssh nikita@exedev` over the tailnet. Because the
-   statedir isn't backed up, each recreation registers a fresh tailnet node —
-   delete the stale `exedev` node in the admin console (it can otherwise claim
-   the name and push the new one to `exedev-1`).
+   by hand), then `tailscale ssh nikita@exedev` over the tailnet. The authkey is
+   backed up so you don't re-place it. tailscaled keeps its node key and SSH
+   host keys in a persistent statedir (not backed up), so a fresh machine
+   registers a new node; the ephemeral key lets the retired node auto-remove
+   once it's offline — no manual cleanup.
 
 ## Configuration
 

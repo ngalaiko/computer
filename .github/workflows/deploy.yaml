@@ -11,9 +11,8 @@ on:
     types: [completed]
     branches: [master]
 
-# exe.dev VM names are global; keep this unique. Defined once, used below.
 env:
-  VM_NAME: ngalaiko-computer
+  VM_TAG: computer
 
 concurrency:
   group: deploy
@@ -23,7 +22,6 @@ jobs:
   deploy:
     name: Redeploy
     runs-on: ubuntu-24.04
-    # manual dispatch always; auto only when the build actually succeeded.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
@@ -33,14 +31,15 @@ jobs:
           # the commit that was built (workflow_run), else the dispatched ref.
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Resolve image tag
-        id: tag
+      - name: Resolve image tag and VM name
+        id: resolve
         env:
           IN_TAG: ${{ github.event.inputs.image_tag }}
         run: |
           tag="$IN_TAG"
           [ -n "$tag" ] || tag="$(git rev-parse --short HEAD)"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "VM_NAME=${VM_TAG}-${tag}" >> "$GITHUB_ENV"
 
       - name: Configure SSH
         env:
@@ -56,16 +55,29 @@ jobs:
             | grep -q "SHA256:JJOP/lwiBGOMilfONPWZCXUrfK154cnJFXcqlsi6lPo" \
             || { echo "exe.dev host-key fingerprint mismatch"; exit 1; }
 
-      - name: Redeploy
+      - name: Retire older computer VMs
+        run: |
+          old=$(ssh -i ~/.ssh/id_ed25519 exe.dev ls --l --json \
+            | jq -r --arg keep "$VM_NAME" --arg tag "$VM_TAG" '
+                .vms[]
+                | select((.tags // []) | index($tag))
+                | (.vm_name // .name)
+                | select(type == "string" and . != "" and . != $keep)')
+          for vm in $old; do
+            echo "retiring $vm"
+            ssh -i ~/.ssh/id_ed25519 exe.dev rm "$vm" || true
+          done
+
+      - name: Create the new VM
         env:
-          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
           RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
           B2_ACCOUNT_KEY: ${{ secrets.B2_ACCOUNT_KEY }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 exe.dev rm "$VM_NAME" || true
           ssh -i ~/.ssh/id_ed25519 exe.dev new \
             --image="ghcr.io/ngalaiko/computer.exe:$IMAGE_TAG" \
             --name "$VM_NAME" \
+            --tag "$VM_TAG" \
             --env RESTIC_REPOSITORY=b2:ngalaiko-backups:exedev \
             --env RESTIC_PASSWORD="$RESTIC_PASSWORD" \
             --env B2_ACCOUNT_ID=0036cfed748e70c0000000002 \
