@@ -14,6 +14,11 @@ in
     package = import ../../../packages/cptr { pkgs = unstable; };
   };
 
+  # A persistent headless Chromium running as the cptr account, CDP on
+  # 127.0.0.1:9222, so cptr can drive a real browser over localhost. Loopback
+  # only — CDP is unauthenticated remote control, never exposed off-box.
+  services.chrome.enable = true;
+
   # cptr's terminal + git features shell out to these; on the cptr user's PATH.
   # The account is unprivileged (no sudo, not nix-trusted), which caps what a
   # signed-in user can do on the box.
