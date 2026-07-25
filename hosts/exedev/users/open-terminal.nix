@@ -2,9 +2,7 @@
 let
   # open-terminal isn't in nixpkgs; we package it from its PyPI wheel, built
   # against unstable's python3Packages (dep floors exceed nixpkgs-25.11).
-  unstable = import inputs.nixpkgs-unstable {
-    inherit (pkgs.stdenv.hostPlatform) system;
-  };
+  unstable = import ../../../packages/unstable.nix { inherit inputs pkgs; };
 in
 {
   services.open-terminal = {

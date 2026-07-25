@@ -3,9 +3,9 @@ let
   # cptr isn't in nixpkgs; we package it from its PyPI wheel, built against
   # unstable's python3Packages (its dep floors exceed nixpkgs-25.11). It ships
   # under the unfree "Open Use License" (ELv2 + attribution), so allow just it.
-  unstable = import inputs.nixpkgs-unstable {
-    inherit (pkgs.stdenv.hostPlatform) system;
-    config.allowUnfreePredicate = p: pkgs.lib.getName p == "cptr";
+  unstable = import ../../../packages/unstable.nix {
+    inherit inputs pkgs;
+    allowUnfree = [ "cptr" ];
   };
 in
 {
