@@ -57,6 +57,14 @@
           port = 443;
           service = "svc:cptr";
         }
+        # Open WebUI, same shape: https://open-webui.<tailnet>.ts.net/,
+        # tailnet-private via svc:open-webui (autoApprover + grant, see README).
+        # The upstream binds loopback only — this Service is its sole ingress.
+        {
+          target = "localhost:8081";
+          port = 443;
+          service = "svc:open-webui";
+        }
       ];
     };
   };
