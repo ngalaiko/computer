@@ -1,8 +1,7 @@
 { pkgs, ... }:
 let
   # pi (the coding agent) is an npm CLI, packaged from its published tarball.
-  # MIT, all-JS deps, so it builds against the pinned nixpkgs directly (no
-  # unstable / allowUnfree, unlike cptr).
+  # MIT, all-JS deps, so it builds against the pinned nixpkgs directly.
   pi = import ../../../packages/pi { inherit pkgs; };
   # the pi-gateway plugin, self-contained (peers + native better-sqlite3 bundled).
   piGateway = import ../../../packages/pi-gateway { inherit pkgs; };
@@ -16,8 +15,8 @@ in
     shell = "/bin/sh";
     description = "Assistant (pi coding agent)";
 
-    # pi plus the tools it drives (git, gh, ripgrep, …) and a node runtime for
-    # its TypeScript extensions / any node subprocesses. The account is
+    # pi plus the tools it drives (git, gh, ripgrep, Chromium, …) and a node
+    # runtime for its TypeScript extensions / any node subprocesses. The account is
     # unprivileged (no sudo, not nix-trusted), which caps what the agent can do
     # on the box; BYOK provider keys are supplied at runtime, not baked in.
     packages = with pkgs; [
@@ -30,6 +29,7 @@ in
       curl
       coreutils
       uv
+      chromium
     ];
   };
   users.groups.assistant.gid = 2001;

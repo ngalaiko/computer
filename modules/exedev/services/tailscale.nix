@@ -59,7 +59,7 @@ let
         path = mkOption {
           type = types.nullOr types.str;
           default = null;
-          example = "/cptr";
+          example = "/app";
           description = "Optional path prefix to mount the target under (--set-path).";
         };
         funnel = mkOption {
@@ -70,7 +70,7 @@ let
         service = mkOption {
           type = types.nullOr types.str;
           default = null;
-          example = "svc:cptr";
+          example = "svc:app";
           description = ''
             Advertise this target as a Tailscale Service (svc:… name) instead of
             on the node's own name. The Service lives in the tailnet policy and
@@ -239,8 +239,8 @@ in
       '';
       example = lib.literalExpression ''
         {
-          computer.ssh = true;                                   # ssh host (kernel tun)
-          cptr.serve = [ { target = "localhost:9999"; } ];       # private, ts.net root
+          computer.ssh = true;                                  # ssh host (kernel tun)
+          app.serve = [ { target = "localhost:9999"; } ];       # private, ts.net root
         }
       '';
       type = types.attrsOf (

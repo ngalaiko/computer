@@ -6,8 +6,7 @@
     name = "computer.exe";
     labels = {
       "org.opencontainers.image.title" = "computer.exe";
-      "org.opencontainers.image.description" =
-        "exe.dev image: s6-overlay, Tailscale SSH, and Open WebUI Computer (cptr)";
+      "org.opencontainers.image.description" = "exe.dev image: s6-overlay and Tailscale SSH";
       "exe.dev/login-user" = "nikita";
     };
     packages = with pkgs; [
@@ -28,15 +27,9 @@
   services.tailscale = {
     enable = true;
     # One tailnet node, `computer`: ssh + the public ingress funnel on its own
-    # name, and it also hosts the cptr dashboard as a Tailscale *Service*. Both
-    # bind :443 but on different IPs (the node's own IP for the funnel, the
-    # service VIP for the dashboard), rebuilt on every boot.
+    # name, rebuilt on every boot.
     nodes.computer = {
       ssh = true;
-      # let the unprivileged cptr account read the LocalAPI (tailscale status /
-      # funnel status) to report the current public hostname; writes stay
-      # root-only. See the public-hostname skill.
-      localApiReadable = true;
       serve = [
         # public path-routed ingress via node Funnel:
         # https://computer.<tailnet>.ts.net/<tenant>/. World-reachable with NO
@@ -47,15 +40,6 @@
           target = "localhost:8080";
           port = 443;
           funnel = true;
-        }
-        # cptr dashboard as a stable Tailscale Service:
-        # https://cptr.<tailnet>.ts.net/, tailnet-private. svc:cptr lives in the
-        # tailnet policy (autoApprover + grant, see README), so the URL survives
-        # this node re-registering as a fresh device on every recreation.
-        {
-          target = "localhost:9999";
-          port = 443;
-          service = "svc:cptr";
         }
       ];
     };
