@@ -29,6 +29,7 @@ in
       curl
       coreutils
       uv
+      ledger
       chromium
     ];
   };
