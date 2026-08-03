@@ -39,20 +39,8 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
      "users":  ["nikita"]
    }],
    // required for `funnel = true` serve entries (the public ingress).
-   "nodeAttrs": [{ "target": ["tag:computer"], "attr": ["funnel"] }],
-   // the cptr dashboard is a Tailscale Service: let tag:computer nodes host it
-   // without manual approval, and let my devices reach it. The svc: name lives
-   // here (in the tailnet), so it outlives any single machine.
-   "autoApprovers": { "services": {
-     "svc:cptr": ["tag:computer"]
-   } },
-   "grants": [{ "src": ["autogroup:member"], "dst": ["svc:cptr"], "ip": ["443"] }]
+   "nodeAttrs": [{ "target": ["tag:computer"], "attr": ["funnel"] }]
    ```
-
-   Tailscale Services are configured in the policy, not on the box. If your
-   tailnet requires the Service object to exist before it can be hosted, add it
-   once under **Services → Add a service** (`svc:cptr`) — a one-time tailnet
-   step, not per-machine.
 
    Place the secret on the machine (ephemeral, so retired VMs' nodes auto-clean):
 
@@ -71,11 +59,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
 
 4. Enable **HTTPS Certificates** (admin console → DNS → *Enable HTTPS*, needs
    MagicDNS on). Required to provision the `*.ts.net` certs. The `computer`
-   node's `tailscale-serve` service re-asserts both on every boot:
-   - `https://cptr.<tailnet>.ts.net/` → cptr dashboard, **tailnet-private**, a
-     Tailscale **Service** (`svc:cptr`). Because the Service is defined in the
-     tailnet, this URL is **stable across recreations** — a fresh machine just
-     re-hosts it (auto-approved) even though it registers as a new node.
+   node's `tailscale-serve` service re-asserts this on every boot:
    - `https://computer.<tailnet>.ts.net/<tenant>/` → ingress, **public via
      Funnel** (needs the `nodeAttrs` above). Unauthenticated — see the note in
      `hosts/exedev/default.nix`. This one is named after the *node*, so on a

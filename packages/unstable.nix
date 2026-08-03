@@ -3,7 +3,7 @@
 {
   inputs,
   pkgs,
-  # unfree package names (lib.getName) to allow, e.g. [ "cptr" ].
+  # unfree package names (lib.getName) to allow.
   allowUnfree ? [ ],
 }:
 import inputs.nixpkgs-unstable {
