@@ -8,6 +8,7 @@
     git-lfs
     jq
     ledger
+    ncdu
     pricehist
     tree
     typst
