@@ -110,11 +110,16 @@ in
         ".venv"
         "venv"
         "node_modules"
+        # ...but a node_modules under ~/.pi is a pi plugin installed at runtime
+        # (`pi install npm:…`), which is NOT regeneratable on a fresh machine, so
+        # re-include those. restic evaluates patterns in order (last match wins)
+        # and re-includes the whole subtree once the dir itself is un-excluded.
+        "!**/.pi/**/node_modules"
         ".cache"
         "checkpoints"
         "backups"
       ];
-      description = "restic exclude patterns (regeneratable dirs).";
+      description = "restic exclude patterns (regeneratable dirs); a leading '!' re-includes.";
     };
     schedule = mkOption {
       type = types.str;
