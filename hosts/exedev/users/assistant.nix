@@ -29,6 +29,7 @@ in
       curl
       coreutils
       uv
+      python3Packages.ddgs
       ledger
       chromium
     ];
