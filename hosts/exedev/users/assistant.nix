@@ -28,12 +28,18 @@ in
       ripgrep
       curl
       coreutils
-      uv
+      fd # pi checks for fd at interactive startup and uses it for file autocomplete/find.
       ledger
       chromium
     ];
   };
   users.groups.assistant.gid = 2001;
+
+  # /assistant/* on the public port. The ingress module also puts caddy on the
+  # assistant PATH so the agent can validate and reload ~/.caddy/Caddyfile.
+  services.ingress.tenants.assistant = {
+    upstreamPort = 8083;
+  };
 
   services.backup = {
     enable = true;
