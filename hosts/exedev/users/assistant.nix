@@ -48,7 +48,13 @@ in
     # pi plugins (~/.pi/agent/npm) and the pi-gateway state below
     # (~/.pi/gateway: config.json with the bot token, gateway-sessions.db), so a
     # recreated machine restores them.
-    paths = [ "/var/lib/assistant" ];
+    paths = [
+      "/var/lib/assistant"
+      # Runtime identity for the supervised gateway process. If restored onto a
+      # fresh VM it can point at a dead/reused PID and make pi-gateway refuse to
+      # start until an interactive pi invocation cleans it up.
+      "! /var/lib/assistant/.pi/gateway/gateway.pid"
+    ];
   };
 
   # Telegram bridge for pi, via the @gamalan/pi-gateway plugin — Nix-packaged
@@ -68,6 +74,7 @@ in
       # Run the daemon (what `pi-gateway start` otherwise double-forks) in the
       # foreground so s6 supervises it. pi (for the `pi --mode rpc` the gateway
       # spawns per chat) is on the account PATH.
+      rm -f /var/lib/assistant/.pi/gateway/gateway.pid
       exec /command/s6-setuidgid assistant \
         env \
           HOME=/var/lib/assistant \

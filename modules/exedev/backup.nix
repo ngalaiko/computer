@@ -15,8 +15,13 @@ let
   # snapshots (so one box prunes the other's backups). --host confines both to
   # our own snapshot lineage. MUST be unique per machine sharing a repo.
   hostArg = "--host ${lib.escapeShellArg cfg.host}";
-  quotedPaths = lib.concatMapStringsSep " " lib.escapeShellArg cfg.paths;
-  excludeArgs = lib.concatMapStringsSep " " (p: "--exclude=${lib.escapeShellArg p}") cfg.exclude;
+  isPathExclude = p: lib.hasPrefix "!" p;
+  stripPathExclude = p: lib.removePrefix "!" p;
+  backupPaths = lib.filter (p: !isPathExclude p) cfg.paths;
+  pathExcludes = map (p: lib.trim (stripPathExclude p)) (lib.filter isPathExclude cfg.paths);
+  quotedPaths = lib.concatMapStringsSep " " lib.escapeShellArg backupPaths;
+  allExcludes = cfg.exclude ++ pathExcludes;
+  excludeArgs = lib.concatMapStringsSep " " (p: "--exclude=${lib.escapeShellArg p}") allExcludes;
 
   # retention flags for `restic forget`; a null keep-* is omitted.
   keepArgs = lib.concatStringsSep " " (
@@ -101,7 +106,11 @@ in
     paths = mkOption {
       type = types.listOf types.str;
       default = [ ];
-      description = "Absolute paths to back up; restored to the same locations on boot.";
+      description = ''
+        Absolute paths to back up; restored to the same locations on boot.
+        Entries prefixed with `!` (for example `! /path/to/volatile-file`)
+        are treated as module-local exclude patterns instead of backup roots.
+      '';
     };
     exclude = mkOption {
       type = types.listOf types.str;
@@ -119,7 +128,7 @@ in
         "checkpoints"
         "backups"
       ];
-      description = "restic exclude patterns (regeneratable dirs); a leading '!' re-includes.";
+      description = "Base restic exclude patterns (regeneratable dirs); a leading '!' re-includes.";
     };
     schedule = mkOption {
       type = types.str;
