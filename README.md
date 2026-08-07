@@ -67,6 +67,21 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
      may suffix it (`computer-1`) until the stale one is culled; exe.dev's
      public share is the stable public path if that matters.
 
+5. Place the Telegram gateway (pilegram) secrets — the bot token and your
+   allow-listed Telegram user id(s) — so the `assistant-gateway` service can
+   start. They stay out of this (public) repo and the image; the file lives
+   under the assistant home and is backed up, so it's restored on recreation:
+
+   ```
+   sudo install -d -o 2001 -g 2001 -m 700 /var/lib/assistant/.config/pilegram
+   sudo sh -c 'umask 077; printf "TELEGRAM_BOT_TOKEN=%s\nPILEGRAM_ALLOW=%s\n" "123456:AA..." "111222333" > /var/lib/assistant/.config/pilegram/env'
+   sudo chown 2001:2001 /var/lib/assistant/.config/pilegram/env
+   ```
+
+   `PILEGRAM_ALLOW` is comma-separated numeric Telegram user ids. In BotFather,
+   enable **Threaded Mode** so each Telegram topic is its own agent session. The
+   service retries every 10s until the file exists.
+
 ## Configuration
 
 ### Backups

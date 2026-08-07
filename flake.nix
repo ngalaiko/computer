@@ -2,21 +2,28 @@
   description = "Nix-built OCI image for exe.dev machines";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    # 25.11 atuin (18.10) is too old for a DB migrated by a newer atuin.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    # stable's atuin is older than the one that migrated the local atuin DB, so
+    # atuin (and other fast-moving tools) pin unstable — see
+    # hosts/macbook/home/atuin.nix and packages/unstable.nix.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin = {
-      url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
+      url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.11";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixvim = {
-      url = "github:nix-community/nixvim/nixos-25.11";
+      url = "github:nix-community/nixvim/nixos-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # my pi ⇄ Telegram gateway (the assistant's bridge). Deliberately does NOT
+    # follow our nixpkgs, even though both track 26.05: it's a hermetic flake
+    # whose node_modules is a fixed-output derivation pinned to its own nixpkgs'
+    # bun, and repinning bun (even across 26.05 revs) would break that hash.
+    pilegram.url = "github:ngalaiko/pilegram";
   };
 
   outputs =

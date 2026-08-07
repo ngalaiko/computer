@@ -1,9 +1,0 @@
-{
-  "name": "pi-gateway-dist",
-  "version": "1.10.1",
-  "private": true,
-  "dependencies": {
-    "@gamalan/pi-gateway": "1.10.1",
-    "@sinclair/typebox": ">=0.32.0"
-  }
-}

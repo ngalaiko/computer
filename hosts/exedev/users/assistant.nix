@@ -1,10 +1,13 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 let
   # pi (the coding agent) is an npm CLI, packaged from its published tarball.
   # MIT, all-JS deps, so it builds against the pinned nixpkgs directly.
   pi = import ../../../packages/pi { inherit pkgs; };
-  # the pi-gateway plugin, self-contained (peers + native better-sqlite3 bundled).
-  piGateway = import ../../../packages/pi-gateway { inherit pkgs; };
+  # pilegram: my pi ⇄ Telegram gateway (Bun), consumed as a flake input. It's a
+  # hermetic package — it bundles bun, ffmpeg, whisper.cpp and a pinned
+  # node_modules that includes its own pi 0.83.0 — so it needs nothing else from
+  # this account and survives recreations regardless of backup.
+  pilegram = inputs.pilegram.packages.${pkgs.system}.default;
 in
 {
   users.users.assistant = {
@@ -45,36 +48,50 @@ in
     enable = true;
     # pi's config, auth (provider keys), session history, and the agent
     # workspace all live under the home. This also covers the runtime-installed
-    # pi plugins (~/.pi/agent/npm) and the pi-gateway state below
-    # (~/.pi/gateway: config.json with the bot token, gateway-sessions.db), so a
-    # recreated machine restores them.
+    # pi plugins (~/.pi/agent/npm) and pilegram's state (~/.config/pilegram: its
+    # SQLite db + per-topic workspaces, and the runtime env file holding the bot
+    # token + allow-list), so a recreated machine restores them. pilegram's
+    # ~2 GB speech-model cache (~/.cache/pilegram) is re-downloadable and is
+    # already skipped by the base `.cache` exclude.
     paths = [
       "/var/lib/assistant"
-      # Runtime identity for the supervised gateway process. If restored onto a
-      # fresh VM it can point at a dead/reused PID and make pi-gateway refuse to
-      # start until an interactive pi invocation cleans it up.
-      "! /var/lib/assistant/.pi/gateway/gateway.pid"
     ];
   };
 
-  # Telegram bridge for pi, via the @gamalan/pi-gateway plugin — Nix-packaged
-  # with its peer deps and native better-sqlite3 in packages/pi-gateway, so it's
-  # always in the image (no runtime `pi install`, survives recreations
-  # regardless of backup). Its config + session dbs live in ~/.pi/gateway (backed
-  # up, and not under a node_modules). Long-polling (no webhookUrl in
-  # ~/.pi/gateway/config.json) needs only outbound HTTPS, so nothing is exposed
-  # on the tailnet or the image.
+  # Telegram bridge for pi, via pilegram (the flake input above). Long-polling
+  # needs only outbound HTTPS, so nothing is exposed on the tailnet or the image.
+  # pilegram reads pi's provider keys from ~/.pi and keeps its own state under
+  # ~/.config/pilegram; run in the foreground so s6 supervises it.
   s6.services.assistant-gateway = {
     dependencies = [
       "base"
-      # wait for the restore so ~/.pi/gateway (config + sessions) is present.
+      # wait for the restore so ~/.config/pilegram (state + the env file) is present.
       "backup-restore"
     ];
     run = ''
-      # Run the daemon (what `pi-gateway start` otherwise double-forks) in the
-      # foreground so s6 supervises it. pi (for the `pi --mode rpc` the gateway
-      # spawns per chat) is on the account PATH.
-      rm -f /var/lib/assistant/.pi/gateway/gateway.pid
+      # The bot token and allow-list stay out of this (public) repo and the Nix
+      # store: they live in a runtime env file under the backed-up home, placed
+      # once on a fresh machine and restored thereafter (see README). The token
+      # is exported into the environment, never passed as a flag — argv is
+      # visible in `ps`; the allow-list (non-secret Telegram user ids) is a flag.
+      envfile=/var/lib/assistant/.config/pilegram/env
+      if [ ! -f "$envfile" ]; then
+        echo "assistant-gateway: $envfile missing; place TELEGRAM_BOT_TOKEN + PILEGRAM_ALLOW (see README). Retrying." >&2
+        sleep 10
+        exit 1
+      fi
+      set -a
+      . "$envfile"
+      set +a
+      if [ -z "''${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "''${PILEGRAM_ALLOW:-}" ]; then
+        echo "assistant-gateway: TELEGRAM_BOT_TOKEN or PILEGRAM_ALLOW unset in $envfile. Retrying." >&2
+        sleep 10
+        exit 1
+      fi
+      # TELEGRAM_BOT_TOKEN is already exported (set -a above); `env` (no -i) and
+      # s6-setuidgid both preserve it, so it reaches pilegram without ever
+      # appearing in argv. NODE_EXTRA_CA_CERTS points bun at the system CA bundle
+      # for outbound HTTPS (Telegram, Hugging Face model downloads).
       exec /command/s6-setuidgid assistant \
         env \
           HOME=/var/lib/assistant \
@@ -83,7 +100,11 @@ in
           PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
           SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
           NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
-        ${piGateway}/bin/pi-gateway-daemon --daemon
+          NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt \
+        ${pilegram}/bin/pilegram \
+          --allow "$PILEGRAM_ALLOW" \
+          --state-dir /var/lib/assistant/.config/pilegram \
+          --models-dir /var/lib/assistant/.cache/pilegram
     '';
   };
 }

@@ -1,5 +1,5 @@
 # Shared nixpkgs-unstable instantiation for packages whose dep floors exceed
-# nixpkgs-25.11, so every unstable consumer gets the same image-wide fixups.
+# nixpkgs-26.05, so every unstable consumer gets the same image-wide fixups.
 {
   inputs,
   pkgs,

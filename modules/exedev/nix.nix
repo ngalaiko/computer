@@ -91,7 +91,7 @@ in
         sandbox = false
         nix-path = nixpkgs=${nixpkgsSrc}
       '';
-      # pins nixpkgs flake refs to the image's rev — the nixos-25.11 pin is
+      # pins nixpkgs flake refs to the image's rev — the nixos-26.05 pin is
       # fully covered by cache.nixos.org, unlike the registry default
       # (unstable), which rotates out of cache and rebuilds from source.
       "nix/registry.json".text = builtins.toJSON {
