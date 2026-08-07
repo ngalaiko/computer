@@ -139,11 +139,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1786118841,
-        "narHash": "sha256-xjA8bpSqiKh72DPuDCNayahUlmuY++AbN4j+8U7JDvk=",
+        "lastModified": 1786123131,
+        "narHash": "sha256-wC7WsgOjF+kh+FHPjWH60QHmsuUUYJ5CH2Zr11I3bNw=",
         "owner": "ngalaiko",
         "repo": "pilegram",
-        "rev": "8adb2c85ca259194f660195694998e0153046c99",
+        "rev": "91f21f75c796db11930ddc30e2dfcfa1738b7f1d",
         "type": "github"
       },
       "original": {
