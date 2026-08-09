@@ -20,10 +20,7 @@ pkgs.buildNpmPackage {
 
   nodejs = pkgs.nodejs_22;
   dontNpmBuild = true;
-  npmFlags = [
-    "--ignore-scripts"
-    "--omit=dev"
-  ];
+  npmFlags = [ "--omit=dev" ];
 
   meta = {
     description = "Headless client for Obsidian Sync and Publish";
