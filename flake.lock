@@ -159,7 +159,8 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvim": "nixvim",
-        "pilegram": "pilegram"
+        "pilegram": "pilegram",
+        "wherenow": "wherenow"
       }
     },
     "systems": {
@@ -174,6 +175,26 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "wherenow": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786299637,
+        "narHash": "sha256-USnajbT7Z2cKP/lO8hyVqNWGcMJBum764Zlsy49jFgE=",
+        "owner": "ngalaiko",
+        "repo": "wherenow",
+        "rev": "3f51cd4d6aad009cf33f8636fa67834bb8e1eda5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ngalaiko",
+        "repo": "wherenow",
         "type": "github"
       }
     }

@@ -8,6 +8,9 @@ let
   # node_modules that includes its own pi 0.83.0 — so it needs nothing else from
   # this account and survives recreations regardless of backup.
   pilegram = inputs.pilegram.packages.${pkgs.system}.default;
+  # wherenow: the "Where Now?" location backend (flake input). Pure Go; writes
+  # positions into the vault as notes (no database).
+  wherenow = inputs.wherenow.packages.${pkgs.system}.default;
   # Official Obsidian Sync headless CLI, packaged here so the assistant can run
   # on-demand vault syncs without fetching npm packages at runtime.
   obsidian-headless = import ../../../packages/obsidian-headless { inherit pkgs; };
@@ -48,10 +51,25 @@ in
   };
   users.groups.assistant.gid = 2001;
 
-  # /assistant/* on the public port. The ingress module also puts caddy on the
-  # assistant PATH so the agent can validate and reload ~/.caddy/Caddyfile.
+  # /assistant/* on the public port, served by the assistant's own caddy (the
+  # ingress module also puts caddy on the assistant PATH so the agent can
+  # validate and reload ~/.caddy/Caddyfile). It fronts wherenow at
+  # /assistant/wherenow/* -> the wherenow backend on loopback 8085: the root
+  # caddy strips /assistant, this handle strips /wherenow, so wherenow sees
+  # /api/*. The trailing 404 leaves the rest of /assistant/* the agent's to
+  # self-manage. Public, but every wherenow write needs the bearer TOKEN.
+  #
+  # NB: `routes` is only the SEED for the tenant's Caddyfile. A box that already
+  # has ~assistant/.caddy/Caddyfile keeps its copy, so on first rollout add this
+  # handle there by hand (or delete the file to let it re-seed) then reload caddy.
   services.ingress.tenants.assistant = {
     upstreamPort = 8083;
+    routes = ''
+      handle_path /wherenow/* {
+        reverse_proxy 127.0.0.1:8085
+      }
+      respond "assistant: no routes configured yet" 404
+    '';
   };
 
   services.backup = {
@@ -93,6 +111,55 @@ in
           NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
           NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt \
         ${obsidian-headless}/bin/ob sync --path "$vault" --continuous
+    '';
+  };
+
+  # wherenow: the "Where Now?" iOS app POSTs positions here and wherenow writes
+  # each one straight into the vault as a note (no database), so daily notes show
+  # where I've been. Runs as the assistant so it can write the vault; listens on
+  # loopback 8085 (the assistant's own ingress caddy fronts it at
+  # /assistant/wherenow/*). The bearer TOKEN lives in a runtime env file, placed
+  # once on a fresh machine (see README) and exported into the environment so it
+  # never appears in argv. tzdata is embedded in the binary, so --tz resolves
+  # without system zoneinfo.
+  s6.services.assistant-wherenow = {
+    dependencies = [
+      "base"
+      "backup-restore"
+    ];
+    run = ''
+      vault=/var/lib/assistant/Vault
+      if [ ! -d "$vault/.obsidian" ]; then
+        echo "assistant-wherenow: $vault not configured yet (run ob sync-setup). Retrying." >&2
+        sleep 30
+        exit 1
+      fi
+      envfile=/var/lib/assistant/.config/wherenow/env
+      if [ ! -f "$envfile" ]; then
+        echo "assistant-wherenow: $envfile missing; place TOKEN=... (see README). Retrying." >&2
+        sleep 10
+        exit 1
+      fi
+      set -a
+      . "$envfile"
+      set +a
+      if [ -z "''${TOKEN:-}" ]; then
+        echo "assistant-wherenow: TOKEN unset in $envfile. Retrying." >&2
+        sleep 10
+        exit 1
+      fi
+      # TOKEN is exported (set -a), so `env` (no -i) and s6-setuidgid pass it
+      # through the environment; it never appears in argv (which `ps` can see).
+      exec /command/s6-setuidgid assistant \
+        env \
+          HOME=/var/lib/assistant \
+          USER=assistant \
+          SHELL=/bin/sh \
+          PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
+          PORT=8085 \
+        ${wherenow}/bin/wherenow \
+          --vault-dir="$vault" \
+          --tz=Europe/Stockholm
     '';
   };
 

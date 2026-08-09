@@ -24,6 +24,14 @@
     # whose node_modules is a fixed-output derivation pinned to its own nixpkgs'
     # bun, and repinning bun (even across 26.05 revs) would break that hash.
     pilegram.url = "github:ngalaiko/pilegram";
+    # wherenow: my self-hosted "Where Now?" location backend. Pure Go, so unlike
+    # pilegram it follows our nixpkgs. Runs as the assistant and writes each
+    # position straight into the Obsidian vault as a note — see
+    # hosts/exedev/users/assistant.nix.
+    wherenow = {
+      url = "github:ngalaiko/wherenow";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

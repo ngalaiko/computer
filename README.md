@@ -118,6 +118,26 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    enable **Threaded Mode** so each Telegram topic is its own agent session. The
    service retries every 10s until the file exists.
 
+6. Place the wherenow bearer token (the value the "Where Now?" iOS app sends as
+   `Authorization: Bearer …`) so the `assistant-wherenow` service can start.
+   Same runtime env-file pattern as pilegram — kept out of this (public) repo
+   and the image, and backed up under the assistant home so it survives
+   recreation:
+
+   ```
+   sudo install -d -o 2001 -g 2001 -m 700 /var/lib/assistant/.config/wherenow
+   sudo sh -c 'umask 077; printf "TOKEN=%s\n" "<bearer-token>" > /var/lib/assistant/.config/wherenow/env'
+   sudo chown 2001:2001 /var/lib/assistant/.config/wherenow/env
+   ```
+
+   Then point the iOS app at `https://computer.<tailnet>.ts.net/assistant/wherenow`
+   with the same token — wherenow is fronted by the assistant's own caddy. On a
+   box that already has `~assistant/.caddy/Caddyfile`, add the `/wherenow/*`
+   handle to it once (or delete the file to let the seed regenerate) and reload
+   caddy, since the seed only writes when the file is absent. wherenow writes
+   each position straight into the assistant's Obsidian vault as a note; the
+   service retries every 10s until the file exists.
+
 ## Configuration
 
 ### Backups
