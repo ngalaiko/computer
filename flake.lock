@@ -185,11 +185,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786299637,
-        "narHash": "sha256-USnajbT7Z2cKP/lO8hyVqNWGcMJBum764Zlsy49jFgE=",
+        "lastModified": 1786300479,
+        "narHash": "sha256-0AI3cVxOQww1jk9dJibHCR0DNazlYF98XOc+hu/9UOQ=",
         "owner": "ngalaiko",
         "repo": "wherenow",
-        "rev": "3f51cd4d6aad009cf33f8636fa67834bb8e1eda5",
+        "rev": "f5b16d44f0f1df8dfed5d76d0a60375898d63623",
         "type": "github"
       },
       "original": {
