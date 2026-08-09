@@ -68,6 +68,34 @@ in
     ];
   };
 
+  # Keep the assistant's Obsidian vault connected to Obsidian Sync. The auth,
+  # sync setup, and vault data are runtime state under the backed-up assistant
+  # home; this service only starts once backup restore has completed.
+  s6.services.assistant-obsidian-sync = {
+    dependencies = [
+      "base"
+      "backup-restore"
+    ];
+    run = ''
+      vault=/var/lib/assistant/Vault
+      if [ ! -d "$vault/.obsidian" ]; then
+        echo "assistant-obsidian-sync: $vault is not configured yet; run ob login + ob sync-setup once. Retrying." >&2
+        sleep 30
+        exit 1
+      fi
+      exec /command/s6-setuidgid assistant \
+        env \
+          HOME=/var/lib/assistant \
+          USER=assistant \
+          SHELL=/bin/sh \
+          PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
+          SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
+          NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
+          NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt \
+        ${obsidian-headless}/bin/ob sync --path "$vault" --continuous
+    '';
+  };
+
   # Telegram bridge for pi, via pilegram (the flake input above). Long-polling
   # needs only outbound HTTPS, so nothing is exposed on the tailnet or the image.
   # pilegram reads pi's provider keys from ~/.pi and keeps its own state under
