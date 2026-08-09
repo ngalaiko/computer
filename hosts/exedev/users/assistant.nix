@@ -8,6 +8,14 @@ let
   # node_modules that includes its own pi 0.83.0 — so it needs nothing else from
   # this account and survives recreations regardless of backup.
   pilegram = inputs.pilegram.packages.${pkgs.system}.default;
+  # Official Obsidian Sync headless CLI, packaged here so the assistant can run
+  # on-demand vault syncs without fetching npm packages at runtime.
+  obsidian-headless = import ../../../packages/obsidian-headless { inherit pkgs; };
+  obsidian-sync = pkgs.writeShellScriptBin "obsidian-sync" ''
+    set -eu
+    vault="''${OBSIDIAN_VAULT_DIR:-/var/lib/assistant/Vault}"
+    exec ${obsidian-headless}/bin/ob sync --path "$vault" "$@"
+  '';
 in
 {
   users.users.assistant = {
@@ -34,6 +42,8 @@ in
       fd # pi checks for fd at interactive startup and uses it for file autocomplete/find.
       ledger
       chromium
+      obsidian-headless
+      obsidian-sync
     ];
   };
   users.groups.assistant.gid = 2001;
