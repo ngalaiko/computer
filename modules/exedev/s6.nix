@@ -116,6 +116,25 @@ let
     )
   );
 
+  # The generation ABI (consumed by build.system's activate and by the boot
+  # handoff below): oneshots as NN-<name> up-scripts in toposort order, so
+  # `$gen/oneshots/*` globs replay them without a Nix eval. Same upFile the
+  # inline boot path runs, so boot and activate stay identical.
+  oneshotsDir = pkgs.runCommand "s6-oneshots" { } (
+    ''
+      mkdir -p $out
+    ''
+    + lib.concatStrings (
+      lib.imap0 (
+        i: s: "cp ${upFile s.name s.value} $out/${lib.fixedWidthString 3 "0" (toString i)}-${s.name}\n"
+      ) sortedOneshots
+    )
+  );
+
+  # oneshots safe to replay on a live `activate switch` (default-deny; see the
+  # per-service `reactivate` flag). Boot replays the FULL set regardless.
+  reactivateNames = lib.attrNames (lib.filterAttrs (_: s: s.reactivate) oneshots);
+
   # Dual boot path. As PID 1 (docker): mount the pseudo-filesystems (must be
   # PID 1 — a supervised mount didn't fix ssh PTYs) then exec s6-overlay's
   # /init. As a child (exe.dev's exe-init keeps PID 1): s6-overlay refuses to
@@ -131,16 +150,42 @@ let
       ${pkgs.util-linux}/bin/mountpoint -q /proc || ${pkgs.util-linux}/bin/mount -t proc proc /proc || true
       ${pkgs.util-linux}/bin/mountpoint -q /dev/pts || ${pkgs.util-linux}/bin/mount -t devpts devpts /dev/pts -o gid=5,mode=620,ptmxmode=666 || true
       [ -e /dev/ptmx ] || ln -s pts/ptmx /dev/ptmx || true
+      [ -e /dev/fd ] || ln -sfn /proc/self/fd /dev/fd || true
       exec /init "$@"
     fi
 
     mkdir -p /run/s6
     /command/s6-dumpenv /run/s6/container_environment
-    ${lib.concatMapStrings (s: ''
-      ${upFile s.name s.value}
-    '') sortedOneshots}
+
+    # exe.dev's minimal /dev omits /dev/fd etc.; provide the conventional symlinks
+    # so bash process substitution (and tools that open /dev/fd/N) work — e.g.
+    # building derivations on the box, and the activate prune path.
+    if [ -e /proc/self/fd ]; then
+      ln -sfn /proc/self/fd /dev/fd 2>/dev/null || true
+      ln -sfn /proc/self/fd/0 /dev/stdin 2>/dev/null || true
+      ln -sfn /proc/self/fd/1 /dev/stdout 2>/dev/null || true
+      ln -sfn /proc/self/fd/2 /dev/stderr 2>/dev/null || true
+    fi
+
+    # Boot handoff: exe.dev `restart` reboots the BASE image, but if an in-place
+    # deploy has set the system profile, come up on THAT generation instead of
+    # the baked base — overlay its rootfs/fixups, replay its (full) oneshot set,
+    # and svscan its services. First-ever boot (no profile yet) falls back to the
+    # baked base. This makes gen/{activate,oneshots,service} the ABI.
+    sys=/nix/var/nix/profiles/system
+    if [ -e "$sys" ]; then
+      gen=$(readlink -f "$sys")
+      "$gen/activate" boot || echo "boot: activate failed; continuing on generation" >&2
+      oneshots="$gen/oneshots"
+      svc="$gen/service"
+    else
+      # first-ever boot: replay the base's own copy of the same toposorted set.
+      oneshots=${oneshotsDir}
+      svc=${svscanDir}
+    fi
+    for f in "$oneshots"/*; do [ -e "$f" ] && "$f"; done
     mkdir -p /run/service
-    cp -rL ${svscanDir}/. /run/service/
+    cp -rL "$svc"/. /run/service/
     chmod -R u+w /run/service
     exec /command/s6-svscan /run/service
   '';
@@ -174,6 +219,24 @@ in
       type = types.int;
       default = 1000000;
       description = "Rotate a service log at this size (bytes).";
+    };
+
+    build = {
+      serviceTree = mkOption {
+        type = types.package;
+        readOnly = true;
+        description = "The svscan longrun tree (/run/service source); build.system ships it as gen/service for the reload diff.";
+      };
+      oneshots = mkOption {
+        type = types.package;
+        readOnly = true;
+        description = "Toposorted NN-<name> oneshot up-scripts; build.system ships them as gen/oneshots for boot replay + switch re-run.";
+      };
+      reactivate = mkOption {
+        type = types.listOf types.str;
+        readOnly = true;
+        description = "Oneshot names safe to re-run on `activate switch` (the reactivate=true set).";
+      };
     };
 
     services = mkOption {
@@ -214,6 +277,19 @@ in
               default = [ "base" ];
               description = "s6-rc services this one starts after.";
             };
+            reactivate = mkOption {
+              type = types.bool;
+              default = false;
+              description = ''
+                Oneshot only: re-run this oneshot during an in-place `activate
+                switch` (not just at boot). Default-deny — only set it on
+                idempotent seeders that are safe to replay against a live system
+                (e.g. ingress route seeding). MUST stay false for anything that
+                mutates state on run (e.g. backup-restore, which would restore an
+                old snapshot over live data). Ignored for longruns (they reload
+                via the svscan diff).
+              '';
+            };
           };
         }
       );
@@ -229,5 +305,11 @@ in
     ];
     # devpts is mounted with gid=5 (see initWrapper).
     users.groups.tty.gid = 5;
+
+    s6.build = {
+      serviceTree = svscanDir;
+      oneshots = oneshotsDir;
+      reactivate = reactivateNames;
+    };
   };
 }

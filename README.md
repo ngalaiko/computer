@@ -4,7 +4,43 @@
 
 nix files for:
 - my mac
-- remove [exe.dev](https://exe.dev) machine
+- my remote [exe.dev](https://exe.dev) machine
+
+## Deploying
+
+Everyday deploys are **in place** — they update the running VM without recreating
+it, so the Tailscale node, the public URL, and all on-disk state are preserved, and
+only changed services reload (unchanged ones keep their PIDs):
+
+- **From your Mac:** `nix run .#deploy`. Builds the system generation, ships its
+  closure to the box over Tailscale, and runs `<gen>/activate switch`. The Mac is
+  aarch64 and the box is x86_64, so the build is realised in the box's own store.
+- **From CI:** `.github/workflows/deploy.yaml` runs after a green `build` on
+  `master` and is **self-deciding**:
+  - **no VM tagged `computer`** → it `exe.dev new`s one from the built image
+    (bootstrap / disaster recovery), passing the backup secrets so the box can
+    restore from B2 on boot. This is the only path that uses `RESTIC_PASSWORD` /
+    `B2_ACCOUNT_KEY` (CI secrets).
+  - **VM exists** → it activates in place (`nix run .#deploy`) with **no app
+    secrets** — RESTIC/B2/pilegram already live on the box. This path needs only
+    tailnet access: a Tailscale OAuth client tagged `tag:ci` (client id inline in
+    `deploy.yaml`, secret in the `TS_OAUTH_SECRET` repo secret) and a policy rule
+    letting `tag:ci` SSH the computer node:
+
+    ```jsonc
+    "ssh": [{ "action": "accept", "src": ["tag:ci"],
+              "dst": ["tag:computer"], "users": ["nikita"] }]
+    ```
+
+Roll back with `sudo nix-env -p /nix/var/nix/profiles/system --rollback` then
+re-run `activate`. `sudo <gen>/activate test` is a dry run that prints the
+overlay/reload plan and changes nothing.
+
+**Base changes still take effect only through a create** (s6-overlay / nix / kernel
+layer, the init/mount wrapper, `image.env`): they're excluded from in-place
+activation, so they land when CI next has to create a VM — or when you `rm` the VM
+to force a fresh one. After a create, the next `deploy` re-establishes the latest
+generation, and the base `init-wrapper` hands off to it on `exe.dev restart`.
 
 ## After creating a machine
 

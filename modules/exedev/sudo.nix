@@ -30,12 +30,15 @@ in
     # the plugin loads from sudo's store path, so it must ship (registered).
     image.packages = [ pkgs.sudo ];
 
-    # fakeroot fakes ownership only for explicit chowns.
-    image.fakeRootCommands = ''
-      mkdir -p ./bin ./etc
-      rm -f ./bin/sudo
-      install -m 4755 -o 0 -g 0 ${pkgs.sudo}/bin/sudo ./bin/sudo
-      install -m 0440 -o 0 -g 0 ${sudoers} ./etc/sudoers
+    # setuid sudo + 0440 sudoers: the store normalizes these modes away, so bake
+    # them via the shared $root fixups — asserted at image build (fakeroot) AND on
+    # every in-place activate (real root). Missing this on a switch would drop the
+    # setuid bit and lock wheel out of passwordless root.
+    image.activationFixups = ''
+      mkdir -p "$root/bin" "$root/etc"
+      rm -f "$root/bin/sudo"
+      install -m 4755 -o 0 -g 0 ${pkgs.sudo}/bin/sudo "$root/bin/sudo"
+      install -m 0440 -o 0 -g 0 ${sudoers} "$root/etc/sudoers"
     '';
 
     environment.etc."pam.d/sudo".text = pamSudo;

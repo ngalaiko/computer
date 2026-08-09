@@ -72,17 +72,31 @@ let
     ''
   );
 
+  # The mode/ownership/symlink bakes the Nix store can't represent (setuid sudo,
+  # 0440 sudoers, the nix-ld loader shim, sticky /tmp). $root-parameterized so the
+  # SAME script runs two ways: the image build calls it under fakeroot with
+  # `root=.` to bake the layer, and the in-place `activate` calls it as real root
+  # with `root=/` to re-assert them on every switch — because none of these live
+  # in build.rootfs, a naive overlay would drop them (e.g. leave a non-setuid
+  # sudo, locking wheel out of root). STATEFUL bakes (home file copies, createHome
+  # chowns) deliberately stay in image.fakeRootCommands, build-only.
+  activationFixups = pkgs.writeShellScript "activation-fixups" ''
+    set -eu
+    export PATH=${pkgs.coreutils}/bin:${pkgs.util-linux}/bin
+    root="''${1:-/}"
+    ${config.image.activationFixups}
+  '';
+
   image = pkgs.dockerTools.buildLayeredImage {
     name = config.image.name;
     tag = "latest";
     created = "1970-01-01T00:00:01Z";
     contents = [ rootfs ];
     maxLayers = config.image.maxLayers;
-    # store paths can't hold these modes; fakeroot writes them into the layer
+    # store paths can't hold these modes; fakeroot writes them into the layer.
+    # activationFixups covers sudo/sudoers/ld.so/tmp; then the stateful bakes.
     fakeRootCommands = ''
-      mkdir -p ./tmp ./var/tmp ./root
-      chmod 1777 ./tmp ./var/tmp
-      chmod 0755 ./root
+      ${activationFixups} .
     ''
     + config.image.fakeRootCommands;
     config = {
@@ -168,7 +182,12 @@ in
       fakeRootCommands = mkOption {
         type = types.lines;
         default = "";
-        description = "Commands run under fakeroot over the image root (relative ./… paths) to bake ownership/modes.";
+        description = "Commands run under fakeroot over the image root (relative ./… paths) to bake ownership/modes. Build-only; for stateful bakes (home dirs). Use image.activationFixups for anything the in-place activate must also re-assert.";
+      };
+      activationFixups = mkOption {
+        type = types.lines;
+        default = "";
+        description = "Mode/ownership/symlink fixups the Nix store can't represent (setuid, 0440, loader shims). Written against a `$root` prefix ($root=. at image build under fakeroot, $root=/ at runtime activation) so both paths re-assert them. Must be idempotent and must NOT touch machine state.";
       };
       cmd = mkOption {
         type = types.listOf types.str;
@@ -209,13 +228,25 @@ in
         readOnly = true;
         description = "The OCI image.";
       };
+      activationFixups = mkOption {
+        type = types.package;
+        readOnly = true;
+        description = "The $root-parameterized fixups script (build.system feeds it to activate).";
+      };
     };
   };
 
   config = {
-    build = { inherit rootfs image; };
+    build = { inherit rootfs image activationFixups; };
 
     image.rootPaths = [ etc ];
+
+    # sticky-bit tmp dirs + /root perms — asserted at build and on every activate.
+    image.activationFixups = ''
+      mkdir -p "$root/tmp" "$root/var/tmp" "$root/root"
+      chmod 1777 "$root/tmp" "$root/var/tmp"
+      chmod 0755 "$root/root"
+    '';
 
     environment.etc = {
       "nsswitch.conf".text = ''

@@ -143,6 +143,9 @@ in
           # write the Caddyfile only when absent.
           "ingress-${t.name}-setup" = {
             type = "oneshot";
+            # idempotent (seed-if-absent + chown), so safe to replay on switch —
+            # this is how a newly-added tenant gets seeded without a reboot.
+            reactivate = true;
             dependencies = [
               "base"
             ]

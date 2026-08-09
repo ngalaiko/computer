@@ -48,15 +48,13 @@
       allSystems = linuxSystems ++ builtins.attrNames darwinToLinux;
       linuxOf = system: darwinToLinux.${system} or system;
 
-      imageFor =
+      configFor =
         linuxSystem:
-        let
-          exedev = import ./modules/exedev {
-            pkgs = nixpkgs.legacyPackages.${linuxSystem};
-            specialArgs = { inherit inputs; };
-          };
-        in
-        (exedev.eval ./hosts/exedev).build.image;
+        (import ./modules/exedev {
+          pkgs = nixpkgs.legacyPackages.${linuxSystem};
+          specialArgs = { inherit inputs; };
+        }).eval
+          ./hosts/exedev;
 
       releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
     in
@@ -67,15 +65,17 @@
         modules = [ ./hosts/macbook ];
       };
 
-      # `nix build .#exedev` (current system) or `.#packages.<sys>.exedev`.
+      # `nix build .#exedev` (base image) or `.#system` (the in-place generation);
+      # `.#packages.<sys>.{exedev,system}` for a specific arch.
       packages = lib.genAttrs allSystems (
         system:
         let
-          img = imageFor (linuxOf system);
+          cfg = configFor (linuxOf system);
         in
         {
-          exedev = img;
-          default = img;
+          exedev = cfg.build.image;
+          system = cfg.build.system;
+          default = cfg.build.image;
         }
         // releaseFor system
       );

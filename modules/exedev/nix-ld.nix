@@ -53,9 +53,11 @@ in
       nix-ld-libraries
     ];
 
-    image.fakeRootCommands = ''
-      mkdir -p .${builtins.dirOf ldsoPath}
-      ln -sfn ${pkgs.nix-ld}/libexec/nix-ld .${ldsoPath}
+    # the foreign-ELF loader shim at the FHS path. Not in build.rootfs, so the
+    # shared $root fixups re-place it at image build and on every activate.
+    image.activationFixups = ''
+      mkdir -p "$root${builtins.dirOf ldsoPath}"
+      ln -sfn ${pkgs.nix-ld}/libexec/nix-ld "$root${ldsoPath}"
     '';
 
     # nix-ld reads these to find the real loader + libraries. image.env covers

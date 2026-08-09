@@ -1,26 +1,38 @@
 name: deploy
 
+# Self-deciding deploy:
+#   * No VM tagged `computer` exists  -> CREATE one from the freshly-built image
+#     (bootstrap / disaster recovery). A fresh VM has no state, so this is the ONE
+#     path that needs the backup secrets — passed as `exe.dev new --env` so the box
+#     can restore from B2 on boot. (Brand-new setups still need the manual seeding
+#     in README: tailscale authkey, pilegram env.)
+#   * A VM tagged `computer` exists   -> ACTIVATE IN PLACE over Tailscale. No VM
+#     recreate, no node churn, no restore, and NO secrets in CI — RESTIC/B2/pilegram
+#     already live on the box.
+# The next deploy after a create finds the VM and switches it onto the generation.
+
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: image tag to deploy (blank = the built commit's short SHA)
+        description: image tag to create from (blank = the built commit's short SHA)
         default: ""
   workflow_run:
     workflows: [build]
     types: [completed]
     branches: [master]
 
-env:
-  VM_TAG: computer
-
 concurrency:
   group: deploy
   cancel-in-progress: false
 
+env:
+  VM_NAME: computer
+  VM_TAG: computer
+
 jobs:
   deploy:
-    name: Redeploy
+    name: Create-or-activate
     runs-on: ubuntu-24.04
     if: >-
       github.event_name == 'workflow_dispatch' ||
@@ -29,19 +41,11 @@ jobs:
       - uses: actions/checkout@v5
         with:
           # the commit that was built (workflow_run), else the dispatched ref.
+          # depth 1 is enough: create uses `git rev-parse HEAD`, activate builds
+          # from the working tree — neither needs history.
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Resolve image tag and VM name
-        id: resolve
-        env:
-          IN_TAG: ${{ github.event.inputs.image_tag }}
-        run: |
-          tag="$IN_TAG"
-          [ -n "$tag" ] || tag="$(git rev-parse --short HEAD)"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "VM_NAME=${VM_TAG}-${tag}" >> "$GITHUB_ENV"
-
-      - name: Configure SSH
+      - name: Configure exe.dev SSH
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
         run: |
@@ -55,36 +59,60 @@ jobs:
             | grep -q "SHA256:JJOP/lwiBGOMilfONPWZCXUrfK154cnJFXcqlsi6lPo" \
             || { echo "exe.dev host-key fingerprint mismatch"; exit 1; }
 
-      - name: Retire older computer VMs
+      - name: Is there a computer VM?
+        id: check
         run: |
-          old=$(ssh -i ~/.ssh/id_ed25519 exe.dev ls --l --json \
-            | jq -r --arg keep "$VM_NAME" --arg tag "$VM_TAG" '
-                .vms[]
-                | select((.tags // []) | index($tag))
-                | (.vm_name // .name)
-                | select(type == "string" and . != "" and . != $keep)')
-          for vm in $old; do
-            echo "retiring $vm"
-            ssh -i ~/.ssh/id_ed25519 exe.dev rm "$vm" || true
-          done
+          n=$(ssh -i ~/.ssh/id_ed25519 exe.dev ls --l --json \
+            | jq -r --arg tag "$VM_TAG" '[.vms[] | select((.tags // []) | index($tag))] | length')
+          echo "found $n VM(s) tagged $VM_TAG"
+          if [ "$n" -gt 0 ]; then echo "exists=true"; else echo "exists=false"; fi >> "$GITHUB_OUTPUT"
 
-      - name: Create the new VM
+      # ---- bootstrap: no VM yet -> create one (backup secrets from CI) ----------
+      - name: Create the computer VM
+        if: steps.check.outputs.exists == 'false'
         env:
-          IMAGE_TAG: ${{ steps.resolve.outputs.tag }}
+          IN_TAG: ${{ github.event.inputs.image_tag }}
           RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
           B2_ACCOUNT_KEY: ${{ secrets.B2_ACCOUNT_KEY }}
         run: |
+          tag="$IN_TAG"
+          [ -n "$tag" ] || tag="$(git rev-parse --short HEAD)"
+          echo "creating $VM_NAME from ghcr.io/ngalaiko/computer.exe:$tag"
           ssh -i ~/.ssh/id_ed25519 exe.dev new \
-            --image="ghcr.io/ngalaiko/computer.exe:$IMAGE_TAG" \
+            --image="ghcr.io/ngalaiko/computer.exe:$tag" \
             --name "$VM_NAME" \
             --tag "$VM_TAG" \
             --env RESTIC_REPOSITORY=b2:ngalaiko-backups:exedev \
             --env RESTIC_PASSWORD="$RESTIC_PASSWORD" \
             --env B2_ACCOUNT_ID=0036cfed748e70c0000000002 \
             --env B2_ACCOUNT_KEY="$B2_ACCOUNT_KEY"
-
-      # 8080 = services.ingress.publicPort, the public root port.
-      - name: Publish the public ingress port
-        run: |
+          # 8080 = services.ingress.publicPort, the public root port.
           ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 8080
           ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME"
+
+      # ---- steady state: VM exists -> activate the new generation in place ------
+      - uses: nixbuild/nix-quick-install-action@v35
+        if: steps.check.outputs.exists == 'true'
+
+      # The box is reachable only over its tailnet. This tailnet OAuth client is
+      # the only credential the in-place path needs — NOT an app secret. The client
+      # id is public (inline); only the secret is a repo secret. The policy must let
+      # tag:ci tailscale-ssh nikita@ the computer node (README):
+      #   "ssh": [{ "action": "accept", "src": ["tag:ci"],
+      #             "dst": ["tag:computer"], "users": ["nikita"] }]
+      - name: Join tailnet
+        if: steps.check.outputs.exists == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: kt74FE1o8p11CNTRL
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      # DEPLOY_FLAKE points at the built commit on GitHub, so the box fetches +
+      # builds the generation itself — nothing is pushed from the runner (which
+      # the box would reject as unsigned). `.#deploy` is still the local app.
+      - name: Activate in place
+        if: steps.check.outputs.exists == 'true'
+        env:
+          DEPLOY_FLAKE: github:ngalaiko/computer/${{ github.event.workflow_run.head_sha || github.sha }}
+        run: nix run .#deploy
