@@ -44,6 +44,7 @@ in
       coreutils
       fd # pi checks for fd at interactive startup and uses it for file autocomplete/find.
       ledger
+      himalaya # CLI for the assistant's authorized iCloud Mail access.
       chromium
       obsidian-headless
       obsidian-sync
