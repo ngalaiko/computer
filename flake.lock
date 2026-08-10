@@ -139,11 +139,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1786216267,
-        "narHash": "sha256-VNAFuXQ0ICTTOPO/iaIsTuZidf6ZoypejewFt1FLfJU=",
+        "lastModified": 1786357652,
+        "narHash": "sha256-bq0FQltQk88Wb2dyxqyPYNqkDbVNO4sCH3Lv6YbVeF4=",
         "owner": "ngalaiko",
         "repo": "pilegram",
-        "rev": "04318a3a2ffbdfb0a4ce7638c8613e24a4629917",
+        "rev": "004a267139dfa1c2e92f04466219eb23aafe561c",
         "type": "github"
       },
       "original": {
@@ -185,11 +185,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786301195,
-        "narHash": "sha256-0AI3cVxOQww1jk9dJibHCR0DNazlYF98XOc+hu/9UOQ=",
+        "lastModified": 1786357548,
+        "narHash": "sha256-NHFSvWuTwpw+Lc6A2pwJiDS3Lx0W+oOGqqC9Vxat2Gc=",
         "owner": "ngalaiko",
         "repo": "wherenow",
-        "rev": "9348eae695e5575f8cc1e561eaf53b015f03afa6",
+        "rev": "4ea5107eac3018e0e0162da967ea7393aa0de87f",
         "type": "github"
       },
       "original": {
