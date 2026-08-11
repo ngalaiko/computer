@@ -1,8 +1,20 @@
 # casks and mas apps stay brew (nixpkgs darwin GUI coverage is poor); the
 # remaining brews are unfree, tap-only, or missing/broken in nixpkgs. Anything
 # not listed here is uninstalled on rebuild (onActivation.cleanup).
-{ ... }:
+{ inputs, ... }:
 {
+  imports = [ inputs.nix-homebrew.darwinModules.nix-homebrew ];
+
+  # nix-homebrew installs/owns the Homebrew prefix, so the first switch on a
+  # fresh Mac bootstraps brew (the nix-darwin `homebrew` block below only
+  # manages an existing install). autoMigrate lets it adopt a brew that's
+  # already present — e.g. on this machine — instead of erroring.
+  nix-homebrew = {
+    enable = true;
+    user = "nikita";
+    autoMigrate = true;
+  };
+
   homebrew = {
     enable = true;
 
@@ -10,25 +22,26 @@
     onActivation.cleanup = "uninstall";
 
     taps = [
-      "cooklang/tap"
       "hamed-elfayome/claude-usage"
       "jsattler/tap"
-      "qmk/qmk"
     ];
 
     brews = [
-      "docker" # client-only CLI (not Desktop); talks to podman via DOCKER_HOST
       "mole"
+      "pi-coding-agent" # pi.dev agent CLI; homebrew-core, no nixpkgs equivalent
       "podman" # nixpkgs podman lacks the machine/vm helpers on darwin
     ];
 
     casks = [
       "1password"
       "calibre"
+      "daisydisk"
+      "firefox"
       "ghostty"
       "kicad"
       "mullvad-vpn"
       "netnewswire"
+      "obsidian"
       "podman-desktop"
       "postico@1"
       "raycast"

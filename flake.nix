@@ -32,6 +32,11 @@
       url = "github:ngalaiko/wherenow";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Installs and owns the Homebrew prefix itself, so a fresh Mac doesn't need
+    # brew pre-installed — the first darwin-rebuild switch bootstraps it. The
+    # nix-darwin `homebrew` module only manages an already-installed brew.
+    # (No nixpkgs input to follow; it pins Homebrew/brew via its own brew-src.)
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
   };
 
   outputs =
