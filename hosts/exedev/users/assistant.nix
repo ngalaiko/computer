@@ -19,6 +19,18 @@ let
     vault="''${OBSIDIAN_VAULT_DIR:-/var/lib/assistant/Vault}"
     exec ${obsidian-headless}/bin/ob sync --path "$vault" "$@"
   '';
+  # vault-sync: stdlib-only Python that writes Letterboxd watches into Movie
+  # notes and the Discogs collection+wantlist into Album notes. Additive only —
+  # it dedups on each note's letterboxd:/discogs: URL, so it appends a new
+  # watched date or fills a blank lp:, never rewriting a hand-curated note.
+  vault-sync = import ../../../packages/vault-sync { inherit pkgs; };
+  # Letterboxd is public (hourly); Discogs is rate-limited and rarely changes
+  # (every 6h). Discogs self-skips without a token, so a missing token never
+  # blocks the Letterboxd half.
+  vaultSyncCrontab = pkgs.writeText "vault-sync-crontab" ''
+    17 * * * * ${vault-sync}/bin/vault-sync-letterboxd
+    47 */6 * * * ${vault-sync}/bin/vault-sync-discogs
+  '';
 in
 {
   users.users.assistant = {
@@ -48,6 +60,7 @@ in
       chromium
       obsidian-headless
       obsidian-sync
+      vault-sync # `vault-sync-letterboxd` / `vault-sync-discogs`, for manual runs
     ];
   };
   users.groups.assistant.gid = 2001;
@@ -161,6 +174,49 @@ in
         ${wherenow}/bin/wherenow \
           --vault-dir="$vault" \
           --tz=Europe/Stockholm
+    '';
+  };
+
+  # vault-sync: supercronic runs the Letterboxd (Movies) and Discogs (Albums)
+  # polls on a schedule, as the assistant so the notes are written into the
+  # vault it owns; obsidian-sync then propagates them. Guards on the vault being
+  # set up, like the services above.
+  s6.services.assistant-vault-sync = {
+    dependencies = [
+      "base"
+      "backup-restore"
+    ];
+    run = ''
+      vault=/var/lib/assistant/Vault
+      if [ ! -d "$vault/.obsidian" ]; then
+        echo "assistant-vault-sync: $vault not configured yet (run ob sync-setup). Retrying." >&2
+        sleep 30
+        exit 1
+      fi
+      # Optional runtime env: DISCOGS_TOKEN (+ optional LETTERBOXD_USERNAME /
+      # DISCOGS_USERNAME). Absent -> the Discogs poll self-skips and only
+      # Letterboxd (public) runs. Exported (set -a) so `env` (no -i) and
+      # s6-setuidgid pass it to supercronic's jobs through the environment,
+      # never argv.
+      envfile=/var/lib/assistant/.config/vault-sync/env
+      if [ -f "$envfile" ]; then
+        set -a
+        . "$envfile"
+        set +a
+      else
+        echo "assistant-vault-sync: $envfile missing; Discogs sync skipped until DISCOGS_TOKEN is placed (see README)." >&2
+      fi
+      exec /command/s6-setuidgid assistant \
+        env \
+          HOME=/var/lib/assistant \
+          USER=assistant \
+          SHELL=/bin/sh \
+          PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
+          SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
+          NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
+          NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt \
+          OBSIDIAN_VAULT_DIR="$vault" \
+        ${pkgs.supercronic}/bin/supercronic ${vaultSyncCrontab}
     '';
   };
 

@@ -138,6 +138,23 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    each position straight into the assistant's Obsidian vault as a note; the
    service retries every 10s until the file exists.
 
+7. **(Optional)** Place a Discogs personal access token so `assistant-vault-sync`
+   can sync your record collection + wantlist into Album notes. Letterboxd is
+   public and needs nothing; without this file only the Discogs half is skipped.
+   Get the token at <https://www.discogs.com/settings/developer>. Same runtime
+   env-file pattern, backed up under the assistant home:
+
+   ```
+   sudo install -d -o 2001 -g 2001 -m 700 /var/lib/assistant/.config/vault-sync
+   sudo sh -c 'umask 077; printf "DISCOGS_TOKEN=%s\n" "<token>" > /var/lib/assistant/.config/vault-sync/env'
+   sudo chown 2001:2001 /var/lib/assistant/.config/vault-sync/env
+   ```
+
+   Optionally add `LETTERBOXD_USERNAME=…` / `DISCOGS_USERNAME=…` lines (both
+   default to `ngalaiko`). The scripts are additive: a new movie or record
+   becomes a note, a repeat watch appends a `watched:` date, and a wishlist
+   record you buy gets its blank `lp:` filled — hand edits are never clobbered.
+
 ## Configuration
 
 ### Backups
