@@ -70,7 +70,7 @@ def index_by_field(references_dir, key):
             continue
         for line in lines:
             if line.startswith(needle):
-                index[line[len(needle):].strip().rstrip("/")] = path
+                index[line[len(needle) :].strip().rstrip("/")] = path
                 break
     return index
 
@@ -99,14 +99,23 @@ def add_list_item(path, key, item):
 
     if not lines or lines[0].rstrip("\n") != "---":
         return False
-    fm_end = next((i for i in range(1, len(lines)) if lines[i].rstrip("\n") == "---"), None)
+    fm_end = next(
+        (i for i in range(1, len(lines)) if lines[i].rstrip("\n") == "---"), None
+    )
     if fm_end is None:
         return False
-    key_idx = next((i for i in range(1, fm_end) if re.match(rf"^{re.escape(key)}:( |$)", lines[i].rstrip("\n"))), None)
+    key_idx = next(
+        (
+            i
+            for i in range(1, fm_end)
+            if re.match(rf"^{re.escape(key)}:( |$)", lines[i].rstrip("\n"))
+        ),
+        None,
+    )
     if key_idx is None:
         return False
 
-    rest = lines[key_idx].rstrip("\n")[len(key) + 1:].strip()
+    rest = lines[key_idx].rstrip("\n")[len(key) + 1 :].strip()
     if rest:
         # scalar form: upgrade to a list, keeping the existing value first
         if rest == quoted_item:
@@ -136,7 +145,9 @@ def set_scalar_if_empty(path, key, value):
         lines = f.read().splitlines(keepends=True)
     if not lines or lines[0].rstrip("\n") != "---":
         return False
-    fm_end = next((i for i in range(1, len(lines)) if lines[i].rstrip("\n") == "---"), None)
+    fm_end = next(
+        (i for i in range(1, len(lines)) if lines[i].rstrip("\n") == "---"), None
+    )
     if fm_end is None:
         return False
     for i in range(1, fm_end):

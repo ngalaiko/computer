@@ -37,6 +37,12 @@
     # nix-darwin `homebrew` module only manages an already-installed brew.
     # (No nixpkgs input to follow; it pins Homebrew/brew via its own brew-src.)
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    # One `nix fmt` / `nix flake check` gate over the whole tree (nix, python,
+    # shell, yaml) instead of nix-only. Config lives in ./treefmt.nix.
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -70,6 +76,9 @@
           ./hosts/exedev;
 
       releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
+
+      treefmtFor =
+        system: inputs.treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix;
     in
     {
       # This Mac, configured with a Linux builder VM (so it can build *-linux).
@@ -110,6 +119,12 @@
           };
       });
 
-      formatter = lib.genAttrs allSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
+      formatter = lib.genAttrs allSystems (system: (treefmtFor system).config.build.wrapper);
+
+      # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
+      # instead of a bespoke `nix fmt && git diff` step.
+      checks = lib.genAttrs allSystems (system: {
+        formatting = (treefmtFor system).config.build.check self;
+      });
     };
 }

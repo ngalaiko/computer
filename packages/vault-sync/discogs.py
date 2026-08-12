@@ -90,7 +90,9 @@ def sync_release(item, references, attachments, token, lp_date, index):
     url = release_url(info)
     title = info["title"]
     year = info.get("year") or ""
-    artists = [clean_artist(a["name"]) for a in info.get("artists", []) if a.get("name")]
+    artists = [
+        clean_artist(a["name"]) for a in info.get("artists", []) if a.get("name")
+    ]
 
     existing = index.get(url.rstrip("/"))
     if existing:
@@ -107,8 +109,11 @@ def sync_release(item, references, attachments, token, lp_date, index):
         ext = os.path.splitext(cover.split("?")[0])[1] or ".jpeg"
         cover_file = f"{base}{ext}"
         try:
-            vaultlib.download(cover, os.path.join(attachments, cover_file),
-                              {"User-Agent": UA, "Authorization": f"Discogs token={token}"})
+            vaultlib.download(
+                cover,
+                os.path.join(attachments, cover_file),
+                {"User-Agent": UA, "Authorization": f"Discogs token={token}"},
+            )
         except Exception as e:
             print(f"  war: cover download failed for {title}: {e}", file=sys.stderr)
             cover_file = None
@@ -116,7 +121,9 @@ def sync_release(item, references, attachments, token, lp_date, index):
     for a in artists:
         vaultlib.ensure_person_note(references, a, "Artists")
 
-    vaultlib.write_note(path, album_note(title, year, artists, cover_file, url, lp_date))
+    vaultlib.write_note(
+        path, album_note(title, year, artists, cover_file, url, lp_date)
+    )
     index[url.rstrip("/")] = path
     kind = "owned" if lp_date else "wishlist"
     print(f"  new album ({kind}): {os.path.basename(path)}  ({', '.join(artists)})")
@@ -132,10 +139,14 @@ def main(username, token, vault, include_wantlist):
     index = vaultlib.index_by_field(references, "discogs")
     created = updated = 0
 
-    collection = urljoin(BASE_URL, f"/users/{username}/collection/folders/0/releases?sort=artist")
+    collection = urljoin(
+        BASE_URL, f"/users/{username}/collection/folders/0/releases?sort=artist"
+    )
     for item in paginate(collection, token, "releases"):
         date_added = (item.get("date_added") or "")[:10]  # ISO ts -> YYYY-MM-DD
-        result = sync_release(item, references, attachments, token, date_added or None, index)
+        result = sync_release(
+            item, references, attachments, token, date_added or None, index
+        )
         created += result == "new"
         updated += result == "updated"
 
@@ -149,11 +160,23 @@ def main(username, token, vault, include_wantlist):
 
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser(description="Sync Discogs collection + wantlist into vault Album notes.")
-    p.add_argument("-u", "--username", default=os.environ.get("DISCOGS_USERNAME", "ngalaiko"))
+    p = argparse.ArgumentParser(
+        description="Sync Discogs collection + wantlist into vault Album notes."
+    )
+    p.add_argument(
+        "-u", "--username", default=os.environ.get("DISCOGS_USERNAME", "ngalaiko")
+    )
     p.add_argument("-t", "--token", default=os.environ.get("DISCOGS_TOKEN"))
-    p.add_argument("--vault", default=os.environ.get("OBSIDIAN_VAULT_DIR", "/var/lib/assistant/Vault"))
-    p.add_argument("--no-wantlist", dest="wantlist", action="store_false", help="skip the wantlist (owned records only)")
+    p.add_argument(
+        "--vault",
+        default=os.environ.get("OBSIDIAN_VAULT_DIR", "/var/lib/assistant/Vault"),
+    )
+    p.add_argument(
+        "--no-wantlist",
+        dest="wantlist",
+        action="store_false",
+        help="skip the wantlist (owned records only)",
+    )
     args = p.parse_args()
     if not args.token:
         sys.exit("discogs: no token (set DISCOGS_TOKEN or pass --token)")

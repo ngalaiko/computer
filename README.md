@@ -3,6 +3,7 @@
 # computer
 
 nix files for:
+
 - my mac
 - my remote [exe.dev](https://exe.dev) machine
 
@@ -93,12 +94,12 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    statedir (not backed up), so a fresh machine registers new nodes; the
    ephemeral key lets retired ones auto-remove once offline — no manual cleanup.
 
-4. Enable **HTTPS Certificates** (admin console → DNS → *Enable HTTPS*, needs
+4. Enable **HTTPS Certificates** (admin console → DNS → _Enable HTTPS_, needs
    MagicDNS on). Required to provision the `*.ts.net` certs. The `computer`
    node's `tailscale-serve` service re-asserts this on every boot:
    - `https://computer.<tailnet>.ts.net/<tenant>/` → ingress, **public via
      Funnel** (needs the `nodeAttrs` above). Unauthenticated — see the note in
-     `hosts/exedev/default.nix`. This one is named after the *node*, so on a
+     `hosts/exedev/default.nix`. This one is named after the _node_, so on a
      recreation where the retired ephemeral node hasn't dropped yet Tailscale
      may suffix it (`computer-1`) until the stale one is culled; exe.dev's
      public share is the stable public path if that matters.
@@ -161,9 +162,9 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
 
 We have to store it outside of the machine to be able to restore everything else on startup.
 
-| Variable | Description |
-| --- | --- |
+| Variable            | Description                              |
+| ------------------- | ---------------------------------------- |
 | `RESTIC_REPOSITORY` | B2 restic repo, e.g. `b2:backups:exedev` |
-| `RESTIC_PASSWORD` | restic repo encryption password |
-| `B2_ACCOUNT_ID` | B2 key id |
-| `B2_ACCOUNT_KEY` | B2 application key (scope to the bucket) |
+| `RESTIC_PASSWORD`   | restic repo encryption password          |
+| `B2_ACCOUNT_ID`     | B2 key id                                |
+| `B2_ACCOUNT_KEY`    | B2 application key (scope to the bucket) |

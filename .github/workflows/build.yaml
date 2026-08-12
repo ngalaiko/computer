@@ -20,8 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: nixbuild/nix-quick-install-action@v35
+      # Includes the treefmt `formatting` check (nix/python/shell/yaml), so a
+      # dirty format fails here — no separate `nix fmt && git diff` step needed.
       - run: nix flake check --all-systems
-      - run: nix fmt . && git diff --exit-code
 
   build:
     name: Build ${{ matrix.system }}

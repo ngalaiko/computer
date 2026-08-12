@@ -55,7 +55,8 @@ def parse_feed(body):
             "url": f"https://letterboxd.com/film/{slug_match.group(1)}/",
             "year": year_el.text if year_el is not None else "",
             "watched": watched_el.text,  # YYYY-MM-DD
-            "liked": item.findtext("letterboxd:memberLike", default="No", namespaces=NS) == "Yes",
+            "liked": item.findtext("letterboxd:memberLike", default="No", namespaces=NS)
+            == "Yes",
             "poster": poster,
         }
 
@@ -67,11 +68,15 @@ def scrape_directors(film_url):
     except Exception as e:  # network hiccup — create the note without directors
         print(f"  war: could not fetch {film_url}: {e}", file=sys.stderr)
         return []
-    m = re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL)
+    m = re.search(
+        r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
+    )
     if not m:
         return []
     blob = m.group(1)
-    blob = re.sub(r"/\*.*?\*/", "", blob, flags=re.DOTALL).strip()  # strip CDATA comments
+    blob = re.sub(
+        r"/\*.*?\*/", "", blob, flags=re.DOTALL
+    ).strip()  # strip CDATA comments
     try:
         data = json.loads(blob)
     except json.JSONDecodeError:
@@ -115,16 +120,23 @@ def main(username, vault):
                 print(f"  + watched {entry['watched']}: {os.path.basename(existing)}")
             continue
 
-        path, base = vaultlib.unique_note_path(references, entry["title"], entry["year"])
+        path, base = vaultlib.unique_note_path(
+            references, entry["title"], entry["year"]
+        )
 
         poster_file = None
         if entry["poster"]:
             ext = os.path.splitext(entry["poster"].split("?")[0])[1] or ".jpg"
             poster_file = f"{base}{ext}"
             try:
-                vaultlib.download(entry["poster"], os.path.join(attachments, poster_file), HEADERS)
+                vaultlib.download(
+                    entry["poster"], os.path.join(attachments, poster_file), HEADERS
+                )
             except Exception as e:
-                print(f"  war: poster download failed for {entry['title']}: {e}", file=sys.stderr)
+                print(
+                    f"  war: poster download failed for {entry['title']}: {e}",
+                    file=sys.stderr,
+                )
                 poster_file = None
 
         directors = scrape_directors(entry["url"])
@@ -133,18 +145,34 @@ def main(username, vault):
 
         vaultlib.write_note(
             path,
-            movie_note(entry["title"], entry["year"], poster_file, directors,
-                       entry["url"], entry["liked"], entry["watched"]),
+            movie_note(
+                entry["title"],
+                entry["year"],
+                poster_file,
+                directors,
+                entry["url"],
+                entry["liked"],
+                entry["watched"],
+            ),
         )
         created += 1
-        print(f"  new movie: {os.path.basename(path)}  (dir: {', '.join(directors) or '?'})")
+        print(
+            f"  new movie: {os.path.basename(path)}  (dir: {', '.join(directors) or '?'})"
+        )
 
     print(f"letterboxd: {created} new, {updated} updated")
 
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser(description="Sync Letterboxd diary into vault Movie notes.")
-    p.add_argument("-u", "--username", default=os.environ.get("LETTERBOXD_USERNAME", "ngalaiko"))
-    p.add_argument("--vault", default=os.environ.get("OBSIDIAN_VAULT_DIR", "/var/lib/assistant/Vault"))
+    p = argparse.ArgumentParser(
+        description="Sync Letterboxd diary into vault Movie notes."
+    )
+    p.add_argument(
+        "-u", "--username", default=os.environ.get("LETTERBOXD_USERNAME", "ngalaiko")
+    )
+    p.add_argument(
+        "--vault",
+        default=os.environ.get("OBSIDIAN_VAULT_DIR", "/var/lib/assistant/Vault"),
+    )
     args = p.parse_args()
     main(args.username, args.vault)
