@@ -62,8 +62,16 @@ jobs:
       - name: Is there a computer VM?
         id: check
         run: |
-          n=$(ssh -i ~/.ssh/id_ed25519 exe.dev ls --l --json \
-            | jq -r --arg tag "$VM_TAG" '[.vms[] | select((.tags // []) | index($tag))] | length')
+          if ! ssh -i ~/.ssh/id_ed25519 exe.dev ls --l --json > vms.json; then
+            echo "exe.dev VM listing failed"
+            exit 1
+          fi
+          if ! jq -e . vms.json >/dev/null; then
+            echo "exe.dev VM listing did not return JSON; raw output follows:"
+            sed -n '1,80p' vms.json
+            exit 1
+          fi
+          n=$(jq -r --arg tag "$VM_TAG" '[.vms[] | select((.tags // []) | index($tag))] | length' vms.json)
           echo "found $n VM(s) tagged $VM_TAG"
           if [ "$n" -gt 0 ]; then echo "exists=true"; else echo "exists=false"; fi >> "$GITHUB_OUTPUT"
 
