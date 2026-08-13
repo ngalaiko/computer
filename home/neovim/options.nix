@@ -20,7 +20,7 @@
 
       swapfile = false;
       backup = false;
-      undodir.__raw = ''os.getenv("HOME") .. "/.vim/undodir"'';
+      undodir.__raw = ''vim.fn.stdpath("state") .. "/undo"'';
       undofile = true;
 
       termguicolors = true;
@@ -33,7 +33,7 @@
     # plugins expect the state dirs at setup time (neo-tree opens its log there).
     extraConfigLuaPre = ''
       vim.fn.mkdir(vim.fn.stdpath("data"), "p")
-      vim.fn.mkdir(os.getenv("HOME") .. "/.vim/undodir", "p")
+      vim.fn.mkdir(vim.fn.stdpath("state") .. "/undo", "p")
     '';
 
     extraConfigLua = ''

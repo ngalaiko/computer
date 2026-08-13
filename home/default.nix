@@ -9,6 +9,7 @@
     ./neovim
     ./packages.nix
     ./rust.nix
+    ./xdg.nix
   ];
 
   # session vars point LOCALE_ARCHIVE at i18n.glibcLocales; the default
