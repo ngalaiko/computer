@@ -118,12 +118,4 @@ in
 
   # ui.diff-formatter
   home.packages = [ pkgs.difftastic ];
-
-  # work identity, scoped by repo path
-  xdg.configFile."jj/conf.d/cerve.toml".text = ''
-    --when.repositories = ["~/Developer/cerve"]
-
-    [user]
-    email = "nikita.galaiko@cerve.com"
-  '';
 }

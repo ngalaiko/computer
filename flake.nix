@@ -3,9 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    # stable's atuin is older than the one that migrated the local atuin DB, so
-    # atuin (and other fast-moving tools) pin unstable — see
-    # hosts/macbook/home/atuin.nix and packages/unstable.nix.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
@@ -41,6 +38,11 @@
     # shell, yaml) instead of nix-only. Config lives in ./treefmt.nix.
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+	# encore binaries
+	encore = {
+      url = "github:encoredev/encore-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

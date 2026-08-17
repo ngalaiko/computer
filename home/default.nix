@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ inputs, pkgs, ... }:
 {
   imports = [
     ./atuin.nix
@@ -10,6 +10,8 @@
     ./packages.nix
     ./rust.nix
     ./xdg.nix
+    ./encore.nix
+    inputs.encore.homeModules.default
   ];
 
   # session vars point LOCALE_ARCHIVE at i18n.glibcLocales; the default
