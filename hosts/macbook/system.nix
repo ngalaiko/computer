@@ -10,6 +10,7 @@
     dock = {
       tilesize = 36;
       autohide = true;
+      orientation = "left";
     };
 
     CustomUserPreferences = {
