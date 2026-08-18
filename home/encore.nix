@@ -5,8 +5,8 @@ in
 {
   home.packages = with pkgs; [
     inputs.encore.packages.${pkgs.stdenv.hostPlatform.system}.encore
-	cmake
-	protobuf
+    cmake
+    protobuf
     pulumi
     unstable.clickhouse
     vercel-pkg
@@ -15,14 +15,14 @@ in
     cloudflared
     cue
     google-cloud-sdk
-	pgcli
+    pgcli
   ];
 
   programs.encore = {
     enable = true;
-	settings = {
-	  browser = "never";
-	};
+    settings = {
+      browser = "never";
+    };
   };
 
   programs.fish.shellInit = ''

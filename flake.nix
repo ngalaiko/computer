@@ -40,8 +40,8 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-	# encore binaries
-	encore = {
+    # encore binaries
+    encore = {
       url = "github:encoredev/encore-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
