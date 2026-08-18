@@ -1,5 +1,11 @@
 { ... }:
 {
+  # Use Caps Lock as the left Control key system-wide.
+  system.keyboard = {
+    enableKeyMapping = true;
+    remapCapsLockToControl = true;
+  };
+
   system.defaults = {
     NSGlobalDomain.AppleFontSmoothing = 0;
 
