@@ -7,6 +7,48 @@ nix files for:
 - my mac
 - my remote [exe.dev](https://exe.dev) machine
 
+## Bootstrapping a Mac
+
+The Darwin target is `.#macbook` for user `nikita` on Apple Silicon.
+
+On a fresh Mac:
+
+```sh
+xcode-select --install
+curl -fsSL https://install.determinate.systems/nix | sh -s -- install
+
+mkdir -p ~/src
+git clone https://github.com/ngalaiko/computer.git ~/src/computer
+cd ~/src/computer
+
+nix --extra-experimental-features 'nix-command flakes' \
+  run github:nix-darwin/nix-darwin/nix-darwin-26.05#darwin-rebuild -- \
+  switch --flake .#macbook
+```
+
+The explicit experimental features are only for the first bootstrap; this config
+enables `nix-command` and `flakes` permanently after a successful switch. Sign in
+to the Mac App Store before rebuilding, because `hosts/macbook/homebrew.nix`
+installs `masApps`. If MAS blocks the first run, temporarily set `masApps = {};`,
+rebuild, then restore the file after signing in:
+
+```sh
+git checkout -- hosts/macbook/homebrew.nix
+```
+
+Do not run `brew bundle` or `darwin-rebuild` with `sudo`. If Homebrew permission
+errors appear after a mistaken sudo run, repair the Apple Silicon prefix, then run
+the rebuild normally:
+
+```sh
+sudo chown -R nikita:admin /opt/homebrew
+sudo mkdir -p /opt/homebrew/{Cache,Logs}
+sudo chown -R nikita:admin /opt/homebrew/{Cache,Logs}
+```
+
+The Homebrew module is declarative and removes unlisted formulae/casks, so avoid
+installing ad-hoc packages before the first rebuild.
+
 ## Deploying
 
 Everyday deploys are **in place** — they update the running VM without recreating
