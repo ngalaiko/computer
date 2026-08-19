@@ -8,6 +8,7 @@ in
     cmake
     protobuf
     pulumi
+    pulumiPackages.pulumi-go
     unstable.clickhouse
     vercel-pkg
     overmind
