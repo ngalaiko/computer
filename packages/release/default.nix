@@ -30,6 +30,7 @@ rec {
       pkgs.skopeo
       pkgs.gh
       pkgs.gitMinimal
+      pkgs.jujutsu
     ];
     text = ''
       system="''${1:?usage: push-image <x86_64-linux>}"
@@ -53,14 +54,18 @@ rec {
         "docker-archive:dist/computer.exe.$system.tar.gz" \
         "docker://$image:$tag"
 
-      # Publish the commit tag used by the deployment workflow. A single-arch
-      # image needs no manifest list.
+      # Publish the commit tags used by deployment. A single-arch image needs
+      # no manifest list, but it still needs both the Git and jj revision tags.
+      jj root >/dev/null 2>&1 || jj git init --colocate
       git_sha="$(git rev-parse --short HEAD)"
-      skopeo --insecure-policy copy \
-        --src-creds "$ghcr_user:$ghcr_token" \
-        --dest-creds "$ghcr_user:$ghcr_token" \
-        "docker://$image:$tag" \
-        "docker://$image:$git_sha"
+      jj_rev="$(jj log --no-graph -r '@' -T 'change_id.short()')"
+      for revision in "$git_sha" "$jj_rev"; do
+        skopeo --insecure-policy copy \
+          --src-creds "$ghcr_user:$ghcr_token" \
+          --dest-creds "$ghcr_user:$ghcr_token" \
+          "docker://$image:$tag" \
+          "docker://$image:$revision"
+      done
     '';
   };
 
