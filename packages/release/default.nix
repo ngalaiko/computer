@@ -29,17 +29,14 @@ rec {
     runtimeInputs = [
       pkgs.skopeo
       pkgs.gh
+      pkgs.gitMinimal
     ];
     text = ''
-      system="''${1:?usage: push-image <aarch64-linux|x86_64-linux>}"
-      case "$system" in
-        aarch64-linux) arch=arm64 ;;
-        x86_64-linux) arch=amd64 ;;
-        *)
-          echo "unsupported system: $system" >&2
-          exit 1
-          ;;
-      esac
+      system="''${1:?usage: push-image <x86_64-linux>}"
+      if [ "$system" != x86_64-linux ]; then
+        echo "unsupported system: $system (only the exe.dev x86_64 image is published)" >&2
+        exit 1
+      fi
       ${registryEnv}
 
       # GitHub runners ship a v1-format registries.conf that skopeo refuses
@@ -54,49 +51,24 @@ rec {
       skopeo --insecure-policy copy \
         --dest-creds "$ghcr_user:$ghcr_token" \
         "docker-archive:dist/computer.exe.$system.tar.gz" \
-        "docker://$image:$tag-$arch"
-    '';
-  };
+        "docker://$image:$tag"
 
-  # Arch images must already be pushed.
-  push-manifest = pkgs.writeShellApplication {
-    name = "push-manifest";
-    runtimeInputs = [
-      pkgs.regctl
-      pkgs.gh
-      pkgs.gitMinimal
-      pkgs.jujutsu
-    ];
-    text = ''
-      ${registryEnv}
-
-      printf '%s' "$ghcr_token" | regctl registry login ghcr.io -u "$ghcr_user" --pass-stdin
-      trap 'regctl registry logout ghcr.io || true' EXIT
-
-      regctl index create "$image:$tag" \
-        --ref "$image:$tag-amd64" \
-        --ref "$image:$tag-arm64"
-
-      # jj change ids derive from git history, so a fresh CI init tags the same rev
-      jj root >/dev/null 2>&1 || jj git init --colocate
+      # Publish the commit tag used by the deployment workflow. A single-arch
+      # image needs no manifest list.
       git_sha="$(git rev-parse --short HEAD)"
-      jj_rev="$(jj log --no-graph -r '@' -T 'change_id.short()')"
-      for t in "$git_sha" "$jj_rev"; do
-        regctl image copy "$image:$tag" "$image:$t"
-      done
+      skopeo --insecure-policy copy \
+        --src-creds "$ghcr_user:$ghcr_token" \
+        --dest-creds "$ghcr_user:$ghcr_token" \
+        "docker://$image:$tag" \
+        "docker://$image:$git_sha"
     '';
   };
 
   release = pkgs.writeShellApplication {
     name = "release";
-    runtimeInputs = [
-      push-image
-      push-manifest
-    ];
+    runtimeInputs = [ push-image ];
     text = ''
-      push-image aarch64-linux
       push-image x86_64-linux
-      push-manifest
     '';
   };
 

@@ -36,8 +36,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # exe.dev runs the computer host on x86_64; do not spend an ARM runner
+          # building an image that is never deployed.
           - { system: x86_64-linux, runner: ubuntu-24.04 }
-          - { system: aarch64-linux, runner: ubuntu-24.04-arm }
     steps:
       - uses: actions/checkout@v5
       # single-user install: /nix is owned by the runner, so it can be cached.
@@ -61,21 +62,3 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: nix run .#push-image -- ${{ matrix.system }}
-
-  manifest:
-    name: Publish multi-arch manifest
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - uses: nixbuild/nix-quick-install-action@v35
-      - name: Stitch manifest + tags
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: nix run .#push-manifest
