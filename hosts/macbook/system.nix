@@ -27,6 +27,12 @@
         DSDontWriteNetworkStores = true;
         DSDontWriteUSBStores = true;
       };
+      "com.apple.Safari" = {
+        # show the Develop menu in the menu bar
+        IncludeDevelopMenu = true;
+        WebKitDeveloperExtrasEnabledPreferenceKey = true;
+        "com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled" = true;
+      };
     };
   };
 
