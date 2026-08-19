@@ -1,6 +1,7 @@
 { inputs, pkgs, ... }:
 {
   imports = [
+    ./agents
     ./atuin.nix
     ./fish
     ./go.nix
