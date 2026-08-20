@@ -64,24 +64,23 @@ def release_url(info):
     return f"https://www.discogs.com/release/{info['id']}"
 
 
-def album_note(title, year, artists, cover_file, url, lp_date):
-    artist_block = "artist:\n" + "".join(f'  - "[[{a}]]"\n' for a in artists)
-    cover_line = f'cover: "[[{cover_file}]]"\n' if cover_file else "cover:\n"
-    lp_line = f'lp: "[[{lp_date}]]"\n' if lp_date else "lp:\n"
-    return (
-        "---\n"
-        "categories:\n"
-        '  - "[[Albums]]"\n'
-        f"{artist_block}"
-        f"{cover_line}"
-        f"discogs: {url}\n"
-        f"{lp_line}"
-        f"year: {year}\n"
-        "---\n"
+def album_note(template_path, year, artists, cover_file, url, lp_date):
+    """Render an Album note from the vault's Album Template."""
+    return vaultlib.render_template(
+        template_path,
+        {
+            "artist": [f'"[[{a}]]"' for a in artists],
+            "cover": f'"[[{cover_file}]]"' if cover_file else "",
+            "discogs": url,
+            "lp": f'"[[{lp_date}]]"' if lp_date else "",
+            "year": year,
+        },
     )
 
 
-def sync_release(item, references, attachments, token, lp_date, index):
+def sync_release(
+    item, notes, attachments, album_template, artist_template, token, lp_date, index
+):
     """Create or update a single album note. ``lp_date`` is the owned-on date
     (collection) or None (wantlist). ``index`` is the {discogs-url: path} dedup
     map, updated in place when a note is created. Returns 'new', 'updated', or
@@ -101,7 +100,7 @@ def sync_release(item, references, attachments, token, lp_date, index):
             return "updated"
         return None
 
-    path, base = vaultlib.unique_note_path(references, title, year)
+    path, base = vaultlib.unique_note_path(notes, title, year)
 
     cover_file = None
     cover = info.get("cover_image")
@@ -119,10 +118,10 @@ def sync_release(item, references, attachments, token, lp_date, index):
             cover_file = None
 
     for a in artists:
-        vaultlib.ensure_person_note(references, a, "Artists")
+        vaultlib.ensure_person_note(notes, a, artist_template)
 
     vaultlib.write_note(
-        path, album_note(title, year, artists, cover_file, url, lp_date)
+        path, album_note(album_template, year, artists, cover_file, url, lp_date)
     )
     index[url.rstrip("/")] = path
     kind = "owned" if lp_date else "wishlist"
@@ -133,6 +132,9 @@ def sync_release(item, references, attachments, token, lp_date, index):
 def main(username, token, vault, include_wantlist):
     notes = vault
     attachments = os.path.join(vault, "Attachments")
+    templates = os.path.join(vault, "Templates")
+    album_template = os.path.join(templates, "Album Template.md")
+    artist_template = os.path.join(templates, "Artist Template.md")
     os.makedirs(notes, exist_ok=True)
     os.makedirs(attachments, exist_ok=True)
 
@@ -145,7 +147,14 @@ def main(username, token, vault, include_wantlist):
     for item in paginate(collection, token, "releases"):
         date_added = (item.get("date_added") or "")[:10]  # ISO ts -> YYYY-MM-DD
         result = sync_release(
-            item, notes, attachments, token, date_added or None, index
+            item,
+            notes,
+            attachments,
+            album_template,
+            artist_template,
+            token,
+            date_added or None,
+            index,
         )
         created += result == "new"
         updated += result == "updated"
@@ -153,7 +162,16 @@ def main(username, token, vault, include_wantlist):
     if include_wantlist:
         wantlist = urljoin(BASE_URL, f"/users/{username}/wants")
         for item in paginate(wantlist, token, "wants"):
-            result = sync_release(item, notes, attachments, token, None, index)
+            result = sync_release(
+                item,
+                notes,
+                attachments,
+                album_template,
+                artist_template,
+                token,
+                None,
+                index,
+            )
             created += result == "new"
 
     print(f"discogs: {created} new, {updated} updated")
