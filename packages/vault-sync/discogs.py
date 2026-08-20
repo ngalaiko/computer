@@ -89,7 +89,7 @@ def sync_release(
     url = release_url(info)
     title = info["title"]
     year = info.get("year") or ""
-    artists = [
+    artist_names = [
         clean_artist(a["name"]) for a in info.get("artists", []) if a.get("name")
     ]
 
@@ -117,8 +117,10 @@ def sync_release(
             print(f"  war: cover download failed for {title}: {e}", file=sys.stderr)
             cover_file = None
 
-    for a in artists:
-        vaultlib.ensure_person_note(notes, a, artist_template)
+    artists = [
+        vaultlib.ensure_person_note(notes, artist, artist_template)
+        for artist in artist_names
+    ]
 
     vaultlib.write_note(
         path, album_note(album_template, year, artists, cover_file, url, lp_date)

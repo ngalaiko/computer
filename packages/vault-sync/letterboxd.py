@@ -137,9 +137,10 @@ def main(username, vault):
                 )
                 poster_file = None
 
-        directors = scrape_directors(entry["url"])
-        for d in directors:
+        directors = [
             vaultlib.ensure_person_note(notes, d, director_template)
+            for d in scrape_directors(entry["url"])
+        ]
 
         vaultlib.write_note(
             path,

@@ -233,9 +233,28 @@ def download(url, dest, headers=None):
 
 
 def ensure_person_note(notes_dir, name, template_path):
-    """Create a linked person note from its vault template if it is missing."""
+    """Create a linked person note from its template, returning its link target.
+
+    A same-named non-person note (for example, an ingredient named ``Cream``)
+    must not become an artist/director link target. In that case create a
+    disambiguated person note instead.
+    """
     base = sanitize(name)
     path = os.path.join(notes_dir, f"{base}.md")
     if os.path.exists(path):
-        return
+        lines = _frontmatter_lines(path) or []
+        if any("[[People]]" in line for line in lines):
+            return base
+        kind = os.path.basename(template_path).removesuffix(" Template.md")
+        base = f"{base} ({kind})"
+        path = os.path.join(notes_dir, f"{base}.md")
+        number = 2
+        while os.path.exists(path):
+            lines = _frontmatter_lines(path) or []
+            if any("[[People]]" in line for line in lines):
+                return base
+            base = f"{sanitize(name)} ({kind} {number})"
+            path = os.path.join(notes_dir, f"{base}.md")
+            number += 1
     write_note(path, render_template(template_path))
+    return base
