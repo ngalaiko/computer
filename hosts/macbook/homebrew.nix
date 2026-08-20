@@ -36,6 +36,7 @@
       "1password"
       "calibre"
       "daisydisk"
+      "discord"
       "firefox"
       "ghostty"
       "kicad"
