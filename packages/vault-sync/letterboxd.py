@@ -84,27 +84,27 @@ def scrape_directors(film_url):
     return [d["name"] for d in data.get("director", []) if d.get("name")]
 
 
-def movie_note(title, year, poster_file, directors, url, liked, watched):
-    directors_block = "director:\n" + "".join(f'  - "[[{d}]]"\n' for d in directors)
-    cover_line = f'cover: "[[{poster_file}]]"\n' if poster_file else "cover:\n"
-    return (
-        "---\n"
-        "categories:\n"
-        '  - "[[Movies]]"\n'
-        f"{cover_line}"
-        f"{directors_block}"
-        f"letterboxd: {url}\n"
-        f"liked: {'true' if liked else 'false'}\n"
-        "watched:\n"
-        f'  - "[[{watched}]]"\n'
-        f"year: {year}\n"
-        "---\n"
+def movie_note(template_path, year, poster_file, directors, url, liked, watched):
+    """Render a Movie note from the vault's Movie Template."""
+    return vaultlib.render_template(
+        template_path,
+        {
+            "cover": f'"[[{poster_file}]]"' if poster_file else "",
+            "director": [f'"[[{d}]]"' for d in directors],
+            "letterboxd": url,
+            "liked": "true" if liked else "false",
+            "watched": [f'"[[{watched}]]"'],
+            "year": year,
+        },
     )
 
 
 def main(username, vault):
     notes = vault
     attachments = os.path.join(vault, "Attachments")
+    templates = os.path.join(vault, "Templates")
+    movie_template = os.path.join(templates, "Movie Template.md")
+    director_template = os.path.join(templates, "Director Template.md")
     os.makedirs(notes, exist_ok=True)
     os.makedirs(attachments, exist_ok=True)
 
@@ -139,12 +139,12 @@ def main(username, vault):
 
         directors = scrape_directors(entry["url"])
         for d in directors:
-            vaultlib.ensure_person_note(notes, d, "Directors")
+            vaultlib.ensure_person_note(notes, d, director_template)
 
         vaultlib.write_note(
             path,
             movie_note(
-                entry["title"],
+                movie_template,
                 entry["year"],
                 poster_file,
                 directors,
