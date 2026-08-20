@@ -159,6 +159,61 @@ def set_scalar_if_empty(path, key, value):
     return False
 
 
+def render_template(template_path, fields=None):
+    """Render a vault template while preserving its static frontmatter and body.
+
+    ``fields`` maps frontmatter keys to either scalar strings or lists of YAML
+    list-item strings. Existing values for those keys are replaced; absent keys
+    are added before the closing frontmatter fence. This lets the vault's own
+    templates control note layout, defaults, and body content.
+    """
+    with open(template_path, "r", encoding="utf-8") as f:
+        lines = f.read().splitlines(keepends=True)
+    if not lines or lines[0].rstrip("\n") != "---":
+        raise ValueError(f"template has no leading frontmatter fence: {template_path}")
+    fm_end = next(
+        (i for i in range(1, len(lines)) if lines[i].rstrip("\n") == "---"), None
+    )
+    if fm_end is None:
+        raise ValueError(f"template has no closing frontmatter fence: {template_path}")
+
+    fields = fields or {}
+    rendered = [lines[0]]
+    seen = set()
+    i = 1
+    while i < fm_end:
+        line = lines[i]
+        match = re.match(r"^([A-Za-z][A-Za-z0-9_-]*):( |$)", line.rstrip("\n"))
+        if not match or match.group(1) not in fields:
+            rendered.append(line)
+            i += 1
+            continue
+
+        key = match.group(1)
+        value = fields[key]
+        seen.add(key)
+        if isinstance(value, list):
+            rendered.append(f"{key}:\n")
+            rendered.extend(f"  - {item}\n" for item in value)
+            i += 1
+            while i < fm_end and lines[i].startswith("  - "):
+                i += 1
+        else:
+            rendered.append(f"{key}: {value}\n")
+            i += 1
+
+    for key, value in fields.items():
+        if key in seen:
+            continue
+        if isinstance(value, list):
+            rendered.append(f"{key}:\n")
+            rendered.extend(f"  - {item}\n" for item in value)
+        else:
+            rendered.append(f"{key}: {value}\n")
+    rendered.extend(lines[fm_end:])
+    return "".join(rendered)
+
+
 def write_note(path, text):
     """Create a note. Never overwrites an existing file."""
     if os.path.exists(path):
@@ -177,26 +232,10 @@ def download(url, dest, headers=None):
         f.write(data)
 
 
-def ensure_person_note(references_dir, name, type_link):
-    """Create the thin People note a ``director``/``artist`` link points at, if
-    it doesn't exist — so the Director/Artist Base views resolve. Mirrors the
-    Director/Artist templates: categories [[People]] + a types link, with the
-    matching embedded Base view in the body."""
+def ensure_person_note(notes_dir, name, template_path):
+    """Create a linked person note from its vault template if it is missing."""
     base = sanitize(name)
-    path = os.path.join(references_dir, f"{base}.md")
+    path = os.path.join(notes_dir, f"{base}.md")
     if os.path.exists(path):
         return
-    section = "Movies" if type_link == "Directors" else "Albums"
-    view = "Director" if type_link == "Directors" else "Artist"
-    text = (
-        "---\n"
-        "categories:\n"
-        '  - "[[People]]"\n'
-        "types:\n"
-        f'  - "[[{type_link}]]"\n'
-        "---\n"
-        f"## {section}\n\n"
-        f"![[{section}.base#{view}]]\n"
-    )
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text)
+    write_note(path, render_template(template_path))
