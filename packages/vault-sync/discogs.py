@@ -131,12 +131,12 @@ def sync_release(item, references, attachments, token, lp_date, index):
 
 
 def main(username, token, vault, include_wantlist):
-    references = os.path.join(vault, "References")
+    notes = vault
     attachments = os.path.join(vault, "Attachments")
-    os.makedirs(references, exist_ok=True)
+    os.makedirs(notes, exist_ok=True)
     os.makedirs(attachments, exist_ok=True)
 
-    index = vaultlib.index_by_field(references, "discogs")
+    index = vaultlib.index_by_field(notes, "discogs")
     created = updated = 0
 
     collection = urljoin(
@@ -145,7 +145,7 @@ def main(username, token, vault, include_wantlist):
     for item in paginate(collection, token, "releases"):
         date_added = (item.get("date_added") or "")[:10]  # ISO ts -> YYYY-MM-DD
         result = sync_release(
-            item, references, attachments, token, date_added or None, index
+            item, notes, attachments, token, date_added or None, index
         )
         created += result == "new"
         updated += result == "updated"
@@ -153,7 +153,7 @@ def main(username, token, vault, include_wantlist):
     if include_wantlist:
         wantlist = urljoin(BASE_URL, f"/users/{username}/wants")
         for item in paginate(wantlist, token, "wants"):
-            result = sync_release(item, references, attachments, token, None, index)
+            result = sync_release(item, notes, attachments, token, None, index)
             created += result == "new"
 
     print(f"discogs: {created} new, {updated} updated")
