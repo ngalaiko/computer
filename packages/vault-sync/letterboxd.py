@@ -103,13 +103,13 @@ def movie_note(title, year, poster_file, directors, url, liked, watched):
 
 
 def main(username, vault):
-    references = os.path.join(vault, "References")
+    notes = vault
     attachments = os.path.join(vault, "Attachments")
-    os.makedirs(references, exist_ok=True)
+    os.makedirs(notes, exist_ok=True)
     os.makedirs(attachments, exist_ok=True)
 
     feed = vaultlib.fetch(f"https://letterboxd.com/{username}/rss/", headers=HEADERS)
-    index = vaultlib.index_by_field(references, "letterboxd")
+    index = vaultlib.index_by_field(notes, "letterboxd")
 
     created = updated = 0
     for entry in parse_feed(feed):
@@ -120,9 +120,7 @@ def main(username, vault):
                 print(f"  + watched {entry['watched']}: {os.path.basename(existing)}")
             continue
 
-        path, base = vaultlib.unique_note_path(
-            references, entry["title"], entry["year"]
-        )
+        path, base = vaultlib.unique_note_path(notes, entry["title"], entry["year"])
 
         poster_file = None
         if entry["poster"]:
@@ -141,7 +139,7 @@ def main(username, vault):
 
         directors = scrape_directors(entry["url"])
         for d in directors:
-            vaultlib.ensure_person_note(references, d, "Directors")
+            vaultlib.ensure_person_note(notes, d, "Directors")
 
         vaultlib.write_note(
             path,
