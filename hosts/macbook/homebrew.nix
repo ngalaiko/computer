@@ -33,17 +33,14 @@
     ];
 
     casks = [
-      "1password"
       "calibre"
       "daisydisk"
       "discord"
       "firefox"
       "ghostty"
-      "kicad"
       "mullvad-vpn"
       "netnewswire"
       "obsidian"
-      "podman-desktop"
       "postico@1"
       "raycast"
       "slack"
