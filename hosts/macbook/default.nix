@@ -2,6 +2,7 @@
 {
   imports = [
     inputs.home-manager.darwinModules.home-manager
+    ./keyboard.nix
     ./system.nix
     ./docker.nix
     ./homebrew.nix

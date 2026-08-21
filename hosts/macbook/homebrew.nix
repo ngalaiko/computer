@@ -54,11 +54,9 @@
     ];
 
     masApps = {
-      "1Password for Safari" = 1569813296;
       "Aeronaut" = 6670275450;
       "Amphetamine" = 937984704;
       "Developer" = 640199958;
-      "Emcee for Music" = 408774844;
       "Kagi for Safari" = 1622835804;
       "NextDNS" = 1464122853;
       "Numbers" = 361304891;
@@ -70,8 +68,6 @@
       "TestFlight" = 899247664;
       "The Unarchiver" = 425424353;
       "Translate for Safari" = 1445040281;
-      "Windows App" = 1295203466;
-      "Xcode" = 497799835;
     };
   };
 }
