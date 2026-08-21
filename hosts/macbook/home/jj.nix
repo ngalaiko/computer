@@ -18,10 +18,12 @@ in
   # Sublime Merge is a mac app
   programs.jujutsu.settings.ui.merge-editor = "smerge";
 
-  # Sign commits with the Secretive Secure Enclave key (see home/ssh.nix),
+  # The signing key path (~/.ssh/id_ed25519.pub) is set in the shared config
+  # (../../../home/jj.nix). On this Mac only the public half sits on disk; the
+  # private key is sealed in the Secure Enclave and reachable solely through
+  # Secretive's ssh-agent (SSH_AUTH_SOCK, set in home/ssh.nix). The key was
   # created in the Secretive GUI with "Authenticate before use" OFF so signing
-  # never prompts for Touch ID. The public key is exported to this path from
-  # Secretive (Copy Public Key → save as ~/.ssh/id_secretive.pub).
-  programs.jujutsu.settings.signing.key = "~/.ssh/id_secretive.pub";
+  # never prompts for Touch ID. The wrapper adds -U so ssh-keygen signs with the
+  # agent-held key rather than reading a private key file.
   programs.jujutsu.settings.signing.backends.ssh.program = toString sign-with-agent;
 }

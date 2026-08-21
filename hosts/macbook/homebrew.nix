@@ -30,6 +30,7 @@
       "mole"
       "pi-coding-agent" # pi.dev agent CLI; homebrew-core, no nixpkgs equivalent
       "podman" # nixpkgs podman lacks the machine/vm helpers on darwin
+      "vercel" # not in nixpkgs (nodePackages removed); npm tarball needs its own deps
     ];
 
     casks = [
@@ -38,8 +39,10 @@
       "discord"
       "firefox"
       "ghostty"
+      "linear"
       "mullvad-vpn"
       "netnewswire"
+      "notion"
       "obsidian"
       "postico@1"
       "raycast"

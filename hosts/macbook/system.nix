@@ -7,6 +7,29 @@
       tilesize = 36;
       autohide = true;
       orientation = "left";
+      show-recents = false;
+
+      # bottom-right hot corner → Quick Note
+      wvous-br-corner = 14;
+
+      # pinned apps, in dock order (left side)
+      persistent-apps = [
+        "/Applications/Safari.app"
+        "/System/Applications/Mail.app"
+        "/System/Applications/Calendar.app"
+        "/System/Applications/Reminders.app"
+        "/Applications/Ghostty.app"
+        "/Applications/Discord.app"
+        "/Applications/Slack.app"
+        "/Applications/Linear.app"
+        "/Applications/Notion.app"
+        "/Applications/Telegram.app"
+      ];
+
+      # folders/stacks (right side)
+      persistent-others = [
+        "/Users/nikita/Downloads"
+      ];
     };
 
     CustomUserPreferences = {

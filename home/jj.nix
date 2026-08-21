@@ -15,6 +15,11 @@ in
       signing = {
         behavior = "drop";
         backend = "ssh";
+        # Public key assumed present on disk at this path on every host. The
+        # private half lives wherever the host keeps it: hand-generated in
+        # ~/.ssh on exedev, sealed in the Secure Enclave and reached via
+        # Secretive's ssh-agent on the mac (see hosts/macbook/home/{ssh,jj}.nix).
+        key = "~/.ssh/id_ed25519.pub";
       };
 
       git.sign-on-push = true;
