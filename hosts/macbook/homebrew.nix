@@ -43,6 +43,7 @@
       "obsidian"
       "postico@1"
       "raycast"
+      "secretive" # Secure Enclave SSH agent (see home/ssh.nix)
       "slack"
       "snapzy"
       "sublime-merge"

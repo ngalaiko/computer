@@ -1,25 +1,23 @@
 { ... }:
 {
-  # SSH keys live in the Secure Enclave (created once with:
-  #   sc_auth create-ctk-identity -l ssh -k p-256-ne -t bio
-  #   cd ~/.ssh && ssh-keygen -w /usr/lib/ssh-keychain.dylib -K -N "")
-  # Apple's ssh-keychain.dylib exposes the enclave key to OpenSSH as an
-  # ecdsa-sk key; Touch ID authorizes each use. git and jj shell out to ssh,
-  # so they inherit this for auth with no agent or GUI app.
+  # SSH keys live in the Secure Enclave via Secretive
+  # (https://github.com/maxgoedjen/secretive), which serves them from its own
+  # ssh-agent socket. The auth+signing key is created in the Secretive GUI with
+  # "Authenticate before use" OFF: the private key never leaves the enclave and
+  # can't be exported, yet no Touch ID prompt fires per use. git and jj shell
+  # out to ssh and inherit this agent for auth; jj's ssh-keygen signing reaches
+  # the same key via SSH_AUTH_SOCK (see home/jj.nix).
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
     settings."*" = {
-      SecurityKeyProvider = "/usr/lib/ssh-keychain.dylib";
-      IdentityFile = "~/.ssh/id_ecdsa_sk_rk";
+      IdentityAgent = "~/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh";
     };
   };
 
-  # ssh-keygen (used by jj's ssh signing backend) does not read ssh_config, so
-  # it needs the security-key provider via this env var to sign with the
-  # enclave key. Set in launchd too if you ever sign from a GUI-launched app:
-  #   launchctl setenv SSH_SK_PROVIDER /usr/lib/ssh-keychain.dylib
+  # ssh-keygen (jj's signing backend) reads SSH_AUTH_SOCK, not ssh_config, so it
+  # needs the Secretive socket in the environment to sign with the enclave key.
   programs.fish.shellInit = ''
-    set --global --export SSH_SK_PROVIDER "/usr/lib/ssh-keychain.dylib"
+    set --global --export SSH_AUTH_SOCK "$HOME/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh"
   '';
 }
