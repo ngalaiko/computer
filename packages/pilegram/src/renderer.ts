@@ -72,6 +72,13 @@ export class Renderer {
   }
 
   onAgentStart() {
+    // Pi emits agent_start for low-level continuations/retries within one user
+    // turn. Resetting here would orphan a live provisional Telegram message,
+    // which then can neither be finalized nor deleted.
+    if (this.running) {
+      this.log.debug("agent continuation; preserving preview");
+      return;
+    }
     this.clearTimers();
     this.running = true;
     this.acc = "";
@@ -270,9 +277,12 @@ export class Renderer {
     const preview = (this.preview ??= { latestText: text });
     preview.latestText = text;
     if (preview.id !== undefined) {
-      this.writer
-        .editText(preview.id, text)
-        .catch((e) => this.log.warn("preview update failed", errFields(e)));
+      this.writer.editText(preview.id, text).catch((e) => {
+        // Coalesced flushes can queue the same text twice. Telegram reports that
+        // as a 400, but it already has the desired state.
+        if (isMessageNotModified(e)) return;
+        this.log.warn("preview update failed", errFields(e));
+      });
       return;
     }
     if (preview.starting) return;
@@ -324,14 +334,23 @@ export class Renderer {
         await this.writer.editText(id, first, extra);
         this.onSent?.(id, first);
       } catch (e) {
-        if (!extra) throw e;
-        this.log.warn(
-          "HTML preview finalize rejected; retrying as plain text",
-          errFields(e),
-        );
-        const plain = htmlToPlain(first);
-        await this.writer.editText(id, plain);
-        this.onSent?.(id, plain);
+        // The streamed preview can already equal the final answer. Telegram's
+        // "message is not modified" is success for this state machine, not an
+        // HTML error. Retrying it as plain text then falling back to persist()
+        // created the duplicate message shown in the chat.
+        if (isMessageNotModified(e)) {
+          this.log.debug("preview already contains final text");
+          this.onSent?.(id, first);
+        } else {
+          if (!extra) throw e;
+          this.log.warn(
+            "HTML preview finalize rejected; retrying as plain text",
+            errFields(e),
+          );
+          const plain = htmlToPlain(first);
+          await this.writer.editText(id, plain);
+          this.onSent?.(id, plain);
+        }
       }
       for (const chunk of chunks.slice(1)) this.sendFinal(chunk, extra);
     } catch (e) {
@@ -392,6 +411,12 @@ export class Renderer {
       this.actionTimer = undefined;
     }
   }
+}
+
+/** Telegram uses a 400 for a no-op edit; the requested state is already live. */
+function isMessageNotModified(e: unknown): boolean {
+  const message = e instanceof Error ? e.message : String(e);
+  return /message is not modified/i.test(message);
 }
 
 /** Strip Telegram-HTML tags and unescape entities, for the plain-text fallback. */

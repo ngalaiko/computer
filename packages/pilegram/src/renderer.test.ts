@@ -6,23 +6,33 @@ import type { Writer } from "./writer.ts";
 const route: Route = { chatId: 1, threadId: 0 };
 
 /** A Writer stub that records provisional messages, edits, and final output. */
-function fakeWriter(opts?: { rejectHtml?: boolean }) {
+function fakeWriter(opts?: {
+  rejectHtml?: boolean;
+  rejectUnchanged?: boolean;
+}) {
   const sent: { text: string; html: boolean }[] = [];
   const edits: { id: number; text: string; html: boolean }[] = [];
   const deleted: number[] = [];
+  const messages = new Map<number, string>();
+  let nextId = 1;
   const writer = {
     async persist(text: string, extra?: { parse_mode?: string }) {
       const html = extra?.parse_mode === "HTML";
       if (html && opts?.rejectHtml)
         throw new Error("Bad Request: can't parse entities");
+      const message_id = nextId++;
       sent.push({ text, html });
-      return { message_id: sent.length };
+      messages.set(message_id, text);
+      return { message_id };
     },
     async editText(id: number, text: string, extra?: { parse_mode?: string }) {
       const html = extra?.parse_mode === "HTML";
       if (html && opts?.rejectHtml)
         throw new Error("Bad Request: can't parse entities");
+      if (opts?.rejectUnchanged && messages.get(id) === text)
+        throw new Error("Bad Request: message is not modified");
       edits.push({ id, text, html });
+      messages.set(id, text);
       return { message_id: id };
     },
     async deleteMessage(id: number) {
@@ -50,6 +60,39 @@ test("finalizes as Telegram HTML", async () => {
   expect(edits).toHaveLength(1);
   expect(edits[0]!.html).toBe(true);
   expect(edits[0]!.text).toContain("<b>world</b>");
+});
+
+test("preserves a provisional message across continuation starts", async () => {
+  const { sent, edits, writer } = fakeWriter();
+  const r = new Renderer(writer, route);
+  r.onAgentStart();
+  r.onThinking("first attempt");
+  await flush();
+  r.onAgentStart(); // Pi continuation/retry, not a new user turn
+  r.onThinking(" continues");
+  r.onSettled("final answer");
+  await flush();
+
+  expect(sent).toHaveLength(1);
+  expect(edits).toHaveLength(1);
+  expect(edits[0]).toMatchObject({ id: 1, text: "final answer", html: true });
+});
+
+test("does not duplicate a final answer when the preview is already identical", async () => {
+  const { sent, edits, writer } = fakeWriter({ rejectUnchanged: true });
+  const finalized: { id: number; text: string }[] = [];
+  const r = new Renderer(writer, route, (id, text) =>
+    finalized.push({ id, text }),
+  );
+  r.onAgentStart();
+  r.onText("same answer");
+  await flush();
+  r.onSettled("same answer");
+  await flush();
+
+  expect(sent).toEqual([{ text: "same answer", html: false }]);
+  expect(edits).toHaveLength(0);
+  expect(finalized).toEqual([{ id: 1, text: "same answer" }]);
 });
 
 test("falls back to plain text when Telegram rejects the HTML", async () => {
