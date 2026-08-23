@@ -3,14 +3,14 @@ let
   # pi (the coding agent) is an npm CLI, packaged from its published tarball.
   # MIT, all-JS deps, so it builds against the pinned nixpkgs directly.
   pi = import ../../../packages/pi { inherit pkgs; };
-  # pilegram: my pi ⇄ Telegram gateway (Bun), consumed as a flake input. It's a
+  # pilegram: my pi ⇄ Telegram gateway (Bun), packaged in this repo. It's a
   # hermetic package — it bundles bun, ffmpeg, whisper.cpp and a pinned
   # node_modules that includes its own pi 0.83.0 — so it needs nothing else from
   # this account and survives recreations regardless of backup.
-  pilegram = inputs.pilegram.packages.${pkgs.system}.default;
-  # wherenow: the "Where Now?" location backend (flake input). Pure Go; writes
-  # positions into the vault as notes (no database).
-  wherenow = inputs.wherenow.packages.${pkgs.system}.default;
+  pilegram = import ../../../packages/pilegram { inherit pkgs; };
+  # wherenow: the "Where Now?" location backend, packaged in this repo. Pure Go;
+  # writes positions into the vault as notes (no database).
+  wherenow = import ../../../packages/wherenow { inherit pkgs; };
   # Official Obsidian Sync headless CLI, packaged here so the assistant can run
   # on-demand vault syncs without fetching npm packages at runtime.
   obsidian-headless = import ../../../packages/obsidian-headless { inherit pkgs; };
@@ -220,7 +220,7 @@ in
     '';
   };
 
-  # Telegram bridge for pi, via pilegram (the flake input above). Long-polling
+  # Telegram bridge for pi, via pilegram (packaged above). Long-polling
   # needs only outbound HTTPS, so nothing is exposed on the tailnet or the image.
   # pilegram reads pi's provider keys from ~/.pi and keeps its own state under
   # ~/.config/pilegram; run in the foreground so s6 supervises it.

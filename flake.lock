@@ -150,22 +150,6 @@
         "type": "github"
       }
     },
-    "nixpkgs_2": {
-      "locked": {
-        "lastModified": 1785989512,
-        "narHash": "sha256-HFQhkQcl5D1hUNoen3SGHCSFCt2Bg6uP+HgbrnA3InQ=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "445d861c6d31b4af0c79d8d4be2331f762a361d7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-26.05",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixvim": {
       "inputs": {
         "flake-parts": "flake-parts",
@@ -189,24 +173,6 @@
         "type": "github"
       }
     },
-    "pilegram": {
-      "inputs": {
-        "nixpkgs": "nixpkgs_2"
-      },
-      "locked": {
-        "lastModified": 1787483438,
-        "narHash": "sha256-Nt/mtXoWuzUyTsOAHgKn/oMdlXZuNt1cvk1XbEkgbq8=",
-        "owner": "ngalaiko",
-        "repo": "pilegram",
-        "rev": "0be580aa7163cf1cd6e1f82ce3ce5e07b5b9b680",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ngalaiko",
-        "repo": "pilegram",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "encore": "encore",
@@ -216,9 +182,7 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvim": "nixvim",
-        "pilegram": "pilegram",
-        "treefmt-nix": "treefmt-nix",
-        "wherenow": "wherenow"
+        "treefmt-nix": "treefmt-nix"
       }
     },
     "systems": {
@@ -253,26 +217,6 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
-        "type": "github"
-      }
-    },
-    "wherenow": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786534666,
-        "narHash": "sha256-iwaA28cf/d/CflWHKDWaQuR+0u1OSr2P3gOGg8+QHVU=",
-        "owner": "ngalaiko",
-        "repo": "wherenow",
-        "rev": "a408b22cbe0b3b6fa7ebfb17dbf9380dbda05187",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ngalaiko",
-        "repo": "wherenow",
         "type": "github"
       }
     }
