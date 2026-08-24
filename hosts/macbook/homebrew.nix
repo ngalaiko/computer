@@ -36,6 +36,7 @@
     casks = [
       "calibre"
       "chatgpt" # OpenAI's desktop app; hosts Codex since the standalone Codex app was discontinued (2026-07)
+      "claude" # Anthropic's Claude desktop app; hosts the Claude Code desktop experience
       "daisydisk"
       "discord"
       "firefox"
