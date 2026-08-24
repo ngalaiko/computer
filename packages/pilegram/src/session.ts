@@ -213,7 +213,9 @@ export class Session {
             )
               await this.speak(finalText);
           })
-          .catch((e) => this.log.error("turn finalization failed", errFields(e)));
+          .catch((e) =>
+            this.log.error("turn finalization failed", errFields(e)),
+          );
         break;
       }
       default:
