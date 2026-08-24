@@ -23,6 +23,7 @@ import { join } from "node:path";
 import type { MessageLog } from "./context.ts";
 import { errFields, log as rootLog } from "./log.ts";
 import type { ImageContent } from "./media.ts";
+import { SerialQueue } from "./queue.ts";
 import { Renderer } from "./renderer.ts";
 import type { Route } from "./route.ts";
 import { routeKey } from "./route.ts";
@@ -64,8 +65,8 @@ export interface SessionOptions {
 
 export class Session {
   private busy = false;
-  /** Final Telegram writes from a settled turn; the next prompt waits for these. */
-  private settling?: Promise<void>;
+  /** FIFO barrier between completed turns and the next turn's Telegram writes. */
+  private readonly finalizations = new SerialQueue();
   private voiceMode = false;
   private spokeThisTurn = false; // set if the agent sent a voice note via tg_send_voice this turn
   private readonly unsubscribe: () => void;
@@ -188,31 +189,31 @@ export class Session {
         break;
       case "agent_settled": {
         const finalText = this.agent.getLastAssistantText();
-        // Do not let the next prompt start writing until this turn has claimed
-        // its final Telegram writes. Otherwise a fast next turn can enqueue its
-        // preview before this turn finishes replacing its preview.
-        this.settling = (async () => {
-          await this.renderer.onSettled(finalText);
-          // A voice-only turn's text is spoken, never rendered to Telegram — don't
-          // record it as the last-rendered answer, or reconcile would suppress the
-          // legitimate text repost if we crash before the voice note is sent.
-          this.onFinalized?.(this.voiceMode ? undefined : finalText);
-          // Voice mode: speak the answer as a voice note — unless the agent already
-          // sent one itself via tg_send_voice, which would double up.
-          if (
-            this.voiceMode &&
-            this.voice &&
-            !this.spokeThisTurn &&
-            finalText &&
-            finalText.trim() !== ""
-          )
-            await this.speak(finalText);
-        })()
-          .catch((e) => this.log.error("turn finalization failed", errFields(e)))
-          .finally(() => {
-            this.settling = undefined;
-            this.busy = false;
-          });
+        const voiceMode = this.voiceMode;
+        const spokeThisTurn = this.spokeThisTurn;
+        this.busy = false;
+        // Claim final Telegram writes in FIFO order before another turn starts.
+        // A fast following prompt waits on this queue instead of overtaking this
+        // turn's preview replacement or voice-note delivery.
+        void this.finalizations
+          .enqueue(async () => {
+            await this.renderer.onSettled(finalText);
+            // A voice-only turn's text is spoken, never rendered to Telegram — don't
+            // record it as the last-rendered answer, or reconcile would suppress the
+            // legitimate text repost if we crash before the voice note is sent.
+            this.onFinalized?.(voiceMode ? undefined : finalText);
+            // Voice mode: speak the answer as a voice note — unless the agent already
+            // sent one itself via tg_send_voice, which would double up.
+            if (
+              voiceMode &&
+              this.voice &&
+              !spokeThisTurn &&
+              finalText &&
+              finalText.trim() !== ""
+            )
+              await this.speak(finalText);
+          })
+          .catch((e) => this.log.error("turn finalization failed", errFields(e)));
         break;
       }
       default:
@@ -239,18 +240,13 @@ export class Session {
     }
 
     if (this.busy) {
-      // `agent_settled` fires before its final preview edit has necessarily
-      // reached Telegram. This is a completed turn, not steering: wait for its
-      // writes, then start a fresh turn in chronological order.
-      if (this.settling) {
-        this.log.info("waiting for prior turn finalization");
-        await this.settling;
-        return this.handlePrompt(text, opts);
-      }
       this.log.info("steering into running turn");
       await this.agent.steer(text, images);
       return;
     }
+    // `agent_settled` precedes its final preview edit. Drain all finalization
+    // work before this fresh turn can enqueue a draft or tool output.
+    await this.finalizations.flush();
     this.busy = true;
     this.voiceMode = opts?.speak ?? false; // reply modality matches the input
     this.renderer.setVoiceMode(this.voiceMode);
@@ -263,9 +259,9 @@ export class Session {
         this.renderer.onError(e);
       })
       .finally(() => {
-        // agent_settled owns the transition to idle while final Telegram writes
-        // are pending. For failures that never settle, release the session here.
-        if (!this.settling) this.busy = false;
+        // A normal turn becomes idle at agent_settled. For failures that never
+        // settle, release the session here.
+        this.busy = false;
       });
   }
 

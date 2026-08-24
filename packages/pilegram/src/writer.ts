@@ -23,6 +23,7 @@ import type {
 } from "grammy/types";
 import type { Route } from "./route.ts";
 import { errFields, type Fields, log as rootLog } from "./log.ts";
+import { SerialQueue } from "./queue.ts";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -32,7 +33,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const MAX_429_RETRIES = 8;
 
 export class Writer {
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly queue = new SerialQueue();
   private readonly log: ReturnType<typeof rootLog.child>;
 
   constructor(
@@ -52,13 +53,7 @@ export class Writer {
 
   /** Serialize an op onto the route's queue, retrying on 429. */
   private enqueue<T>(label: string, op: () => Promise<T>): Promise<T> {
-    const run = this.tail.then(() => this.execWithRetry(label, op));
-    // Keep the chain alive regardless of individual failures.
-    this.tail = run.then(
-      () => undefined,
-      () => undefined,
-    );
-    return run;
+    return this.queue.enqueue(() => this.execWithRetry(label, op));
   }
 
   private async execWithRetry<T>(
@@ -219,7 +214,7 @@ export class Writer {
 
   /** Resolve once everything enqueued so far has been sent (ordering barrier). */
   async flush(): Promise<void> {
-    await this.tail.catch(() => {});
+    await this.queue.flush();
   }
 
   /** Send a chat action ("typing", "record_voice", …). Best-effort, not queued
