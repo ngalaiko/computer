@@ -12,8 +12,13 @@
   system.primaryUser = "nikita";
   system.stateVersion = 6;
 
-  # nix-darwin needs mas on PATH to install masApps
-  environment.systemPackages = [ pkgs.mas ];
+  environment.systemPackages = [
+    # nix-darwin needs mas on PATH to install masApps
+    pkgs.mas
+    # Transcripted has no cask/MAS listing; packaged from its release DMG and
+    # linked into /Applications/Nix Apps.
+    (import ../../packages/transcripted { inherit pkgs; })
+  ];
 
   users.users."nikita".home = "/Users/nikita";
   home-manager = {
