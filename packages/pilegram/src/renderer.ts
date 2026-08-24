@@ -155,7 +155,7 @@ export class Renderer {
   }
 
   /** Finalize on agent_settled. `finalText` is the authoritative answer. */
-  onSettled(finalText: string | undefined) {
+  onSettled(finalText: string | undefined): Promise<void> {
     const answer = finalText && finalText.trim() !== "" ? finalText : this.acc;
     const counts = new Map(this.toolCounts);
     const elapsedMs = this.turnStartAt ? Date.now() - this.turnStartAt : 0;
@@ -175,14 +175,12 @@ export class Renderer {
     if (this.voiceMode) {
       // The Session sends this answer as a voice note; don't leave a provisional
       // text message behind while it does so.
-      void this.deletePreview(preview);
       this.log.info("finalize: voice-only (text not persisted)");
-      return;
+      return this.deletePreview(preview);
     }
     if (answer.trim() === "") {
-      void this.deletePreview(preview);
       this.log.info("finalize: empty (preview deleted)");
-      return;
+      return this.deletePreview(preview);
     }
 
     // Strip bidi-override / zero-width chars so a prompt-injected answer can't
@@ -209,7 +207,7 @@ export class Renderer {
       html: !!extra,
       preview: !!preview,
     });
-    void this.finalizePreview(preview, chunks, extra);
+    return this.finalizePreview(preview, chunks, extra);
   }
 
   /**
