@@ -34,6 +34,9 @@ in
 
   home.file.".claude/settings.json".text = builtins.toJSON {
     theme = "auto";
+    enabledPlugins = {
+      "mattpocock-skills@claude-plugins-official" = true;
+    };
     hooks.PreToolUse = [
       {
         matcher = "Bash";
