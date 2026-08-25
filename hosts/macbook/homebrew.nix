@@ -42,6 +42,7 @@
       "firefox"
       "ghostty"
       "linear"
+      "little-snitch"
       "mullvad-vpn"
       "netnewswire"
       "notion"
