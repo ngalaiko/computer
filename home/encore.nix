@@ -14,7 +14,7 @@ in
     docker-compose
     cloudflared
     cue
-    google-cloud-sdk
+    (google-cloud-sdk.withExtraComponents [ google-cloud-sdk.components.bigtable ])
     pgcli
   ];
 
