@@ -1,9 +1,10 @@
-{ ... }:
+{ inputs, ... }:
 {
   imports = [
     ./atuin.nix
     ./brew.nix
     ./docker.nix
+    ./encore.nix
     ./fonts.nix
     ./ghostty.nix
     ./jj.nix

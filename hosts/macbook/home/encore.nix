@@ -3,6 +3,8 @@ let
   unstable = import inputs.nixpkgs-unstable { inherit (pkgs.stdenv.hostPlatform) system; };
 in
 {
+  imports = [ inputs.encore.homeModules.default ];
+
   home.packages = with pkgs; [
     inputs.encore.packages.${pkgs.stdenv.hostPlatform.system}.encore
     cmake
