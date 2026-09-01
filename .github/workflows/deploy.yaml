@@ -120,6 +120,15 @@ jobs:
       # DEPLOY_FLAKE points at the built commit on GitHub, so the box fetches +
       # builds the generation itself — nothing is pushed from the runner (which
       # the box would reject as unsigned). `.#deploy` is still the local app.
+      - name: Diagnose Tailscale connectivity
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          tailscale status
+          tailscale ping computer || true
+          getent ahostsv4 computer || true
+          nc -vz -w10 computer 22 || true
+          tailscale ssh nikita@computer true
+
       - name: Activate in place
         if: steps.check.outputs.exists == 'true'
         env:
