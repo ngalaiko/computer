@@ -127,7 +127,10 @@ jobs:
           tailscale ping computer || true
           getent ahostsv4 computer || true
           nc -vz -w10 computer 22 || true
-          tailscale ssh nikita@computer true
+          # Tailscale SSH needs a working target /etc/passwd; retain its result
+          # as diagnostics only, so a broken rootfs can still be repaired via
+          # the platform's OpenSSH server below.
+          tailscale ssh nikita@computer true || true
 
       - name: Activate in place
         if: steps.check.outputs.exists == 'true'
