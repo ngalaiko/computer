@@ -241,8 +241,8 @@ in
 
     image.rootPaths = [ etc ];
     # Keep /etc's source derivation (and its cacert/iana-etc closure) registered
-    # in the live Nix DB. Otherwise an in-place deploy + later GC can leave
-    # /etc/ssl/certs/* pointing at a collected rootfs store path, breaking TLS.
+    # in the live Nix DB. The rootfs itself is registered and rooted by nix-db:
+    # adding it here creates an evaluation cycle through its embedded nix config.
     nix.registerPaths = [ etc ];
 
     # sticky-bit tmp dirs + /root perms — asserted at build and on every activate.

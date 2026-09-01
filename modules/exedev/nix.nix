@@ -130,6 +130,14 @@ in
         if [ ! -f /nix/var/nix/db/db.sqlite ]; then
           NIX_REMOTE= ${pkgs.nix}/bin/nix-store --load-db < ${storeReg}/registration
         fi
+        # The base image has no system profile yet. Root the merged rootfs that
+        # its live /etc links already point to. Referencing config.build.rootfs
+        # here would cycle through this module's embedded /etc/nix config.
+        baseRootfs="$(${pkgs.coreutils}/bin/readlink /etc/passwd 2>/dev/null || true)"
+        baseRootfs="''${baseRootfs%/etc/passwd}"
+        if [ -n "$baseRootfs" ] && [ -e "$baseRootfs" ]; then
+          ln -sfn "$baseRootfs" /nix/var/nix/gcroots/base-rootfs
+        fi
       '';
     };
     s6.services.nix-daemon = {

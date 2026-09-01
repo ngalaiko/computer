@@ -92,10 +92,7 @@ rec {
   #     the box's store to build there (needs a trusted user — nikita is).
   deploy = pkgs.writeShellApplication {
     name = "deploy";
-    runtimeInputs = [
-      pkgs.openssh
-      pkgs.tailscale
-    ];
+    runtimeInputs = [ pkgs.openssh ];
     text = ''
       node="''${DEPLOY_NODE:-computer}"
       target="''${DEPLOY_SYSTEM:-x86_64-linux}"
@@ -114,7 +111,7 @@ rec {
         *)
           echo "deploy: $node fetches + builds $ref"
           # shellcheck disable=SC2029  # $ref/$target expand client-side, by design
-          gen="$(tailscale ssh nikita@"$node" \
+          gen="$(ssh "''${ssh_opts[@]}" nikita@"$node" \
             "nix build '$ref#packages.$target.system' --no-link --print-out-paths")"
           ;;
       esac
@@ -126,13 +123,13 @@ rec {
       echo "deploy: dispatching detached 'activate switch' on $node"
       # one round-trip: clear the prior status, then launch detached.
       # shellcheck disable=SC2029  # $gen must expand here (client side), by design
-      tailscale ssh nikita@"$node" \
+      ssh "''${ssh_opts[@]}" nikita@"$node" \
         "sudo sh -c 'rm -f /run/activate.status; setsid \"$gen/activate\" switch </dev/null >/run/activate.log 2>&1 &'"
 
       echo "deploy: waiting for activation (tailscaled may bounce mid-switch)…"
       ok=""
       for _ in $(seq 1 90); do
-        st="$(tailscale ssh nikita@"$node" 'cat /run/activate.status 2>/dev/null' 2>/dev/null || true)"
+        st="$(ssh "''${ssh_opts[@]}" nikita@"$node" 'cat /run/activate.status 2>/dev/null' 2>/dev/null || true)"
         case "$st" in
           "ok $gen"*)
             echo "deploy: $st"
@@ -141,7 +138,7 @@ rec {
             ;;
           fail*)
             echo "deploy: activation FAILED: $st" >&2
-            tailscale ssh nikita@"$node" 'sudo tail -n 40 /run/activate.log' 2>/dev/null || true
+            ssh "''${ssh_opts[@]}" nikita@"$node" 'sudo tail -n 40 /run/activate.log' 2>/dev/null || true
             exit 1
             ;;
         esac
@@ -149,7 +146,7 @@ rec {
       done
       if [ -z "$ok" ]; then
         echo "deploy: timed out waiting for status; last activate.log:" >&2
-        tailscale ssh nikita@"$node" 'sudo tail -n 40 /run/activate.log' 2>/dev/null || true
+        ssh "''${ssh_opts[@]}" nikita@"$node" 'sudo tail -n 40 /run/activate.log' 2>/dev/null || true
         exit 1
       fi
       echo "deploy: done — $node switched to $gen"
