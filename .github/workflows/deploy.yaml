@@ -96,8 +96,8 @@ jobs:
             --env B2_ACCOUNT_ID=0036cfed748e70c0000000002 \
             --env B2_ACCOUNT_KEY="$B2_ACCOUNT_KEY"
           # 8080 = services.ingress.publicPort, the public root port.
-          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME" 8080
-          ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME"
+          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME-$tag" 8080
+          ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME-$tag"
 
       # ---- steady state: VM exists -> activate the new generation in place ------
       - uses: nixbuild/nix-quick-install-action@v35
