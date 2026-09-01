@@ -212,9 +212,12 @@ in
           USER=assistant \
           SHELL=/bin/sh \
           PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-          SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
-          NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
-          NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt \
+          # Reference cacert directly instead of /etc: its symlink targets the
+          # image rootfs store path, which may be garbage-collected after an
+          # in-place deployment.
+          SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
+          NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
+          NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
           OBSIDIAN_VAULT_DIR="$vault" \
         ${pkgs.supercronic}/bin/supercronic ${vaultSyncCrontab}
     '';
