@@ -2,6 +2,8 @@
 {
   imports = [
     ./claude.nix
+    ./codex.nix
+    ./pi.nix
   ];
 
   home.file.".config/AGENTS.md".text = ''
@@ -9,6 +11,7 @@
     	- always use jujutsu
     	- never user git
     	- never push to remote
+    	- never disclose agent authorship in commits (no co-authored-by, no generated-by, no tool trailers)
     	</version_control>
     	<style>
     	- when writing something intended for human consumption, (comment, commit message, reply to prompt) use as few words as possible. pick every word meticulously to reduce the volume to a strict minimum. be down to the point. less is more.
