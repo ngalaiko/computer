@@ -1,4 +1,4 @@
-{ config, ... }:
+{ ... }:
 let
   # Claude Code PreToolUse hooks enforcing the AGENTS.md rules on every Bash
   # command. Each greps the command and hard-denies before it runs. Patterns
@@ -28,8 +28,7 @@ let
   };
 in
 {
-  home.file.".claude/CLAUDE.md".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.config/AGENTS.md";
+  home.file.".claude/CLAUDE.md".source = ./AGENTS.md;
 
   home.file.".claude/settings.json".text = builtins.toJSON {
     theme = "auto";
