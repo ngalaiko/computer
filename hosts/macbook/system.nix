@@ -28,7 +28,14 @@
 
       # folders/stacks (right side)
       persistent-others = [
-        "/Users/nikita/Downloads"
+        {
+          folder = {
+            path = "/Users/nikita/Downloads";
+            arrangement = "date-added";
+            displayas = "stack";
+            showas = "list";
+          };
+        }
       ];
     };
 
