@@ -3,6 +3,11 @@
   system.defaults = {
     NSGlobalDomain.AppleFontSmoothing = 0;
 
+    finder = {
+      # column view
+      FXPreferredViewStyle = "clmv";
+    };
+
     dock = {
       tilesize = 36;
       autohide = true;
