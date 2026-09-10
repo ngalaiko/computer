@@ -6,11 +6,11 @@
 # write to the read-only store; bump `version`/`hash` here to update.
 pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "transcripted";
-  version = "1.1.58";
+  version = "1.1.59";
 
   src = pkgs.fetchurl {
     url = "https://github.com/r3dbars/transcripted/releases/download/v${finalAttrs.version}/Transcripted-${finalAttrs.version}.dmg";
-    hash = "sha256-/L5CVn3dPNZEVs/SqZtcpLHcxMAlIjFSy3HFeD2XAho=";
+    hash = "sha256-4kXxSLKqGUN2JLGY0J+csYYh+9Y5CTmfv7pF85XQoJw=";
   };
 
   nativeBuildInputs = [ pkgs.undmg ];
