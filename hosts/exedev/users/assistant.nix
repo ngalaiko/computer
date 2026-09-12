@@ -206,15 +206,14 @@ in
       else
         echo "assistant-vault-sync: $envfile missing; Discogs sync skipped until DISCOGS_TOKEN is placed (see README)." >&2
       fi
+      # Reference cacert directly instead of /etc: its symlink targets the image
+      # rootfs store path, which may be garbage-collected after an in-place deployment.
       exec /command/s6-setuidgid assistant \
         env \
           HOME=/var/lib/assistant \
           USER=assistant \
           SHELL=/bin/sh \
           PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-          # Reference cacert directly instead of /etc: its symlink targets the
-          # image rootfs store path, which may be garbage-collected after an
-          # in-place deployment.
           SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
           NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
           NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
