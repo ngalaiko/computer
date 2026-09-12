@@ -1,0 +1,107 @@
+{
+  "identity": "Answer tersely. Answer the current message through the yield tool reply field.",
+  "model": "gpt-6-astra",
+  "model_instance": "codex",
+  "capability_instances": ["shell", "memory"],
+  "trusted_capabilities": {
+    "shell": ["shell.execute"],
+    "memory": [
+      "memory.recall",
+      "memory.get",
+      "memory.remember",
+      "memory.supersede",
+      "memory.forget"
+    ]
+  },
+  "trusted_constraints": {
+    "memory": {
+      "memory.recall": { "scopes": ["personal"] },
+      "memory.get": { "scopes": ["personal"] },
+      "memory.remember": { "scopes": ["personal"] },
+      "memory.supersede": { "scopes": ["personal"] },
+      "memory.forget": { "scopes": ["personal"] }
+    }
+  },
+  "plugin_instances": {
+    "memory": {
+      "package": "bundled:memory"
+    },
+    "telegram": {
+      "package": "bundled:telegram",
+      "config": {
+        "credentials": {
+          "bot-token": "telegram:personal"
+        },
+        "trusted_senders": ["109935692"]
+      },
+      "components": {
+        "receive": {
+          "http": {
+            "max_timeout_ms": 120000,
+            "max_request_bytes": 16777216,
+            "max_response_bytes": 16777216
+          }
+        },
+        "send": {
+          "http": {
+            "max_timeout_ms": 120000,
+            "max_request_bytes": 16777216,
+            "max_response_bytes": 16777216
+          }
+        }
+      }
+    },
+    "codex": {
+      "package": "bundled:openai-codex",
+      "config": {
+        "credentials": {
+          "subscription": "codex:personal"
+        },
+        "models": ["gpt-6-astra"]
+      }
+    },
+    "rlm": {
+      "package": "bundled:rlm"
+    },
+    "shell": {
+      "package": "bundled:shell",
+      "access": {
+        "stream": {
+          "socket": "/home/pluribus/.runtime/executor.sock",
+          "peer_uids": [2002]
+        }
+      },
+      "config": {
+        "credential_exports": {
+          "GH_TOKEN": {
+            "credential": "github:personal",
+            "provider": "dev.pluribus.github",
+            "export": "installation-token"
+          }
+        }
+      }
+    },
+    "http": {
+      "package": "bundled:http",
+      "components": {
+        "listen": {
+          "stream": {
+            "socket": "/home/nikita/.local/share/pluribus/http.sock",
+            "peer_uids": [1000]
+          }
+        }
+      }
+    },
+    "github": {
+      "package": "bundled:github",
+      "config": {
+        "credentials": {
+          "app": "github:personal"
+        },
+        "http_instance": "http/listen",
+        "route_id": "github",
+        "owner": "ngalaiko"
+      }
+    }
+  }
+}

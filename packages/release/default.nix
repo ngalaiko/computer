@@ -59,7 +59,11 @@ rec {
       jj root >/dev/null 2>&1 || jj git init --colocate
       git_sha="$(git rev-parse --short HEAD)"
       jj_rev="$(jj log --no-graph -r '@' -T 'change_id.short()')"
-      for revision in "$git_sha" "$jj_rev"; do
+      revisions=("$git_sha" "$jj_rev")
+      if [ -n "''${GITHUB_SHA:-}" ]; then
+        revisions+=("$GITHUB_SHA")
+      fi
+      for revision in "''${revisions[@]}"; do
         skopeo --insecure-policy copy \
           --src-creds "$ghcr_user:$ghcr_token" \
           --dest-creds "$ghcr_user:$ghcr_token" \

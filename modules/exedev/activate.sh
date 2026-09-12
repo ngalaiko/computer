@@ -71,7 +71,7 @@ overlay_one() {
     cp -f "$src" "$tmp" || return 1
     chmod u+w "$tmp" 2>/dev/null || true
   fi
-  mv -f "$tmp" "$dst" || {
+  mv -fT "$tmp" "$dst" || {
     rm -f "$tmp"
     return 1
   }

@@ -150,6 +150,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1789073787,
+        "narHash": "sha256-xfX/toC2QV707s06GbP4II/TxYF0fNQj7s5/LClNDKc=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "aff8a0b28396750446e5537a96461bc4facdb287",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixvim": {
       "inputs": {
         "flake-parts": "flake-parts",
@@ -173,6 +189,25 @@
         "type": "github"
       }
     },
+    "pluribus": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1789497084,
+        "narHash": "sha256-DguGHOBp8CpA8tTw0Zy++5p+vkeOxaf46HRvI2kTHaM=",
+        "owner": "ngalaiko",
+        "repo": "pluribus",
+        "rev": "498e679ad8226fc8cdd1310c0cd61dbb75bc63b6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ngalaiko",
+        "ref": "master",
+        "repo": "pluribus",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "encore": "encore",
@@ -182,6 +217,7 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvim": "nixvim",
+        "pluribus": "pluribus",
         "treefmt-nix": "treefmt-nix"
       }
     },

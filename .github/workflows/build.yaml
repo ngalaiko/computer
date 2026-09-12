@@ -5,13 +5,21 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: image tag to create from (blank = this commit)
+        default: ""
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.event_name == 'pull_request' && format('build-{0}', github.ref) || 'deploy' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  VM_NAME: computer
+  VM_TAG: computer
 
 jobs:
   check:
@@ -24,9 +32,49 @@ jobs:
       # dirty format fails here — no separate `nix fmt && git diff` step needed.
       - run: nix flake check --all-systems
 
+  machine:
+    name: Check machine exists
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request'
+    outputs:
+      exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - name: Configure exe.dev SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pin exe.dev by its documented host-key fingerprint (faq/host-key).
+          ssh-keyscan exe.dev > ~/.ssh/known_hosts 2>/dev/null
+          ssh-keygen -lf ~/.ssh/known_hosts \
+            | grep -q "SHA256:JJOP/lwiBGOMilfONPWZCXUrfK154cnJFXcqlsi6lPo" \
+            || { echo "exe.dev host-key fingerprint mismatch"; exit 1; }
+
+      - name: Is there a computer VM?
+        id: check
+        run: |
+          if ! ssh -i ~/.ssh/id_ed25519 exe.dev ls --l --json > vms.json; then
+            echo "exe.dev VM listing failed"
+            exit 1
+          fi
+          if ! jq -e . vms.json >/dev/null; then
+            echo "exe.dev VM listing did not return JSON; raw output follows:"
+            sed -n '1,80p' vms.json
+            exit 1
+          fi
+          n=$(jq -r --arg tag "$VM_TAG" '[.vms[] | select((.tags // []) | index($tag))] | length' vms.json)
+          echo "found $n VM(s) tagged $VM_TAG"
+          if [ "$n" -gt 0 ]; then echo "exists=true"; else echo "exists=false"; fi >> "$GITHUB_OUTPUT"
+
   build:
     name: Build ${{ matrix.system }}
-    needs: check
+    needs: [check, machine]
+    if: >-
+      !cancelled() && needs.check.result == 'success' &&
+      (needs.machine.result == 'success' || github.event_name == 'pull_request')
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -62,3 +110,57 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: nix run .#push-image -- ${{ matrix.system }}
+
+  update:
+    name: Update existing VM
+    needs: [check, machine]
+    if: needs.machine.outputs.exists == 'true'
+    uses: ./.github/workflows/deploy.yaml
+    secrets: inherit
+
+  create:
+    name: Create VM
+    needs: [build, machine]
+    if: needs.machine.outputs.exists == 'false'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Configure exe.dev SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pin exe.dev by its documented host-key fingerprint (faq/host-key).
+          ssh-keyscan exe.dev > ~/.ssh/known_hosts 2>/dev/null
+          ssh-keygen -lf ~/.ssh/known_hosts \
+            | grep -q "SHA256:JJOP/lwiBGOMilfONPWZCXUrfK154cnJFXcqlsi6lPo" \
+            || { echo "exe.dev host-key fingerprint mismatch"; exit 1; }
+
+      - name: Create the computer VM
+        env:
+          IN_TAG: ${{ inputs.image_tag || github.sha }}
+          RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
+          B2_ACCOUNT_KEY: ${{ secrets.B2_ACCOUNT_KEY }}
+        run: |
+          tag="$IN_TAG"
+          echo "creating $VM_NAME from ghcr.io/ngalaiko/computer.exe:$tag"
+          ssh -i ~/.ssh/id_ed25519 exe.dev new \
+            --image="ghcr.io/ngalaiko/computer.exe:$tag" \
+            --name "$VM_NAME-$tag" \
+            --tag "$VM_TAG" \
+            --disk 50 \
+            --env RESTIC_REPOSITORY=b2:ngalaiko-backups:exedev \
+            --env RESTIC_PASSWORD="$RESTIC_PASSWORD" \
+            --env B2_ACCOUNT_ID=0036cfed748e70c0000000002 \
+            --env B2_ACCOUNT_KEY="$B2_ACCOUNT_KEY"
+          # 8080 = services.ingress.publicPort, the public root port.
+          ssh -i ~/.ssh/id_ed25519 exe.dev share port "$VM_NAME-$tag" 8080
+          ssh -i ~/.ssh/id_ed25519 exe.dev share set-public "$VM_NAME-$tag"
+
+  update-created:
+    name: Update created VM
+    needs: create
+    uses: ./.github/workflows/deploy.yaml
+    secrets: inherit

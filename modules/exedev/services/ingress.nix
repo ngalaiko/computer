@@ -22,6 +22,7 @@ let
         ""
         ":${toString cfg.publicPort} {"
       ]
+      ++ lib.optional (cfg.routes != "") cfg.routes
       ++ map (
         t: "\thandle_path /${t.name}/* {\n\t\treverse_proxy 127.0.0.1:${toString t.upstreamPort}\n\t}"
       ) tenants
@@ -65,6 +66,12 @@ in
 {
   options.services.ingress = {
     enable = lib.mkEnableOption "the public path-routed ingress (root caddy + per-user self-serve tenant caddies)";
+
+    routes = mkOption {
+      type = types.lines;
+      default = "";
+      description = "Declarative routes in the public site, alongside tenant routes.";
+    };
 
     publicPort = mkOption {
       type = types.port;
