@@ -7,6 +7,12 @@
 let
   package = inputs.pluribus.packages.${pkgs.stdenv.hostPlatform.system}.default;
   executor = inputs.pluribus.packages.${pkgs.stdenv.hostPlatform.system}.plugin-shell;
+  obsidian-headless = import ../../../packages/obsidian-headless { inherit pkgs; };
+  obsidian-sync = pkgs.writeShellScriptBin "obsidian-sync" ''
+    set -eu
+    vault="''${OBSIDIAN_VAULT_DIR:-/home/pluribus/Vault}"
+    exec ${obsidian-headless}/bin/ob sync --path "$vault" "$@"
+  '';
   home = "/home/pluribus";
   data = "/home/nikita/.local/share/pluribus";
   configDir = "/home/nikita/.config/pluribus";
@@ -35,7 +41,11 @@ in
     locked = true;
     shell = "${pkgs.bashInteractive}/bin/bash";
     description = "Pluribus shell executor";
-    packages = [ pkgs.gh ];
+    packages = [
+      pkgs.gh
+      obsidian-headless
+      obsidian-sync
+    ];
   };
   users.groups.pluribus = {
     gid = uid;
@@ -56,6 +66,27 @@ in
       install -d -m 0750 -o ${toString uid} -g ${toString gid} ${home}
       install -d -m 0700 -o ${toString runtimeUid} ${data} ${configDir}
       ln -sfn ${../pluribus/config.json} ${configDir}/config.json
+    '';
+  };
+
+  # Auth, sync configuration and vault stay in the backed-up executor home.
+  s6.services.pluribus-obsidian-sync = {
+    dependencies = [ "pluribus-prepare" ];
+    run = ''
+      exec /command/s6-setuidgid pluribus \
+        env -i HOME=${home} USER=pluribus SHELL=/bin/sh \
+        PATH=/etc/profiles/per-user/pluribus/bin:/bin \
+        NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
+        ${pkgs.writeShellScript "pluribus-obsidian-sync" ''
+          set -eu
+          umask 0077
+          if [ ! -d "${home}/Vault/.obsidian" ]; then
+            echo "pluribus-obsidian-sync: run ob login and ob sync-setup first; retrying in 30s" >&2
+            sleep 30
+            exit 1
+          fi
+          exec ${obsidian-headless}/bin/ob sync --path ${home}/Vault --continuous
+        ''}
     '';
   };
 
