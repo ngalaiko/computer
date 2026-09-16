@@ -79,7 +79,12 @@ in
           "bash"
           "-c"
           ''
-            gh pr create --head $(jj log -r 'closest_bookmark(@)' -T 'bookmarks' --no-graph | cut -d ' ' -f 1) --web
+            set -euo pipefail
+            # jj workspaces have no .git, so gh cannot infer the repo
+            repo=$(jj git remote list | awk '$1=="origin"{print $2}' \
+              | sed -E 's#^git@([^:]+):#https://\1/#; s#\.git$##')
+            head=$(jj log -r 'closest_bookmark(@)' -T 'bookmarks' --no-graph | cut -d ' ' -f 1)
+            gh pr create --repo "$repo" --head "$head" --web
           ''
         ];
         ll = [
