@@ -18,8 +18,24 @@ in
     (key "n" "<space>q" "<cmd>Trouble diagnostics toggle<CR>")
 
     # mini.pick
-    (raw "n" "<C-p>" ''function() require("mini.pick").builtin.files({ tool = "git" }) end'')
-    (raw "n" "<C-g>" ''function() require("mini.pick").builtin.grep_live({ tool = "git" }) end'')
+    # mini.pick knows rg/fd/git only. A jj workspace has no .git, so the git
+    # tool dies there. `jj file list .` matches the git tool's output: scoped to
+    # cwd, hidden files included.
+    (raw "n" "<C-p>" ''
+      function()
+        local pick = require("mini.pick")
+        if vim.fs.root(vim.fn.getcwd(), ".jj") ~= nil then
+          pick.builtin.cli(
+            { command = { "jj", "file", "list", "." } },
+            { source = { name = "Files (jj)" } }
+          )
+        else
+          pick.builtin.files({ tool = "git" })
+        end
+      end
+    '')
+    # no `jj grep`; rg honours .gitignore with no .git present
+    (raw "n" "<C-g>" ''function() require("mini.pick").builtin.grep_live({ tool = "rg" }) end'')
 
     # aerial
     (key "n" "<leader>tt" "<cmd>AerialToggle<CR>")
