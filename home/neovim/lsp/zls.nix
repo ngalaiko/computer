@@ -1,4 +1,4 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.zls.enable = true;
+  programs.nixvim.lsp.servers.zls.enable = true;
 }

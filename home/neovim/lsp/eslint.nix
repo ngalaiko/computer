@@ -1,4 +1,4 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.eslint.enable = true;
+  programs.nixvim.lsp.servers.eslint.enable = true;
 }

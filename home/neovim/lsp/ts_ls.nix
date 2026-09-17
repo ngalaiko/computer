@@ -1,4 +1,4 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.ts_ls.enable = true;
+  programs.nixvim.lsp.servers.ts_ls.enable = true;
 }

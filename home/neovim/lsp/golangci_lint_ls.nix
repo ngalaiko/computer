@@ -1,8 +1,8 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.golangci_lint_ls = {
+  programs.nixvim.lsp.servers.golangci_lint_ls = {
     enable = true;
-    extraOptions.init_options.command = [
+    config.init_options.command = [
       "golangci-lint"
       "run"
       "--output.json.path=stdout"

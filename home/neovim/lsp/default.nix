@@ -6,5 +6,7 @@
     ) (builtins.readDir ./.)
   );
 
-  programs.nixvim.plugins.lsp.enable = true;
+  # nvim-lspconfig only ships default configs (cmd/root_markers/filetypes) for
+  # `vim.lsp.config`; enabling happens per server below via `vim.lsp.enable`.
+  programs.nixvim.plugins.lspconfig.enable = true;
 }

@@ -1,4 +1,4 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.templ.enable = true;
+  programs.nixvim.lsp.servers.templ.enable = true;
 }

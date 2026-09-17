@@ -1,4 +1,4 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.dockerls.enable = true;
+  programs.nixvim.lsp.servers.dockerls.enable = true;
 }

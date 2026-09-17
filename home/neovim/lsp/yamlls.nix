@@ -1,8 +1,8 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.yamlls = {
+  programs.nixvim.lsp.servers.yamlls = {
     enable = true;
-    settings = {
+    config.settings.yaml = {
       schemaStore = {
         enable = true;
         url = "https://www.schemastore.org/api/json/catalog.json";

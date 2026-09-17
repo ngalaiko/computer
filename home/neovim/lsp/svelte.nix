@@ -1,4 +1,4 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.svelte.enable = true;
+  programs.nixvim.lsp.servers.svelte.enable = true;
 }

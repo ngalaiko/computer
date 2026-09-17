@@ -1,4 +1,4 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.ruff.enable = true;
+  programs.nixvim.lsp.servers.ruff.enable = true;
 }

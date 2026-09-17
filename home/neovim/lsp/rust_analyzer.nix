@@ -1,11 +1,9 @@
 { ... }:
 {
-  programs.nixvim.plugins.lsp.servers.rust_analyzer = {
+  # rustup owns cargo/rustc; only the server itself comes from nix.
+  programs.nixvim.lsp.servers.rust_analyzer = {
     enable = true;
-    # rustup owns the toolchain
-    installCargo = false;
-    installRustc = false;
-    settings = {
+    config.settings."rust-analyzer" = {
       assist.importPrefix = "by_self";
       cargo = {
         loadOutDirsFromCheck = true;
