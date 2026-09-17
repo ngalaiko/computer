@@ -18,8 +18,12 @@
   homebrew = {
     enable = true;
 
-    # brew is fully declarative: unlisted formulae/casks are removed on switch.
-    onActivation.cleanup = "uninstall";
+    onActivation = {
+      # brew is fully declarative: unlisted formulae/casks are removed on switch.
+      cleanup = "uninstall";
+      # outdated formulae, casks and mas apps are upgraded on switch.
+      upgrade = true;
+    };
 
     taps = [
       "hamed-elfayome/claude-usage"
