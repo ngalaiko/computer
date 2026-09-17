@@ -40,7 +40,7 @@
       "daisydisk"
       "discord"
       "firefox"
-      "ghostty"
+      "ghostty@tip" # tip build
       "linear"
       "little-snitch"
       "mullvad-vpn"
