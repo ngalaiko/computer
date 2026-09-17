@@ -6,6 +6,7 @@
       settings.formatters_by_ft = {
         cue = [ "cue_fmt" ];
         lua = [ "stylua" ];
+        nix = [ "nixfmt" ];
         javascript = [ "prettierd" ];
         javascriptreact = [ "prettierd" ];
         typescript = [ "prettierd" ];
@@ -19,6 +20,7 @@
     # ruff comes with the lsp server; rustfmt (rustup's) resolves from PATH.
     # cue provides both `cue fmt` (formatter) and `cue lsp` (language server).
     extraPackages = with pkgs; [
+      nixfmt
       stylua
       prettierd
       golangci-lint
