@@ -194,11 +194,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1789537348,
-        "narHash": "sha256-tLIdiumNlPqdDQ5TEsfB+A5pRXwYZd6GdwRN+0XsGAk=",
+        "lastModified": 1789903832,
+        "narHash": "sha256-7Uy6K8AKlYjMoaHWx2eft5xHK57i6IFbvXZmufPUODY=",
         "owner": "ngalaiko",
         "repo": "pluribus",
-        "rev": "05c5c27eec306d800a6ee487535b27efcdac73c3",
+        "rev": "184874caf4efd7787af3ea21b68a7426b55ff085",
         "type": "github"
       },
       "original": {
