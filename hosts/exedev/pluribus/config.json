@@ -77,6 +77,11 @@
             "credential": "github:personal",
             "provider": "dev.pluribus.github",
             "export": "installation-token"
+          },
+          "GITHUB_WEBHOOK_SECRET": {
+            "credential": "github:personal",
+            "provider": "dev.pluribus.github",
+            "export": "webhook-secret"
           }
         }
       }
