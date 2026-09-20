@@ -48,6 +48,7 @@ in
     description = "Pluribus shell executor";
     packages = [
       pkgs.gh
+      pkgs.chromium
       obsidian-headless
       obsidian-sync
     ];
