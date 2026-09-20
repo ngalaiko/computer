@@ -34,6 +34,11 @@ in
     }
   '';
 
+  # Isolated public namespace; tenant-owned config and reload socket.
+  services.ingress.tenants.pluribus = {
+    upstreamPort = 8084;
+  };
+
   users.users.pluribus = {
     inherit uid home;
     group = "pluribus";
