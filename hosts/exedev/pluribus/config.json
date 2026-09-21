@@ -61,7 +61,14 @@
       }
     },
     "rlm": {
-      "package": "bundled:rlm"
+      "package": "bundled:rlm",
+      "components": {
+        "cognition": {
+          "limits": {
+            "memory_bytes": 134217728
+          }
+        }
+      }
     },
     "shell": {
       "package": "bundled:shell",
