@@ -19,7 +19,9 @@ let
         "hamed-elfayome/claude-usage/claude-usage-tracker"
         "jsattler/tap/bettercapture"
       ];
-      trustedformulae = [ ];
+      trustedformulae = [
+		"stripe/stripe-cli/stripe"
+	  ];
     }
   );
 in

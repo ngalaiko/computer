@@ -18,6 +18,7 @@ in
     cue
     (google-cloud-sdk.withExtraComponents [ google-cloud-sdk.components.bigtable ])
     pgcli
+    stripe-cli
   ];
 
   programs.encore = {
