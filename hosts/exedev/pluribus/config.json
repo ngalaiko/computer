@@ -2,8 +2,18 @@
   "identity": "Answer tersely. Answer the current message through the yield tool reply field.",
   "model": "gpt-6-astra",
   "model_instance": "codex",
-  "capability_instances": ["shell", "memory"],
+  "capability_instances": ["shell", "memory", "scheduler", "email"],
   "trusted_capabilities": {
+    "email": ["email.reply", "email.send-message"],
+    "scheduler": [
+      "schedule.create",
+      "schedule.list",
+      "schedule.get",
+      "schedule.update",
+      "schedule.pause",
+      "schedule.resume",
+      "schedule.delete"
+    ],
     "shell": ["shell.execute"],
     "memory": [
       "memory.recall",
@@ -14,6 +24,15 @@
     ]
   },
   "trusted_constraints": {
+    "scheduler": {
+      "schedule.create": {},
+      "schedule.list": {},
+      "schedule.get": {},
+      "schedule.update": {},
+      "schedule.pause": {},
+      "schedule.resume": {},
+      "schedule.delete": {}
+    },
     "memory": {
       "memory.recall": { "scopes": ["personal"] },
       "memory.get": { "scopes": ["personal"] },
@@ -23,6 +42,12 @@
     }
   },
   "plugin_instances": {
+    "email": {
+      "package": "bundled:email"
+    },
+    "scheduler": {
+      "package": "bundled:scheduler"
+    },
     "memory": {
       "package": "bundled:memory"
     },
@@ -57,7 +82,8 @@
         "credentials": {
           "subscription": "codex:personal"
         },
-        "models": ["gpt-6-astra"]
+        "models": ["gpt-6-astra"],
+        "reasoning_effort": "medium"
       }
     },
     "rlm": {
@@ -74,8 +100,10 @@
       "package": "bundled:shell",
       "access": {
         "stream": {
-          "socket": "/home/pluribus/.runtime/executor.sock",
-          "peer_uids": [2002]
+          "default": {
+            "socket": "/home/pluribus/.runtime/executor.sock",
+            "peer_uids": [2002]
+          }
         }
       },
       "config": {
@@ -98,8 +126,10 @@
       "components": {
         "listen": {
           "stream": {
-            "socket": "/home/nikita/.local/share/pluribus/http.sock",
-            "peer_uids": [1000]
+            "default": {
+              "socket": "/home/nikita/.local/share/pluribus/http.sock",
+              "peer_uids": [1000]
+            }
           }
         }
       }

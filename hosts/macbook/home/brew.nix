@@ -20,8 +20,8 @@ let
         "jsattler/tap/bettercapture"
       ];
       trustedformulae = [
-		"stripe/stripe-cli/stripe"
-	  ];
+        "stripe/stripe-cli/stripe"
+      ];
     }
   );
 in
