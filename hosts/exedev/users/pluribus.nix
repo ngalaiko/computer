@@ -7,6 +7,12 @@
 let
   package = inputs.pluribus.packages.${pkgs.stdenv.hostPlatform.system}.default;
   executor = inputs.pluribus.packages.${pkgs.stdenv.hostPlatform.system}.plugin-shell;
+  emailStreams =
+    (builtins.fromJSON (builtins.readFile ../pluribus/config.json))
+    .plugin_instances.email.access.stream;
+  emailEndpoints = pkgs.writeText "pluribus-email-endpoints.json" (
+    builtins.toJSON (builtins.mapAttrs (_: endpoint: endpoint.tls) emailStreams)
+  );
   obsidian-headless = import ../../../packages/obsidian-headless { inherit pkgs; };
   obsidian-sync = pkgs.writeShellScriptBin "obsidian-sync" ''
     set -eu
@@ -72,6 +78,8 @@ in
       install -d -m 0750 -o ${toString uid} -g ${toString gid} ${home}
       install -d -m 0700 -o ${toString runtimeUid} ${data} ${configDir}
       ln -sfn ${../pluribus/config.json} ${configDir}/config.json
+      install -d -m 0750 -o ${toString uid} -g ${toString gid} ${home}/.config/email
+      ln -sfn ${emailEndpoints} ${home}/.config/email/endpoints.json
     '';
   };
 

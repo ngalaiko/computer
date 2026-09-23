@@ -2,8 +2,9 @@
   "identity": "Answer tersely. Answer the current message through the yield tool reply field.",
   "model": "gpt-6-astra",
   "model_instance": "codex",
-  "capability_instances": ["shell", "memory", "scheduler"],
+  "capability_instances": ["shell", "memory", "scheduler", "email"],
   "trusted_capabilities": {
+    "email": ["email.send-message"],
     "scheduler": [
       "schedule.create",
       "schedule.list",
@@ -41,6 +42,26 @@
     }
   },
   "plugin_instances": {
+    "email": {
+      "package": "bundled:email",
+      "access": {
+        "stream": {
+          "imap": {
+            "tls": {
+              "hostname": "imap.mail.me.com",
+              "port": 993
+            }
+          },
+          "smtp": {
+            "tls": {
+              "hostname": "smtp.mail.me.com",
+              "port": 587,
+              "starttls": "smtp"
+            }
+          }
+        }
+      }
+    },
     "scheduler": {
       "package": "bundled:scheduler"
     },
@@ -104,6 +125,16 @@
       },
       "config": {
         "credential_exports": {
+          "EMAIL_USERNAME": {
+            "credential": "email:account",
+            "provider": "dev.pluribus.email",
+            "export": "username"
+          },
+          "EMAIL_PASSWORD": {
+            "credential": "email:account",
+            "provider": "dev.pluribus.email",
+            "export": "password"
+          },
           "GH_TOKEN": {
             "credential": "github:personal",
             "provider": "dev.pluribus.github",

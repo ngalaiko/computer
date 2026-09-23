@@ -200,6 +200,18 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
 
 ## Configuration
 
+### Pluribus email
+
+`hosts/exedev/pluribus/config.json` grants `email.send-message` to trusted
+requests. IMAP and SMTP endpoints are explicit under `email.access.stream`;
+the email plugin manifest restricts them to iCloud.
+
+The shell reads those endpoints from `~/.config/email/endpoints.json`.
+`pluribus-shell-cli secret EMAIL_USERNAME` and `EMAIL_PASSWORD` resolve the
+account exports on demand. Credential exports require a Pluribus build with
+email export support. Authenticate as `nikita` with
+`pluribus plugins auth email`, then restart Pluribus.
+
 ### Backups
 
 We have to store it outside of the machine to be able to restore everything else on startup.
