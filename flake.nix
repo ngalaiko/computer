@@ -115,6 +115,15 @@
       # instead of a bespoke `nix fmt && git diff` step.
       checks = lib.genAttrs allSystems (system: {
         formatting = (treefmtFor system).config.build.check self;
+        pluribus-config = nixpkgs.legacyPackages.${system}.runCommand "pluribus-config-check" { } ''
+          ${inputs.pluribus.packages.${system}.default}/bin/pluribus \
+            --config-dir ${./hosts/exedev/pluribus} \
+            --data-dir "$TMPDIR/state" \
+            --cache-dir "$TMPDIR/cache" \
+            --runtime-dir "$TMPDIR/runtime" \
+            check --offline
+          touch $out
+        '';
       });
     };
 }

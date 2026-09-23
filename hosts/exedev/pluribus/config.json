@@ -2,9 +2,8 @@
   "identity": "Answer tersely. Answer the current message through the yield tool reply field.",
   "model": "gpt-6-astra",
   "model_instance": "codex",
-  "capability_instances": ["shell", "memory", "scheduler", "email"],
+  "capability_instances": ["shell", "memory", "scheduler"],
   "trusted_capabilities": {
-    "email": ["email.reply", "email.send-message"],
     "scheduler": [
       "schedule.create",
       "schedule.list",
@@ -42,9 +41,6 @@
     }
   },
   "plugin_instances": {
-    "email": {
-      "package": "bundled:email"
-    },
     "scheduler": {
       "package": "bundled:scheduler"
     },
