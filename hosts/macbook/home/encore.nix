@@ -19,6 +19,7 @@ in
     (google-cloud-sdk.withExtraComponents [ google-cloud-sdk.components.bigtable ])
     pgcli
     stripe-cli
+    inputs.dash0-cli.packages.${pkgs.stdenv.hostPlatform.system}.dash0
   ];
 
   programs.encore = {

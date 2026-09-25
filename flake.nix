@@ -32,6 +32,11 @@
       url = "github:encoredev/encore-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # dash0 cli
+    dash0-cli = {
+      url = "github:dash0hq/dash0-cli";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
