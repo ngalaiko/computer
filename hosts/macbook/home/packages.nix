@@ -1,6 +1,5 @@
 {
   inputs,
-  lib,
   pkgs,
   ...
 }:
@@ -20,7 +19,6 @@ in
     # cache (Homebrew's qmk source-builds ancient gcc@8 from extra taps).
     qmk
     # claude-code releases often; pin to unstable for a fresher build (cf. atuin).
-    # TODO: drop the manifest override once nixpkgs-unstable carries >= 2.1.280.
-    (unstable.claude-code.override { manifest = lib.importJSON ./claude-code-manifest.json; })
+    unstable.claude-code
   ];
 }
