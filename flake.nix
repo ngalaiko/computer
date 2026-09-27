@@ -4,7 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    pluribus.url = "github:ngalaiko/pluribus/master";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -113,22 +112,8 @@
 
       # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
       # instead of a bespoke `nix fmt && git diff` step.
-      checks = lib.genAttrs allSystems (
-        system:
-        {
-          formatting = (treefmtFor system).config.build.check self;
-        }
-        // lib.optionalAttrs (system == "x86_64-linux") {
-          pluribus-config = nixpkgs.legacyPackages.${system}.runCommand "pluribus-config-check" { } ''
-            ${inputs.pluribus.packages.${system}.default}/bin/pluribus \
-              --config-dir ${./hosts/exedev/pluribus} \
-              --data-dir "$TMPDIR/state" \
-              --cache-dir "$TMPDIR/cache" \
-              --runtime-dir "$TMPDIR/runtime" \
-              check --offline
-            touch $out
-          '';
-        }
-      );
+      checks = lib.genAttrs allSystems (system: {
+        formatting = (treefmtFor system).config.build.check self;
+      });
     };
 }
