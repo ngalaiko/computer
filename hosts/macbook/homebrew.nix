@@ -49,6 +49,7 @@
       "netnewswire"
       "notion"
       "obsidian"
+      "paper-design" # paper.design canvas design tool
       "postico@1"
       "raycast"
       "secretive" # Secure Enclave SSH agent (see home/ssh.nix)
