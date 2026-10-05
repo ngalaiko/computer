@@ -1,9 +1,41 @@
 # casks and mas apps stay brew (nixpkgs darwin GUI coverage is poor); the
 # remaining brews are unfree, tap-only, or missing/broken in nixpkgs. Anything
 # not listed here is uninstalled on rebuild (onActivation.cleanup).
-{ inputs, ... }:
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  names = map (x: x.name);
+  qualified = xs: lib.filter (lib.hasInfix "/") (names xs);
+
+  # newer Homebrew (HOMEBREW_REQUIRE_TAP_TRUST) refuses casks/formulae from
+  # third-party taps unless trusted. Derived from the declared taps and
+  # tap-qualified casks/brews, so declaring a tap is enough.
+  trust = pkgs.writeText "homebrew-trust.json" (
+    builtins.toJSON {
+      trustedtaps = names config.homebrew.taps;
+      trustedcasks = qualified config.homebrew.casks;
+      trustedformulae = qualified config.homebrew.brews;
+    }
+  );
+in
 {
   imports = [ inputs.nix-homebrew.darwinModules.nix-homebrew ];
+
+  # trust.json lives outside nix, so write it declaratively each activation.
+  # Runs after the brew-bundle step, so it persists the file for subsequent
+  # switches.
+  home-manager.users."nikita" =
+    { config, lib, ... }:
+    {
+      home.activation.homebrewTrust = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        run install -Dm600 ${trust} ${config.home.homeDirectory}/.homebrew/trust.json
+      '';
+    };
 
   # nix-homebrew installs/owns the Homebrew prefix, so the first switch on a
   # fresh Mac bootstraps brew (the nix-darwin `homebrew` block below only
@@ -24,7 +56,6 @@
     };
 
     taps = [
-      "hamed-elfayome/claude-usage"
       "jsattler/tap"
     ];
 
@@ -32,34 +63,25 @@
       "mole"
       "pi-coding-agent" # pi.dev agent CLI; homebrew-core, no nixpkgs equivalent
       "podman" # nixpkgs podman lacks the machine/vm helpers on darwin
-      "vercel" # not in nixpkgs (nodePackages removed); npm tarball needs its own deps
     ];
 
     casks = [
       "calibre"
       "chatgpt" # OpenAI's desktop app; hosts Codex since the standalone Codex app was discontinued (2026-07)
-      "claude" # Anthropic's Claude desktop app; hosts the Claude Code desktop experience
       "daisydisk"
-      "discord"
       "firefox"
       "ghostty@tip" # tip build
-      "linear"
       "little-snitch"
       "mullvad-vpn"
       "netnewswire"
-      "notion"
       "obsidian"
-      "paper-design" # paper.design canvas design tool
       "postico@1"
       "raycast"
       "secretive" # Secure Enclave SSH agent (see home/ssh.nix)
-      "slack"
-      "snapzy"
       "sublime-merge"
       "tailscale-app"
       "telegram"
       "zoom"
-      "hamed-elfayome/claude-usage/claude-usage-tracker"
       "jsattler/tap/bettercapture"
     ];
 
