@@ -37,6 +37,11 @@
       url = "github:dash0hq/dash0-cli";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # encore shared agent skills (private; fetched over ssh)
+    encore-agents-setup = {
+      url = "git+ssh://git@github.com/encoredev/agents-setup";
+      flake = false;
+    };
   };
 
   outputs =

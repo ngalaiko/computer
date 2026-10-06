@@ -10,6 +10,8 @@
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
+  # home-manager's claude-code wrapper inherits the unfree meta.
+  nixpkgs.config.allowUnfreePredicate = p: pkgs.lib.getName p == "claude-code";
   system.primaryUser = "nikita";
   system.stateVersion = 6;
 

@@ -23,9 +23,21 @@
   };
 
   home-manager.users."nikita" =
-    { inputs, pkgs, ... }:
+    {
+      inputs,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       unstable = import inputs.nixpkgs-unstable { inherit (pkgs.stdenv.hostPlatform) system; };
+      # shared skills from encoredev/agents-setup; sync-skills is replaced by
+      # `nix flake update encore-agents-setup`.
+      agentSkills = lib.mapAttrs (name: _: "${inputs.encore-agents-setup}/skills/${name}") (
+        lib.filterAttrs (name: type: type == "directory" && name != "sync-skills") (
+          builtins.readDir "${inputs.encore-agents-setup}/skills"
+        )
+      );
     in
     {
       imports = [ inputs.encore.homeModules.default ];
@@ -46,6 +58,19 @@
         stripe-cli
         inputs.dash0-cli.packages.${pkgs.stdenv.hostPlatform.system}.dash0
       ];
+
+      programs.claude-code = {
+        mcpServers.plain = {
+          type = "http";
+          url = "https://mcp.plain.com/mcp";
+        };
+        settings.enabledPlugins."dash0@claude-plugins-official" = true;
+        skills = agentSkills;
+      };
+
+      home.file = lib.mapAttrs' (
+        name: src: lib.nameValuePair ".codex/skills/${name}" { source = src; }
+      ) agentSkills;
 
       programs.encore = {
         enable = true;

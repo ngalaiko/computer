@@ -58,6 +58,22 @@
         "type": "github"
       }
     },
+    "encore-agents-setup": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789666306,
+        "narHash": "sha256-EPZPgWtBtOlhvNpzdm1svU3B2Bju07IN3HZKdxOee4s=",
+        "ref": "refs/heads/main",
+        "rev": "c2da5f4301cec18151b4613fc81ca7846dc78feb",
+        "revCount": 3,
+        "type": "git",
+        "url": "ssh://git@github.com/encoredev/agents-setup"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/encoredev/agents-setup"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
@@ -216,6 +232,7 @@
       "inputs": {
         "dash0-cli": "dash0-cli",
         "encore": "encore",
+        "encore-agents-setup": "encore-agents-setup",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",

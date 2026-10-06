@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 let
   # Claude Code PreToolUse hooks enforcing the AGENTS.md rules on every Bash
   # command. Each greps the command and hard-denies before it runs. Patterns
@@ -28,22 +28,26 @@ let
   };
 in
 {
-  home.file.".claude/CLAUDE.md".source = ./AGENTS.md;
-
-  home.file.".claude/settings.json".text = builtins.toJSON {
-    theme = "auto";
-    enabledPlugins = {
-      "mattpocock-skills@claude-plugins-official" = true;
+  programs.claude-code = {
+    enable = true;
+    # hosts that want the CLI installed set their own package
+    package = lib.mkDefault null;
+    context = ./AGENTS.md;
+    settings = {
+      theme = "auto";
+      enabledPlugins = {
+        "mattpocock-skills@claude-plugins-official" = true;
+      };
+      hooks.PreToolUse = [
+        {
+          matcher = "Bash";
+          hooks = [
+            (bashHook neverGitHook "Checking for git usage")
+            (bashHook gitPushHook "Checking for git push")
+            (bashHook jjGitPushHook "Checking for jj git push")
+          ];
+        }
+      ];
     };
-    hooks.PreToolUse = [
-      {
-        matcher = "Bash";
-        hooks = [
-          (bashHook neverGitHook "Checking for git usage")
-          (bashHook gitPushHook "Checking for git push")
-          (bashHook jjGitPushHook "Checking for jj git push")
-        ];
-      }
-    ];
   };
 }

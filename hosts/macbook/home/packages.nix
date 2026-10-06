@@ -19,7 +19,11 @@ in
     # QMK CLI + full AVR/ARM firmware toolchain, all prebuilt in the binary
     # cache (Homebrew's qmk source-builds ancient gcc@8 from extra taps).
     qmk
-    # claude-code releases often; pin to unstable for a fresher build (cf. atuin).
-    unstable.claude-code
   ];
+
+  programs.claude-code = {
+    enable = true;
+    # claude-code releases often; pin to unstable for a fresher build (cf. atuin).
+    package = unstable.claude-code;
+  };
 }
