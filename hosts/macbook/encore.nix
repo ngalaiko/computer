@@ -55,6 +55,7 @@
         cue
         (google-cloud-sdk.withExtraComponents [ google-cloud-sdk.components.bigtable ])
         pgcli
+        pnpm
         stripe-cli
         inputs.dash0-cli.packages.${pkgs.stdenv.hostPlatform.system}.dash0
       ];
