@@ -6,8 +6,13 @@
 let
   unstable = import inputs.nixpkgs-unstable {
     inherit (pkgs.stdenv.hostPlatform) system;
-    # claude-code ships under an unfree license; allow just it, not unfree at large.
-    config.allowUnfreePredicate = p: pkgs.lib.getName p == "claude-code";
+    # claude-code and amp-cli ship under unfree licenses; allow just them, not unfree at large.
+    config.allowUnfreePredicate =
+      p:
+      builtins.elem (pkgs.lib.getName p) [
+        "claude-code"
+        "amp-cli"
+      ];
   };
 in
 {
@@ -19,6 +24,8 @@ in
     # QMK CLI + full AVR/ARM firmware toolchain, all prebuilt in the binary
     # cache (Homebrew's qmk source-builds ancient gcc@8 from extra taps).
     qmk
+    # amp releases often; unstable for a fresher build (cf. claude-code).
+    unstable.amp-cli
   ];
 
   programs.claude-code = {
