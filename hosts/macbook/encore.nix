@@ -56,6 +56,8 @@
         (google-cloud-sdk.withExtraComponents [ google-cloud-sdk.components.bigtable ])
         pgcli
         pnpm
+        zig
+        cargo-zigbuild
         stripe-cli
         inputs.dash0-cli.packages.${pkgs.stdenv.hostPlatform.system}.dash0
       ];
