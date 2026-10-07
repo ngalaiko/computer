@@ -198,6 +198,20 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    becomes a note, a repeat watch appends a `watched:` date, and a wishlist
    record you buy gets its blank `lp:` filled — hand edits are never clobbered.
 
+8. Place an Amp access token so `amp-runner` can serve threads started on
+   ampcode.com (runner id `computer`). Get it at
+   <https://ampcode.com/settings/security#access-token>:
+
+   ```
+   sudo install -d -o 2002 -g 2002 -m 700 /var/lib/amp/.config/amp-runner
+   sudo sh -c 'umask 077; printf "AMP_API_KEY=%s\n" "<token>" > /var/lib/amp/.config/amp-runner/env'
+   sudo chown 2002:2002 /var/lib/amp/.config/amp-runner/env
+   ```
+
+   The runner serves `/var/lib/amp` and git checkouts up to 3 levels under it;
+   clone repos there as the `amp` user, then `amp runner dirs add <path>` or
+   restart the service. The service retries every 30s until the file exists.
+
 ## Configuration
 
 ### Backups
