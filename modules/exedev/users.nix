@@ -62,7 +62,7 @@ in
               type = types.bool;
               default = false;
               # exe.dev's init fails if image.workingDir is missing.
-              description = "Bake the home dir into the image, owned by the user.";
+              description = "Create the home dir, owned by the user, in the image and on activation.";
             };
           };
         }
@@ -124,13 +124,14 @@ in
 
     image.rootPaths = [ varEmpty ];
 
-    # store paths are root-owned; fakeroot bakes ownership (numeric ids only).
-    image.fakeRootCommands = lib.concatStrings (
+    # Assert only the home directory's metadata; never chown its contents.
+    # Numeric ids work both under fakeroot and when adding users in place.
+    image.activationFixups = lib.concatStrings (
       lib.mapAttrsToList (
         _: u:
         lib.optionalString u.createHome ''
-          mkdir -p .${u.home}
-          chown ${toString u.uid}:${toString (gidOf u)} .${u.home}
+          mkdir -p "$root"${lib.escapeShellArg u.home}
+          chown ${toString u.uid}:${toString (gidOf u)} "$root"${lib.escapeShellArg u.home}
         ''
       ) config.users.users
     );

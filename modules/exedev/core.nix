@@ -78,8 +78,8 @@ let
   # `root=.` to bake the layer, and the in-place `activate` calls it as real root
   # with `root=/` to re-assert them on every switch — because none of these live
   # in build.rootfs, a naive overlay would drop them (e.g. leave a non-setuid
-  # sudo, locking wheel out of root). STATEFUL bakes (home file copies, createHome
-  # chowns) deliberately stay in image.fakeRootCommands, build-only.
+  # sudo, locking wheel out of root). Home directory ownership is also asserted;
+  # stateful home file copies stay in image.fakeRootCommands, build-only.
   activationFixups = pkgs.writeShellScript "activation-fixups" ''
     set -eu
     export PATH=${pkgs.coreutils}/bin:${pkgs.util-linux}/bin
@@ -187,7 +187,7 @@ in
       activationFixups = mkOption {
         type = types.lines;
         default = "";
-        description = "Mode/ownership/symlink fixups the Nix store can't represent (setuid, 0440, loader shims). Written against a `$root` prefix ($root=. at image build under fakeroot, $root=/ at runtime activation) so both paths re-assert them. Must be idempotent and must NOT touch machine state.";
+        description = "Mode/ownership/symlink fixups the Nix store can't represent (setuid, 0440, loader shims, home directory ownership). Written against a `$root` prefix ($root=. at image build under fakeroot, $root=/ at runtime activation) so both paths re-assert them. Must be idempotent and must NOT replace machine state or recursively change its ownership.";
       };
       cmd = mkOption {
         type = types.listOf types.str;
