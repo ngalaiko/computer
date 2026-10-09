@@ -1,21 +1,21 @@
 # tar without -p: the Nix store can't hold s6-overlay-suexec's setuid bit.
 { pkgs }:
 let
-  version = "3.2.1.0";
+  version = "3.2.3.2";
   url = f: "https://github.com/just-containers/s6-overlay/releases/download/v${version}/${f}";
   noarch = pkgs.fetchurl {
     url = url "s6-overlay-noarch.tar.xz";
-    sha256 = "42e038a9a00fc0fef70bf0bc42f625a9c14f8ecdfe77d4ad93281edf717e10c5";
+    sha256 = "5379750ed30a84bbd2e2dd74847ba6b5bd29cd0b2e3ea2ec58049b57eb2eda12";
   };
   arch =
     {
       x86_64-linux = pkgs.fetchurl {
         url = url "s6-overlay-x86_64.tar.xz";
-        sha256 = "8bcbc2cada58426f976b159dcc4e06cbb1454d5f39252b3bb0c778ccf71c9435";
+        sha256 = "e6befcc96a437a3831386ecfc51808c5d3e939dc5fe3c02ae9284599e8aa2408";
       };
       aarch64-linux = pkgs.fetchurl {
         url = url "s6-overlay-aarch64.tar.xz";
-        sha256 = "c8fd6b1f0380d399422fc986a1e6799f6a287e2cfa24813ad0b6a4fb4fa755cc";
+        sha256 = "b17f17a82e7a515c682a91edaf2ffdabb73f891981b6c1fd712115693a2f8b4c";
       };
     }
     .${pkgs.stdenv.hostPlatform.system}

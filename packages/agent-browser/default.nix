@@ -3,7 +3,7 @@
 # the shipped .js is only a node dispatcher for npx/Windows.
 { pkgs }:
 let
-  version = "0.26.0";
+  version = "0.38.2";
   bin =
     {
       x86_64-linux = "agent-browser-linux-x64";
@@ -18,7 +18,7 @@ pkgs.stdenv.mkDerivation {
 
   src = pkgs.fetchurl {
     url = "https://registry.npmjs.org/agent-browser/-/agent-browser-${version}.tgz";
-    hash = "sha256-ikjPQRDX3CwSwcTW0l4Lq9+jFgS1N/Bd8NyDX+L4VL8=";
+    hash = "sha256-K7HW5GYLKhCckSyLtVL3JxJdvNaBxtHu/Br1c7RUbEk=";
   };
   sourceRoot = "package";
 
