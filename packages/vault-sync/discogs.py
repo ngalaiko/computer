@@ -187,7 +187,7 @@ if __name__ == "__main__":
     p.add_argument("-t", "--token", default=os.environ.get("DISCOGS_TOKEN"))
     p.add_argument(
         "--vault",
-        default=os.environ.get("OBSIDIAN_VAULT_DIR", "/var/lib/assistant/Vault"),
+        default=os.environ.get("OBSIDIAN_VAULT_DIR", "/home/nikita/Vault"),
     )
     p.add_argument(
         "--no-wantlist",

@@ -16,6 +16,8 @@ let
   };
 in
 {
+  imports = [ ./nikita/vault.nix ];
+
   image.workingDir = home;
 
   # ssh access is via tailscale ssh; no sshd server ships.

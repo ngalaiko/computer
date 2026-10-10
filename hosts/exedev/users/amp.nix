@@ -2,6 +2,7 @@
 let
   home = "/var/lib/amp";
   project = "${home}/assistant";
+  agent-browser = import ../../../packages/agent-browser { inherit pkgs; };
   # amp-cli is unfree; allow just it. unstable for a fresher build.
   amp =
     (import inputs.nixpkgs-unstable {
@@ -44,6 +45,8 @@ in
     description = "Amp runner";
     packages = with pkgs; [
       amp
+      agent-browser
+      chromium
       nodejs_22
       git
       jujutsu
@@ -99,6 +102,7 @@ in
           SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
           NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
           NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
+          AGENT_BROWSER_EXECUTABLE_PATH=${pkgs.chromium}/bin/chromium \
         ${runner}
     '';
   };

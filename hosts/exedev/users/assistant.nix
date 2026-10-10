@@ -8,29 +8,6 @@ let
   # node_modules that includes its own pi 0.83.0 — so it needs nothing else from
   # this account and survives recreations regardless of backup.
   pilegram = import ../../../packages/pilegram { inherit pkgs; };
-  # wherenow: the "Where Now?" location backend, packaged in this repo. Pure Go;
-  # writes positions into the vault as notes (no database).
-  wherenow = import ../../../packages/wherenow { inherit pkgs; };
-  # Official Obsidian Sync headless CLI, packaged here so the assistant can run
-  # on-demand vault syncs without fetching npm packages at runtime.
-  obsidian-headless = import ../../../packages/obsidian-headless { inherit pkgs; };
-  obsidian-sync = pkgs.writeShellScriptBin "obsidian-sync" ''
-    set -eu
-    vault="''${OBSIDIAN_VAULT_DIR:-/var/lib/assistant/Vault}"
-    exec ${obsidian-headless}/bin/ob sync --path "$vault" "$@"
-  '';
-  # vault-sync: stdlib-only Python that writes Letterboxd watches into Movie
-  # notes and the Discogs collection+wantlist into Album notes. Additive only —
-  # it dedups on each note's letterboxd:/discogs: URL, so it appends a new
-  # watched date or fills a blank lp:, never rewriting a hand-curated note.
-  vault-sync = import ../../../packages/vault-sync { inherit pkgs; };
-  # Letterboxd is public (hourly); Discogs is rate-limited and rarely changes
-  # (every 6h). Discogs self-skips without a token, so a missing token never
-  # blocks the Letterboxd half.
-  vaultSyncCrontab = pkgs.writeText "vault-sync-crontab" ''
-    17 * * * * ${vault-sync}/bin/vault-sync-letterboxd
-    47 */6 * * * ${vault-sync}/bin/vault-sync-discogs
-  '';
 in
 {
   users.users.assistant = {
@@ -58,9 +35,6 @@ in
       ledger
       himalaya # CLI for the assistant's authorized iCloud Mail access.
       chromium
-      obsidian-headless
-      obsidian-sync
-      vault-sync # `vault-sync-letterboxd` / `vault-sync-discogs`, for manual runs
     ];
   };
   users.groups.assistant.gid = 2001;
@@ -98,129 +72,6 @@ in
     paths = [
       "/var/lib/assistant"
     ];
-  };
-
-  # Keep the assistant's Obsidian vault connected to Obsidian Sync. The auth,
-  # sync setup, and vault data are runtime state under the backed-up assistant
-  # home; this service only starts once backup restore has completed.
-  s6.services.assistant-obsidian-sync = {
-    dependencies = [
-      "base"
-      "backup-restore"
-    ];
-    run = ''
-      vault=/var/lib/assistant/Vault
-      if [ ! -d "$vault/.obsidian" ]; then
-        echo "assistant-obsidian-sync: $vault is not configured yet; run ob login + ob sync-setup once. Retrying." >&2
-        sleep 30
-        exit 1
-      fi
-      exec /command/s6-setuidgid assistant \
-        env \
-          HOME=/var/lib/assistant \
-          USER=assistant \
-          SHELL=/bin/sh \
-          PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-          SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
-          NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
-          NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt \
-        ${obsidian-headless}/bin/ob sync --path "$vault" --continuous
-    '';
-  };
-
-  # wherenow: the "Where Now?" iOS app POSTs positions here and wherenow writes
-  # each one straight into the vault as a note (no database), so daily notes show
-  # where I've been. Runs as the assistant so it can write the vault; listens on
-  # loopback 8085 (the assistant's own ingress caddy fronts it at
-  # /assistant/wherenow/*). The bearer TOKEN lives in a runtime env file, placed
-  # once on a fresh machine (see README) and exported into the environment so it
-  # never appears in argv. tzdata is embedded in the binary, so --tz resolves
-  # without system zoneinfo.
-  s6.services.assistant-wherenow = {
-    dependencies = [
-      "base"
-      "backup-restore"
-    ];
-    run = ''
-      vault=/var/lib/assistant/Vault
-      if [ ! -d "$vault/.obsidian" ]; then
-        echo "assistant-wherenow: $vault not configured yet (run ob sync-setup). Retrying." >&2
-        sleep 30
-        exit 1
-      fi
-      envfile=/var/lib/assistant/.config/wherenow/env
-      if [ ! -f "$envfile" ]; then
-        echo "assistant-wherenow: $envfile missing; place TOKEN=... (see README). Retrying." >&2
-        sleep 10
-        exit 1
-      fi
-      set -a
-      . "$envfile"
-      set +a
-      if [ -z "''${TOKEN:-}" ]; then
-        echo "assistant-wherenow: TOKEN unset in $envfile. Retrying." >&2
-        sleep 10
-        exit 1
-      fi
-      # TOKEN is exported (set -a), so `env` (no -i) and s6-setuidgid pass it
-      # through the environment; it never appears in argv (which `ps` can see).
-      exec /command/s6-setuidgid assistant \
-        env \
-          HOME=/var/lib/assistant \
-          USER=assistant \
-          SHELL=/bin/sh \
-          PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-          PORT=8085 \
-        ${wherenow}/bin/wherenow \
-          --vault-dir="$vault" \
-          --tz=Europe/Stockholm
-    '';
-  };
-
-  # vault-sync: supercronic runs the Letterboxd (Movies) and Discogs (Albums)
-  # polls on a schedule, as the assistant so the notes are written into the
-  # vault it owns; obsidian-sync then propagates them. Guards on the vault being
-  # set up, like the services above.
-  s6.services.assistant-vault-sync = {
-    dependencies = [
-      "base"
-      "backup-restore"
-    ];
-    run = ''
-      vault=/var/lib/assistant/Vault
-      if [ ! -d "$vault/.obsidian" ]; then
-        echo "assistant-vault-sync: $vault not configured yet (run ob sync-setup). Retrying." >&2
-        sleep 30
-        exit 1
-      fi
-      # Optional runtime env: DISCOGS_TOKEN (+ optional LETTERBOXD_USERNAME /
-      # DISCOGS_USERNAME). Absent -> the Discogs poll self-skips and only
-      # Letterboxd (public) runs. Exported (set -a) so `env` (no -i) and
-      # s6-setuidgid pass it to supercronic's jobs through the environment,
-      # never argv.
-      envfile=/var/lib/assistant/.config/vault-sync/env
-      if [ -f "$envfile" ]; then
-        set -a
-        . "$envfile"
-        set +a
-      else
-        echo "assistant-vault-sync: $envfile missing; Discogs sync skipped until DISCOGS_TOKEN is placed (see README)." >&2
-      fi
-      # Reference cacert directly instead of /etc: its symlink targets the
-      # image rootfs store path, which may be garbage-collected after an
-      # in-place deployment.
-      exec /command/s6-setuidgid assistant \
-        env \
-          HOME=/var/lib/assistant \
-          USER=assistant \
-          SHELL=/bin/sh \
-          PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-          SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-          NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-          NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-          OBSIDIAN_VAULT_DIR="$vault" \
-        ${pkgs.supercronic}/bin/supercronic ${vaultSyncCrontab}
-    '';
   };
 
   # Telegram bridge for pi, via pilegram (packaged above). Long-polling

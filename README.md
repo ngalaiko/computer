@@ -164,13 +164,13 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
 6. Place the wherenow bearer token (the value the "Where Now?" iOS app sends as
    `Authorization: Bearer …`) so the `assistant-wherenow` service can start.
    Same runtime env-file pattern as pilegram — kept out of this (public) repo
-   and the image, and backed up under the assistant home so it survives
+   and the image, and backed up under nikita's home so it survives
    recreation:
 
    ```
-   sudo install -d -o 2001 -g 2001 -m 700 /var/lib/assistant/.config/wherenow
-   sudo sh -c 'umask 077; printf "TOKEN=%s\n" "<bearer-token>" > /var/lib/assistant/.config/wherenow/env'
-   sudo chown 2001:2001 /var/lib/assistant/.config/wherenow/env
+   sudo install -d -o 1000 -g 1000 -m 700 /home/nikita/.config/wherenow
+   sudo sh -c 'umask 077; printf "TOKEN=%s\n" "<bearer-token>" > /home/nikita/.config/wherenow/env'
+   sudo chown 1000:1000 /home/nikita/.config/wherenow/env
    ```
 
    Then point the iOS app at `https://computer.<tailnet>.ts.net/assistant/wherenow`
@@ -178,19 +178,19 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    box that already has `~assistant/.caddy/Caddyfile`, add the `/wherenow/*`
    handle to it once (or delete the file to let the seed regenerate) and reload
    caddy, since the seed only writes when the file is absent. wherenow writes
-   each position straight into the assistant's Obsidian vault as a note; the
+   each position straight into nikita's Obsidian vault as a note; the
    service retries every 10s until the file exists.
 
 7. **(Optional)** Place a Discogs personal access token so `assistant-vault-sync`
    can sync your record collection + wantlist into Album notes. Letterboxd is
    public and needs nothing; without this file only the Discogs half is skipped.
    Get the token at <https://www.discogs.com/settings/developer>. Same runtime
-   env-file pattern, backed up under the assistant home:
+   env-file pattern, backed up under nikita's home:
 
    ```
-   sudo install -d -o 2001 -g 2001 -m 700 /var/lib/assistant/.config/vault-sync
-   sudo sh -c 'umask 077; printf "DISCOGS_TOKEN=%s\n" "<token>" > /var/lib/assistant/.config/vault-sync/env'
-   sudo chown 2001:2001 /var/lib/assistant/.config/vault-sync/env
+   sudo install -d -o 1000 -g 1000 -m 700 /home/nikita/.config/vault-sync
+   sudo sh -c 'umask 077; printf "DISCOGS_TOKEN=%s\n" "<token>" > /home/nikita/.config/vault-sync/env'
+   sudo chown 1000:1000 /home/nikita/.config/vault-sync/env
    ```
 
    Optionally add `LETTERBOXD_USERNAME=…` / `DISCOGS_USERNAME=…` lines (both
@@ -222,6 +222,10 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    from ampcode.com for its threads. Terminals run as the unprivileged `amp`
    user; this uses Amp's connection, not a public Caddy route.
 
+   Chromium and `agent-browser` are installed for `amp`. The runner exports
+   `AGENT_BROWSER_EXECUTABLE_PATH` pointing to the packaged Chromium wrapper,
+   so browser tools use it rather than downloading a separate browser.
+
    Amp can serve HTTP under `https://computer.<tailnet>.ts.net/amp/` through
    its own Caddy on port 8084. As the `amp` user, edit `~/.caddy/Caddyfile` to
    add routes inside the `:8084` site block, then validate and reload:
@@ -236,6 +240,127 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    Caddyfile is preserved across deploys and covered by the amp home backup.
    Funnel access is public and unauthenticated: add authentication for private
    content, and keep backend servers on loopback.
+
+## Vault ownership and migration
+
+The Vault lives at `/home/nikita/Vault`. Obsidian Sync, Letterboxd/Discogs polls,
+and Where Now all run as `nikita`. The existing `assistant-*` service names and
+`/assistant/wherenow` URL are retained. Sync tools are installed for `nikita`;
+`amp` and `assistant` have direct read/write access to notes, not nikita's sync
+credentials. Vault data, Obsidian login/sync state, and both runtime env
+directories are backed up.
+
+`vault-permissions` runs after backup restore and on deploy. It sets nikita as
+the owner, replaces existing Vault ACLs with access for these three users, and installs default ACLs on
+every directory so normal new files remain shared even with a restrictive
+umask. Tools that explicitly create files with mode `0600`, preserve foreign
+ACLs, or move files in from elsewhere can bypass inheritance; run
+`sudo /etc/profiles/per-user/nikita/bin/vault-permissions` to repair access.
+The remote filesystem must support POSIX ACLs; stop and investigate if
+`setfacl` reports an error rather than falling back to world-writable notes.
+
+### Move an existing assistant Vault
+
+Run these on the **remote computer**, before deploying this refactor. Stop
+manual syncs and agent edits too. The script refuses to overwrite any of the
+destination directories. It moves Obsidian's separate global state as well as
+the Vault; moving only the Vault would lose the login and local sync tracking.
+
+```sh
+sudo /bin/sh <<'SH'
+set -eu
+for name in Vault .config/obsidian-headless .config/vault-sync .config/wherenow; do
+  test ! -e "/home/nikita/$name" || {
+    echo "Destination exists: /home/nikita/$name; inspect it before migrating." >&2
+    exit 1
+  }
+done
+test -d /var/lib/assistant/Vault/.obsidian
+test -d /var/lib/assistant/.config/obsidian-headless/sync
+
+for service in assistant-obsidian-sync assistant-vault-sync assistant-wherenow; do
+  /command/s6-svc -d "/run/service/$service"
+  /command/s6-svc -wd -T 30000 "/run/service/$service"
+done
+
+install -d -o 1000 -g 1000 /home/nikita/.config
+mv /var/lib/assistant/Vault /home/nikita/Vault
+for app in obsidian-headless vault-sync wherenow; do
+  if [ -d "/var/lib/assistant/.config/$app" ]; then
+    mv "/var/lib/assistant/.config/$app" /home/nikita/.config/
+  fi
+done
+
+# Headless 0.0.14 registers an absolute vaultPath in config.json. Update only
+# that path while stopped; preserve encryption keys, settings, and state.db.
+umask 077
+for config in /home/nikita/.config/obsidian-headless/sync/*/config.json; do
+  test -f "$config" || continue
+  tmp=$(mktemp "$config.XXXXXX")
+  /etc/profiles/per-user/assistant/bin/jq '
+    if .vaultPath == "/var/lib/assistant/Vault"
+    then .vaultPath = "/home/nikita/Vault" else . end
+  ' "$config" > "$tmp"
+  mv "$tmp" "$config"
+done
+
+chown -R 1000:1000 /home/nikita/Vault
+for app in obsidian-headless vault-sync wherenow; do
+  dir="/home/nikita/.config/$app"
+  if [ -d "$dir" ]; then
+    chown -R 1000:1000 "$dir"
+    chmod -R u+rwX,go-rwx "$dir"
+  fi
+done
+SH
+```
+
+Then deploy from your checkout (`nix run .#deploy`). Deployment installs the
+ACL tools, reapplies Vault permissions, and restarts the changed services as
+nikita. Do not restart the old services before deployment: they still target
+the old location. Do not reboot until a backup of the migrated paths succeeds.
+
+On the remote computer, as `nikita`, verify the registration and exercise
+access in **both directions** (including inheritance with `umask 077`):
+
+```sh
+/etc/profiles/per-user/nikita/bin/ob sync-status --path /home/nikita/Vault --json
+sudo /etc/profiles/per-user/nikita/bin/vault-permissions
+/etc/profiles/per-user/nikita/bin/getfacl /home/nikita /home/nikita/Vault
+
+sudo /bin/sh <<'SH'
+set -eu
+for user in nikita amp assistant; do
+  sudo -u "$user" sh -c '
+    umask 077
+    mkdir /home/nikita/Vault/.permission-check-"$1"
+    printf "%s\n" "$1" > /home/nikita/Vault/.permission-check-"$1"/note
+  ' sh "$user"
+done
+for user in nikita amp assistant; do
+  sudo -u "$user" sh -c '
+    for owner in nikita amp assistant; do
+      file=/home/nikita/Vault/.permission-check-$owner/note
+      cat "$file"
+      printf "%s\n" "$1" >> "$file"
+    done
+  ' sh "$user"
+done
+rm -r /home/nikita/Vault/.permission-check-nikita \
+  /home/nikita/Vault/.permission-check-amp \
+  /home/nikita/Vault/.permission-check-assistant
+SH
+
+ps -eo user,args | grep -E 'ob sync|supercronic.*vault-sync|bin/wherenow'
+tail /var/log/assistant-obsidian-sync/current
+tail /var/log/assistant-vault-sync/current
+tail /var/log/assistant-wherenow/current
+```
+
+Confirm `/var/log/backup-cron/current` shows a successful snapshot containing
+the new paths before considering migration finished. On a fresh machine with
+no existing Vault, run `ob login`, `ob sync-list-remote`, and
+`ob sync-setup --vault <remote-vault-id> --path /home/nikita/Vault` as nikita.
 
 ## Configuration
 
