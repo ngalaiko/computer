@@ -108,7 +108,7 @@ in
       # s6-setuidgid both preserve it, so it reaches pilegram without ever
       # appearing in argv. NODE_EXTRA_CA_CERTS points bun at the system CA bundle
       # for outbound HTTPS (Telegram, Hugging Face model downloads).
-      exec /command/s6-setuidgid assistant \
+      exec ${pkgs.s6}/bin/s6-setuidgid assistant \
         env \
           HOME=/var/lib/assistant \
           USER=assistant \

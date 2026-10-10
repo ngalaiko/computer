@@ -160,7 +160,7 @@ let
         run = ''
           if [ ! -f ${cfg.authKeyFile} ]; then
             echo "tailscale(${name}): ${cfg.authKeyFile} missing — sleeping." >&2
-            exec /command/s6-pause
+            exec ${lib.getBin pkgs.s6-portable-utils}/bin/s6-pause
           fi
           i=0
           until [ -S ${sock} ]; do
@@ -172,7 +172,7 @@ let
             sleep 2
             exit 1
           }
-          exec /command/s6-pause
+          exec ${lib.getBin pkgs.s6-portable-utils}/bin/s6-pause
         '';
       };
     }
@@ -207,7 +207,7 @@ let
           done
           ${cli} serve reset || true
           ${lib.concatMapStringsSep "\n" (e: "${serveLine name e} || { sleep 2; exit 1; }") node.serve}
-          exec /command/s6-pause
+          exec ${lib.getBin pkgs.s6-portable-utils}/bin/s6-pause
         '';
       };
     };

@@ -35,7 +35,7 @@ let
     fi
   '';
   asNikita = ''
-    exec /command/s6-setuidgid nikita \
+    exec ${pkgs.s6}/bin/s6-setuidgid nikita \
       env \
         HOME=${home} \
         USER=nikita \

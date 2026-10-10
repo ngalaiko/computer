@@ -123,8 +123,16 @@
 
       # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
       # instead of a bespoke `nix fmt && git diff` step.
-      checks = lib.genAttrs allSystems (system: {
-        formatting = (treefmtFor system).config.build.check self;
-      });
+      checks = lib.genAttrs allSystems (
+        system:
+        {
+          formatting = (treefmtFor system).config.build.check self;
+        }
+        // lib.optionalAttrs (lib.elem system linuxSystems) {
+          s6-runtime = import ./packages/s6-overlay/test.nix {
+            pkgs = nixpkgs.legacyPackages.${system};
+          };
+        }
+      );
     };
 }

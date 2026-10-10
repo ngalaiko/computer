@@ -55,7 +55,7 @@ let
       --subst-var-by diffutils ${pkgs.diffutils} \
       --subst-var-by utilLinux ${pkgs.util-linux} \
       --subst-var-by nix ${pkgs.nix} \
-      --subst-var-by s6 ${config.s6.package}/command
+      --subst-var-by s6 ${pkgs.s6}/bin
     chmod +x $out
     ${pkgs.bashInteractive}/bin/bash -n $out
   '';

@@ -8,6 +8,15 @@ let
   inherit (lib) mkOption types;
   cfg = config.s6;
 
+  # Keep service execution independent of the base image's s6-overlay version.
+  withContenv = pkgs.writeShellScript "with-contenv" ''
+    if [ "''${S6_KEEP_ENV:-0}" -eq 0 ]; then
+      exec ${lib.getBin pkgs.execline}/bin/emptyenv -p \
+        ${pkgs.s6}/bin/s6-envdir -Lf -- /run/s6/container_environment "$@"
+    fi
+    exec "$@"
+  '';
+
   enabledServices = lib.filterAttrs (_: s: s.enable) cfg.services;
   longruns = lib.filterAttrs (_: s: s.type == "longrun") enabledServices;
   oneshots = lib.filterAttrs (_: s: s.type == "oneshot") enabledServices;
@@ -23,7 +32,7 @@ let
   runFile =
     name: svc:
     pkgs.writeScript "s6-${name}-run" ''
-      #!/command/with-contenv sh
+      #!${withContenv} ${pkgs.runtimeShell}
       exec 2>&1
       ${scrubEnvironment svc}
       ${svc.run}
@@ -53,7 +62,7 @@ let
       #!/bin/sh
       ${scrubEnvironment { passEnvironment = [ ]; }}
       mkdir -p ${cfg.logDir}/${name}
-      exec ${cfg.package}/command/s6-log -b T n${toString cfg.logKeep} s${toString cfg.logSize} ${cfg.logDir}/${name}
+      exec ${pkgs.s6}/bin/s6-log -b T n${toString cfg.logKeep} s${toString cfg.logSize} ${cfg.logDir}/${name}
     '';
 
   finishFile =
@@ -97,10 +106,10 @@ let
             dir=$root/${name}
             mkdir -p $dir/dependencies.d
             printf oneshot > $dir/type
-            printf '%s\n' "/command/with-contenv ${upFile name svc}" > $dir/up
+            printf '%s\n' "${withContenv} ${upFile name svc}" > $dir/up
             ${lib.optionalString (
               svc.down != ""
-            ) ''printf '%s\n' "/command/with-contenv ${downFile name svc}" > $dir/down''}
+            ) ''printf '%s\n' "${withContenv} ${downFile name svc}" > $dir/down''}
             ${deps svc}
             touch $root/user/contents.d/${name}
           ''
@@ -167,7 +176,7 @@ let
     fi
 
     mkdir -p /run/s6
-    (umask 077; /command/s6-dumpenv /run/s6/container_environment)
+    (umask 077; ${lib.getBin pkgs.s6-portable-utils}/bin/s6-dumpenv /run/s6/container_environment)
     chmod 700 /run/s6/container_environment
 
     # exe.dev's minimal /dev omits /dev/fd etc.; provide the conventional symlinks
@@ -200,7 +209,7 @@ let
     mkdir -p /run/service
     cp -rL "$svc"/. /run/service/
     chmod -R u+w /run/service
-    exec /command/s6-svscan /run/service
+    exec ${pkgs.s6}/bin/s6-svscan /run/service
   '';
 
   # pre-created: initWrapper's mkdir can't cover a read-only /dev.

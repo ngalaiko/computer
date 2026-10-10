@@ -85,6 +85,14 @@ activation, so they land when CI next has to create a VM — or when you `rm` th
 to force a fresh one. After a create, the next `deploy` re-establishes the latest
 generation, and the base `init-wrapper` hands off to it on `exe.dev restart`.
 
+Service supervision, logging, environment loading, and user switching use
+Nix-packaged s6 tools through their store paths, not the base image's `/command`
+links. Their matching helpers travel with the system generation, so an in-place
+deploy does not depend on the base image's `/package` version. s6-overlay remains
+the PID-1 boot layer for Docker; exe.dev uses the Nix-packaged supervisor.
+The Linux `s6-runtime` flake check exercises user switching, container environment
+loading, logging, and service restart without `/command` or `/package` present.
+
 ## After creating a machine
 
 One-time steps that place secrets; backups persist them across recreations

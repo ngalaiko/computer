@@ -137,6 +137,7 @@ in
         nodejs_22
         git
         jujutsu
+        tmux
         fd
       ]);
   };
@@ -189,7 +190,7 @@ in
       "backup-restore"
     ];
     run = ''
-      exec /command/s6-setuidgid amp env HOME=${home} ${setup}/bin/amp-runtime-setup
+      exec ${pkgs.s6}/bin/s6-setuidgid amp env HOME=${home} ${setup}/bin/amp-runtime-setup
     '';
   };
 
@@ -201,7 +202,7 @@ in
       "amp-runtime-setup"
     ];
     run = ''
-      exec /command/s6-setuidgid amp \
+      exec ${pkgs.s6}/bin/s6-setuidgid amp \
         env \
           HOME=${home} \
           USER=amp \

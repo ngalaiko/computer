@@ -172,7 +172,7 @@ in
               mkdir -p ${rundir}
               chown ${toString u.uid}:${gid} ${rundir}
               chmod 700 ${rundir}
-              exec /command/s6-setuidgid ${t.user} \
+              exec ${pkgs.s6}/bin/s6-setuidgid ${t.user} \
                 env HOME=${u.home} XDG_DATA_HOME=${rundir} XDG_CONFIG_HOME=${rundir} \
                 ${pkgs.caddy}/bin/caddy run --config ${caddyfile} --adapter caddyfile
             '';
