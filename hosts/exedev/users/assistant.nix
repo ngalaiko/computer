@@ -3,11 +3,6 @@ let
   # pi (the coding agent) is an npm CLI, packaged from its published tarball.
   # MIT, all-JS deps, so it builds against the pinned nixpkgs directly.
   pi = import ../../../packages/pi { inherit pkgs; };
-  # pilegram: my pi ⇄ Telegram gateway (Bun), packaged in this repo. It's a
-  # hermetic package — it bundles bun, ffmpeg, whisper.cpp and a pinned
-  # node_modules that includes its own pi 0.83.0 — so it needs nothing else from
-  # this account and survives recreations regardless of backup.
-  pilegram = import ../../../packages/pilegram { inherit pkgs; };
 in
 {
   users.users.assistant = {
@@ -64,63 +59,9 @@ in
     enable = true;
     # pi's config, auth (provider keys), session history, and the agent
     # workspace all live under the home. This also covers the runtime-installed
-    # pi plugins (~/.pi/agent/npm) and pilegram's state (~/.config/pilegram: its
-    # SQLite db + per-topic workspaces, and the runtime env file holding the bot
-    # token + allow-list), so a recreated machine restores them. pilegram's
-    # ~2 GB speech-model cache (~/.cache/pilegram) is re-downloadable and is
-    # already skipped by the base `.cache` exclude.
+    # pi plugins (~/.pi/agent/npm), so a recreated machine restores them.
     paths = [
       "/var/lib/assistant"
     ];
-  };
-
-  # Telegram bridge for pi, via pilegram (packaged above). Long-polling
-  # needs only outbound HTTPS, so nothing is exposed on the tailnet or the image.
-  # pilegram reads pi's provider keys from ~/.pi and keeps its own state under
-  # ~/.config/pilegram; run in the foreground so s6 supervises it.
-  s6.services.assistant-gateway = {
-    dependencies = [
-      "base"
-      # wait for the restore so ~/.config/pilegram (state + the env file) is present.
-      "backup-restore"
-    ];
-    run = ''
-      # The bot token and allow-list stay out of this (public) repo and the Nix
-      # store: they live in a runtime env file under the backed-up home, placed
-      # once on a fresh machine and restored thereafter (see README). The token
-      # is exported into the environment, never passed as a flag — argv is
-      # visible in `ps`; the allow-list (non-secret Telegram user ids) is a flag.
-      envfile=/var/lib/assistant/.config/pilegram/env
-      if [ ! -f "$envfile" ]; then
-        echo "assistant-gateway: $envfile missing; place TELEGRAM_BOT_TOKEN + PILEGRAM_ALLOW (see README). Retrying." >&2
-        sleep 10
-        exit 1
-      fi
-      set -a
-      . "$envfile"
-      set +a
-      if [ -z "''${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "''${PILEGRAM_ALLOW:-}" ]; then
-        echo "assistant-gateway: TELEGRAM_BOT_TOKEN or PILEGRAM_ALLOW unset in $envfile. Retrying." >&2
-        sleep 10
-        exit 1
-      fi
-      # TELEGRAM_BOT_TOKEN is already exported (set -a above); `env` (no -i) and
-      # s6-setuidgid both preserve it, so it reaches pilegram without ever
-      # appearing in argv. NODE_EXTRA_CA_CERTS points bun at the system CA bundle
-      # for outbound HTTPS (Telegram, Hugging Face model downloads).
-      exec ${pkgs.s6}/bin/s6-setuidgid assistant \
-        env \
-          HOME=/var/lib/assistant \
-          USER=assistant \
-          SHELL=/bin/sh \
-          PATH=/etc/profiles/per-user/assistant/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-          SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
-          NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
-          NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt \
-        ${pilegram}/bin/pilegram \
-          --allow "$PILEGRAM_ALLOW" \
-          --state-dir /var/lib/assistant/.config/pilegram \
-          --models-dir /var/lib/assistant/.cache/pilegram
-    '';
   };
 }

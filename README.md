@@ -65,7 +65,7 @@ only changed services reload (unchanged ones keep their PIDs):
     restore from B2 on boot. This is the only path that uses `RESTIC_PASSWORD` /
     `B2_ACCOUNT_KEY` (CI secrets).
   - **VM exists** → it activates in place (`nix run .#deploy`) with **no app
-    secrets** — RESTIC/B2/pilegram already live on the box. This path needs only
+    secrets** — runtime secrets already live on the box. This path needs only
     tailnet access: a Tailscale OAuth client tagged `tag:ci` (client id inline in
     `deploy.yaml`, secret in the `TS_OAUTH_SECRET` repo secret) and a policy rule
     letting `tag:ci` SSH the computer node:
@@ -154,24 +154,9 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
      may suffix it (`computer-1`) until the stale one is culled; exe.dev's
      public share is the stable public path if that matters.
 
-5. Place the Telegram gateway (pilegram) secrets — the bot token and your
-   allow-listed Telegram user id(s) — so the `assistant-gateway` service can
-   start. They stay out of this (public) repo and the image; the file lives
-   under the assistant home and is backed up, so it's restored on recreation:
-
-   ```
-   sudo install -d -o 2001 -g 2001 -m 700 /var/lib/assistant/.config/pilegram
-   sudo sh -c 'umask 077; printf "TELEGRAM_BOT_TOKEN=%s\nPILEGRAM_ALLOW=%s\n" "123456:AA..." "111222333" > /var/lib/assistant/.config/pilegram/env'
-   sudo chown 2001:2001 /var/lib/assistant/.config/pilegram/env
-   ```
-
-   `PILEGRAM_ALLOW` is comma-separated numeric Telegram user ids. In BotFather,
-   enable **Threaded Mode** so each Telegram topic is its own agent session. The
-   service retries every 10s until the file exists.
-
-6. Place the wherenow bearer token (the value the "Where Now?" iOS app sends as
+5. Place the wherenow bearer token (the value the "Where Now?" iOS app sends as
    `Authorization: Bearer …`) so the `assistant-wherenow` service can start.
-   Same runtime env-file pattern as pilegram — kept out of this (public) repo
+   The runtime env file is kept out of this (public) repo
    and the image, and backed up under nikita's home so it survives
    recreation:
 
@@ -189,7 +174,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    each position straight into nikita's Obsidian vault as a note; the
    service retries every 10s until the file exists.
 
-7. **(Optional)** Place a Discogs personal access token so `assistant-vault-sync`
+6. **(Optional)** Place a Discogs personal access token so `assistant-vault-sync`
    can sync your record collection + wantlist into Album notes. Letterboxd is
    public and needs nothing; without this file only the Discogs half is skipped.
    Get the token at <https://www.discogs.com/settings/developer>. Same runtime
@@ -206,7 +191,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    becomes a note, a repeat watch appends a `watched:` date, and a wishlist
    record you buy gets its blank `lp:` filled — hand edits are never clobbered.
 
-8. Place an Amp access token so `amp-runner` can serve threads started on
+7. Place an Amp access token so `amp-runner` can serve threads started on
    ampcode.com (runner id `computer`). Get it at
    <https://ampcode.com/settings/security#access-token>:
 
