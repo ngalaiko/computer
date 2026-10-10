@@ -139,6 +139,7 @@ in
         jujutsu
         tmux
         fd
+        ledger
       ]);
   };
   users.groups.amp.gid = 2002;
