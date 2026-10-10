@@ -28,7 +28,7 @@ let
       git checkout -b "''${branch#origin/}" --track origin/HEAD
     fi
     # Amp uses its starting directory as the default project root.
-    exec ${amp}/bin/amp --no-tui --runner-id computer
+    exec ${amp}/bin/amp --no-tui --runner-id computer --remote-control-terminal
   '';
 in
 {
@@ -56,6 +56,12 @@ in
     ];
   };
   users.groups.amp.gid = 2002;
+
+  # /amp/* on the public port. The ingress module puts caddy on Amp's PATH
+  # and seeds a user-owned ~/.caddy/Caddyfile, reloadable without root.
+  services.ingress.tenants.amp = {
+    upstreamPort = 8084;
+  };
 
   # checkouts, amp config, and the runner env file all live under the home.
   services.backup.paths = [ home ];

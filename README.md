@@ -218,6 +218,25 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    account migration is needed. The service retries every 30s until the env file
    exists. Add other checkouts with `amp runner dirs add <path>` as the `amp` user.
 
+   The runner enables `--remote-control-terminal`, allowing terminal access
+   from ampcode.com for its threads. Terminals run as the unprivileged `amp`
+   user; this uses Amp's connection, not a public Caddy route.
+
+   Amp can serve HTTP under `https://computer.<tailnet>.ts.net/amp/` through
+   its own Caddy on port 8084. As the `amp` user, edit `~/.caddy/Caddyfile` to
+   add routes inside the `:8084` site block, then validate and reload:
+
+   ```sh
+   caddy validate --config ~/.caddy/Caddyfile --adapter caddyfile
+   caddy reload --config ~/.caddy/Caddyfile --adapter caddyfile --address unix//run/ingress-amp/admin.sock
+   ```
+
+   The root proxy strips `/amp` before forwarding, so a tenant route `/demo/*`
+   is reached at `/amp/demo/*`. Routes default to 404 until configured; the
+   Caddyfile is preserved across deploys and covered by the amp home backup.
+   Funnel access is public and unauthenticated: add authentication for private
+   content, and keep backend servers on loopback.
+
 ## Configuration
 
 ### Backups
