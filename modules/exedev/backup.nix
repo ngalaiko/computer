@@ -8,6 +8,13 @@ let
   inherit (lib) mkOption types;
   cfg = config.services.backup;
   restic = "${pkgs.restic}/bin/restic";
+  backupEnvironment = [
+    "RESTIC_REPOSITORY"
+    "RESTIC_PASSWORD"
+    "RESTIC_CACHE_DIR"
+    "B2_ACCOUNT_ID"
+    "B2_ACCOUNT_KEY"
+  ];
   # Every restic op is scoped to this machine's host. Without it, a repo shared
   # with another machine breaks two ways: `restore latest` grabs whichever box
   # wrote the globally-newest snapshot (so a foreign snapshot silently replaces
@@ -168,6 +175,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    s6.sensitiveEnvironment = backupEnvironment;
     image.packages = [
       pkgs.restic
       pkgs.supercronic
@@ -175,15 +183,19 @@ in
 
     s6.services.backup-restore = {
       type = "oneshot";
+      passEnvironment = backupEnvironment;
       run = ''
         mkdir -p /var/cache/restic
         timeout 300 ${restoreScript} || echo "restore: timed out — continuing." >&2
       '';
     };
 
-    s6.services.backup-cron.run = ''
-      mkdir -p /var/cache/restic
-      exec ${pkgs.supercronic}/bin/supercronic ${crontab}
-    '';
+    s6.services.backup-cron = {
+      passEnvironment = backupEnvironment;
+      run = ''
+        mkdir -p /var/cache/restic
+        exec ${pkgs.supercronic}/bin/supercronic ${crontab}
+      '';
+    };
   };
 }

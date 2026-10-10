@@ -12,12 +12,20 @@ let
   longruns = lib.filterAttrs (_: s: s.type == "longrun") enabledServices;
   oneshots = lib.filterAttrs (_: s: s.type == "oneshot") enabledServices;
 
+  scrubEnvironment =
+    svc:
+    let
+      names = lib.subtractLists svc.passEnvironment cfg.sensitiveEnvironment;
+    in
+    lib.optionalString (names != [ ]) "unset ${lib.escapeShellArgs names}";
+
   # longrun stdout+stderr flow to its logger.
   runFile =
     name: svc:
     pkgs.writeScript "s6-${name}-run" ''
       #!/command/with-contenv sh
       exec 2>&1
+      ${scrubEnvironment svc}
       ${svc.run}
     '';
   # oneshots have no logger pipe; self-redirect to the same log path.
@@ -25,6 +33,7 @@ let
     name: svc:
     pkgs.writeScript "s6-${name}-up" ''
       #!/bin/sh
+      ${scrubEnvironment svc}
       mkdir -p ${cfg.logDir}/${name}
       exec >>${cfg.logDir}/${name}/current 2>&1
       ${svc.run}
@@ -33,6 +42,7 @@ let
     name: svc:
     pkgs.writeScript "s6-${name}-down" ''
       #!/bin/sh
+      ${scrubEnvironment svc}
       mkdir -p ${cfg.logDir}/${name}
       exec >>${cfg.logDir}/${name}/current 2>&1
       ${svc.down}
@@ -41,6 +51,7 @@ let
     name:
     pkgs.writeScript "s6-${name}-log" ''
       #!/bin/sh
+      ${scrubEnvironment { passEnvironment = [ ]; }}
       mkdir -p ${cfg.logDir}/${name}
       exec ${cfg.package}/command/s6-log -b T n${toString cfg.logKeep} s${toString cfg.logSize} ${cfg.logDir}/${name}
     '';
@@ -49,6 +60,7 @@ let
     name: svc:
     pkgs.writeScript "s6-${name}-finish" ''
       #!/bin/sh
+      ${scrubEnvironment svc}
       exec >>${cfg.logDir}/${name}/current 2>&1
       ${svc.finish}
     '';
@@ -155,7 +167,8 @@ let
     fi
 
     mkdir -p /run/s6
-    /command/s6-dumpenv /run/s6/container_environment
+    (umask 077; /command/s6-dumpenv /run/s6/container_environment)
+    chmod 700 /run/s6/container_environment
 
     # exe.dev's minimal /dev omits /dev/fd etc.; provide the conventional symlinks
     # so bash process substitution (and tools that open /dev/fd/N) work — e.g.
@@ -203,6 +216,12 @@ in
       default = import ../../packages/s6-overlay { inherit pkgs; };
       defaultText = lib.literalExpression "the s6-overlay packaged in packages/s6-overlay";
       description = "Unpacked s6-overlay tree (/init, /command, /package).";
+    };
+
+    sensitiveEnvironment = mkOption {
+      type = types.listOf (types.strMatching "[A-Za-z_][A-Za-z0-9_]*");
+      default = [ ];
+      description = "Container environment names removed from service processes unless explicitly listed in passEnvironment.";
     };
 
     logDir = mkOption {
@@ -260,7 +279,12 @@ in
             };
             run = mkOption {
               type = types.lines;
-              description = "Shell body, run with the container env (with-contenv).";
+              description = "Shell body, run with the container env except unapproved sensitiveEnvironment names.";
+            };
+            passEnvironment = mkOption {
+              type = types.listOf (types.strMatching "[A-Za-z_][A-Za-z0-9_]*");
+              default = [ ];
+              description = "Sensitive container environment names this service may inherit.";
             };
             down = mkOption {
               type = types.lines;
@@ -298,6 +322,18 @@ in
 
   config = {
     image.cmd = lib.mkDefault [ "/init-wrapper" ];
+    image.activationFixups = ''
+      if [ -d "$root/run/s6/container_environment" ]; then
+        chmod 700 "$root/run/s6/container_environment"
+      fi
+    '';
+    environment.etc."cont-init.d/00-environment-permissions" = {
+      mode = "0755";
+      text = ''
+        #!/bin/sh
+        chmod 700 /run/s6/container_environment
+      '';
+    };
     image.rootPaths = [
       cfg.package
       serviceGraph
