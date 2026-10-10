@@ -211,12 +211,36 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    Amp and its coding tools are installed for the unprivileged `amp` user. The
    runner checks out <https://github.com/ngalaiko/assistant> into `~amp/assistant`
    (`/var/lib/amp/assistant`) and starts there, making that repository its default
-   project root. Existing files are preserved; a checkout conflict stops
+   project root. New checkouts use the assistant revision in `flake.lock`, not
+   the latest remote branch. Existing files are preserved; a checkout conflict stops
    startup rather than overwriting them. Subsequent starts do not reset or pull
-   the working tree. Amp config, credentials and project files are covered by
+   the working tree. Deployed tools and global skills use the locked input,
+   independently of checkout edits. Amp config, credentials and project files are covered by
    the amp home backup. The existing token and settings paths are unchanged; no
-   account migration is needed. The service retries every 30s until the env file
+   account migration is needed. User-owned shell settings are loaded as `amp`,
+   not root. The service retries every 30s until the env file
    exists. Add other checkouts with `amp runner dirs add <path>` as the `amp` user.
+
+   Runtime defaults are in `/etc/amp/runtime.sh`: timezone `Europe/Stockholm`,
+   memory `/var/lib/amp/memory`, vault `/home/nikita/Vault`, and external mail/SOPS
+   configuration paths. Optional private overrides live in
+   `/var/lib/amp/.config/assistant/runtime.sh`; runner threads and the packaged
+   `icloud-mail`, `icloud-calendar`, and `gh-app` launchers load them. Secrets,
+   keys, account configuration, and the GitHub App helper remain external and
+   must be restored or provisioned separately. The launchers do not create accounts.
+
+   Boot and deployment seed `~amp/.config/amp/AGENTS.md` and `skills` as links
+   to `/etc/amp/AGENTS.md` and `/etc/amp/skills`. Amp therefore discovers runtime
+   instructions and pinned skills in every directory on this runner, not only
+   inside the assistant checkout. Existing files, directories, and links are
+   preserved. If a custom global `AGENTS.md` exists, add `Follow @/etc/amp/AGENTS.md`;
+   if a custom skills directory exists, link the desired `/etc/amp/skills/*` entries.
+   Private parent-directory instructions can override these defaults. Orbs and
+   other machines do not inherit this host's configuration or access.
+
+   Update the deployed assistant with `nix flake update assistant`, review the
+   lock diff, run checks, and deploy through the normal workflow. Updating the
+   editable checkout is a separate operation; deployment never resets it.
 
    The runner enables `--remote-control-terminal`, allowing terminal access
    from ampcode.com for its threads. Terminals run as the unprivileged `amp`
@@ -224,7 +248,8 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
 
    Chromium and `agent-browser` are installed for `amp`. The runner exports
    `AGENT_BROWSER_EXECUTABLE_PATH` pointing to the packaged Chromium wrapper,
-   so browser tools use it rather than downloading a separate browser.
+   and `FONTCONFIG_FILE` supplies pinned DejaVu fonts. Browser tools need no
+   separate browser download or host font installation.
 
    Amp can serve HTTP under `https://computer.<tailnet>.ts.net/amp/` through
    its own Caddy on port 8084. As the `amp` user, edit `~/.caddy/Caddyfile` to
@@ -367,6 +392,15 @@ no existing Vault, run `ob login`, `ob sync-list-remote`, and
 ### Backups
 
 We have to store it outside of the machine to be able to restore everything else on startup.
+
+Backup environment variables are removed from other service processes, including
+loggers and oneshot hooks. Only `backup-restore` and `backup-cron` opt in through
+`s6.services.<name>.passEnvironment`. This preserves non-secret container settings
+and service-specific private env files. `/run/s6/container_environment` is root-only
+on both boot paths and after activation; it must not be made readable to tenants.
+This isolates the documented backup variables, not arbitrary credentials placed
+in the container environment. Add other sensitive names to `s6.sensitiveEnvironment`
+with explicit per-service opt-ins. Root still has access to the container credentials.
 
 | Variable            | Description                              |
 | ------------------- | ---------------------------------------- |

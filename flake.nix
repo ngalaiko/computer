@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    assistant.url = "github:ngalaiko/assistant";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -122,8 +123,20 @@
 
       # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
       # instead of a bespoke `nix fmt && git diff` step.
-      checks = lib.genAttrs allSystems (system: {
-        formatting = (treefmtFor system).config.build.check self;
-      });
+      checks = lib.genAttrs allSystems (
+        system:
+        {
+          formatting = (treefmtFor system).config.build.check self;
+        }
+        // lib.optionalAttrs (lib.elem system linuxSystems) {
+          service-environment = import ./tests/service-environment.nix {
+            pkgs = nixpkgs.legacyPackages.${system};
+          };
+          assistant-runtime = import ./tests/assistant-runtime.nix {
+            pkgs = nixpkgs.legacyPackages.${system};
+            inherit inputs;
+          };
+        }
+      );
     };
 }
