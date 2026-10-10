@@ -208,9 +208,15 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    sudo chown 2002:2002 /var/lib/amp/.config/amp-runner/env
    ```
 
-   The runner serves `/var/lib/amp` and git checkouts up to 3 levels under it;
-   clone repos there as the `amp` user, then `amp runner dirs add <path>` or
-   restart the service. The service retries every 30s until the file exists.
+   Amp and its coding tools are installed for the unprivileged `amp` user. The
+   runner checks out <https://github.com/ngalaiko/assistant> into `~amp/assistant`
+   (`/var/lib/amp/assistant`) and starts there, making that repository its default
+   project root. Existing files are preserved; a checkout conflict stops
+   startup rather than overwriting them. Subsequent starts do not reset or pull
+   the working tree. Amp config, credentials and project files are covered by
+   the amp home backup. The existing token and settings paths are unchanged; no
+   account migration is needed. The service retries every 30s until the env file
+   exists. Add other checkouts with `amp runner dirs add <path>` as the `amp` user.
 
 ## Configuration
 

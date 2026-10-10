@@ -1,12 +1,35 @@
 { pkgs, inputs, ... }:
 let
   home = "/var/lib/amp";
+  project = "${home}/assistant";
   # amp-cli is unfree; allow just it. unstable for a fresher build.
   amp =
     (import inputs.nixpkgs-unstable {
       inherit (pkgs.stdenv.hostPlatform) system;
       config.allowUnfreePredicate = p: pkgs.lib.getName p == "amp-cli";
     }).amp-cli;
+  runner = pkgs.writeShellScript "assistant-amp-runner" ''
+    set -eu
+    mkdir -p ${project}
+    cd ${project}
+    # Preserve existing files and local edits; never force checkout.
+    if [ ! -e .git ]; then
+      git init
+      git remote add origin https://github.com/ngalaiko/assistant.git
+    fi
+    case "$(git config --get remote.origin.url)" in
+      https://github.com/ngalaiko/assistant|https://github.com/ngalaiko/assistant.git|git@github.com:ngalaiko/assistant.git) ;;
+      *) echo "amp-runner: ${project} is not the assistant repository; refusing to start." >&2; exit 1 ;;
+    esac
+    if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
+      git fetch origin
+      git remote set-head origin --auto
+      branch=$(git symbolic-ref --short refs/remotes/origin/HEAD)
+      git checkout -b "''${branch#origin/}" --track origin/HEAD
+    fi
+    # Amp uses its starting directory as the default project root.
+    exec ${amp}/bin/amp --no-tui --runner-id computer
+  '';
 in
 {
   # Amp runner account: threads started on ampcode.com run here. Unprivileged
@@ -61,8 +84,6 @@ in
         sleep 30
         exit 1
       fi
-      # serves the home plus git checkouts found under it.
-      cd ${home}
       exec /command/s6-setuidgid amp \
         env \
           HOME=${home} \
@@ -72,10 +93,7 @@ in
           SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
           NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
           NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-        ${amp}/bin/amp --no-tui \
-          --runner-id computer \
-          --discover-dirs \
-          --discover-depth 3
+        ${runner}
     '';
   };
 }
