@@ -201,43 +201,22 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    sudo chown 2002:2002 /var/lib/amp/.config/amp-runner/env
    ```
 
-   Amp and its coding tools are installed for the unprivileged `amp` user. The
-   runner checks out <https://github.com/ngalaiko/assistant> into `~amp/assistant`
-   (`/var/lib/amp/assistant`) and starts there, making that repository its default
-   project root. New checkouts use the assistant revision in `flake.lock`, not
-   the latest remote branch. Existing files are preserved; a checkout conflict stops
-   startup rather than overwriting them. Subsequent starts do not reset or pull
-   the working tree. Deployed tools and global skills use the locked input,
-   independently of checkout edits. Amp config, credentials and project files are covered by
-   the amp home backup. The existing token and settings paths are unchanged; no
-   account migration is needed. User-owned shell settings are loaded as `amp`,
-   not root. The service retries every 30s until the env file
-   exists. The runner automatically discovers Git checkouts up to three levels
-   beneath `/var/lib/amp`, including new repositories cloned there while it runs.
-   For example, clone projects into `~amp/code/<owner>/<repo>` as the `amp` user;
-   no per-project registration is needed. For directories outside the amp home,
-   use `amp runner dirs add <path>` as the `amp` user.
+   Amp and its coding tools are installed for the unprivileged `amp` user,
+   including the tools from <https://github.com/ngalaiko/assistant> pinned by
+   `flake.lock`. The runner starts in `/var/lib/amp` without creating or updating
+   checkouts. The agent owns its home contents: repositories, instructions,
+   skills, integration launchers, credentials, and private configuration. The
+   whole home is covered by backups and restored before the runner starts.
+   Deployment does not seed instructions or skills, or impose private data paths.
+   User-owned runner settings are loaded as `amp`, not root, from the env file
+   above. The service retries every 30s until the token is configured. The runner
+   automatically discovers Git checkouts up to three levels beneath `/var/lib/amp`,
+   including repositories cloned into `~amp/src` while it runs. For directories
+   outside the amp home, use `amp runner dirs add <path>` as the `amp` user.
 
-   Runtime defaults are in `/etc/amp/runtime.sh`: timezone `Europe/Stockholm`,
-   memory `/var/lib/amp/memory`, vault `/home/nikita/Vault`, and external mail/SOPS
-   configuration paths. Optional private overrides live in
-   `/var/lib/amp/.config/assistant/runtime.sh`; runner threads and the packaged
-   `icloud-mail`, `icloud-calendar`, and `gh-app` launchers load them. Secrets,
-   keys, account configuration, and the GitHub App helper remain external and
-   must be restored or provisioned separately. The launchers do not create accounts.
-
-   Boot and deployment seed `~amp/.config/amp/AGENTS.md` and `skills` as links
-   to `/etc/amp/AGENTS.md` and `/etc/amp/skills`. Amp therefore discovers runtime
-   instructions and pinned skills in every directory on this runner, not only
-   inside the assistant checkout. Existing files, directories, and links are
-   preserved. If a custom global `AGENTS.md` exists, add `Follow @/etc/amp/AGENTS.md`;
-   if a custom skills directory exists, link the desired `/etc/amp/skills/*` entries.
-   Private parent-directory instructions can override these defaults. Orbs and
-   other machines do not inherit this host's configuration or access.
-
-   Update the deployed assistant with `nix flake update assistant`, review the
-   lock diff, run checks, and deploy through the normal workflow. Updating the
-   editable checkout is a separate operation; deployment never resets it.
+   Update the installed assistant tools with `nix flake update assistant`, review
+   the lock diff, run checks, and deploy through the normal workflow. This does
+   not update the agent's editable checkouts or home configuration.
 
    The runner enables `--remote-control-terminal`, allowing terminal access
    from ampcode.com for its threads. Terminals run as the unprivileged `amp`
