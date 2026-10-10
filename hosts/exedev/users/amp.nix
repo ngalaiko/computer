@@ -109,8 +109,9 @@ let
       git fetch origin ${inputs.assistant.rev}
       git checkout -b main FETCH_HEAD
     fi
-    # Amp uses its starting directory as the default project root.
-    exec ${amp}/bin/amp --no-tui --runner-id computer --remote-control-terminal
+    # Keep assistant as the default; discover other checkouts under the amp home.
+    exec ${amp}/bin/amp --no-tui --runner-id computer --remote-control-terminal \
+      --discover-dirs=${home} --discover-depth 3
   '';
 in
 {

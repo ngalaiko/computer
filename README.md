@@ -212,7 +212,11 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    the amp home backup. The existing token and settings paths are unchanged; no
    account migration is needed. User-owned shell settings are loaded as `amp`,
    not root. The service retries every 30s until the env file
-   exists. Add other checkouts with `amp runner dirs add <path>` as the `amp` user.
+   exists. The runner automatically discovers Git checkouts up to three levels
+   beneath `/var/lib/amp`, including new repositories cloned there while it runs.
+   For example, clone projects into `~amp/code/<owner>/<repo>` as the `amp` user;
+   no per-project registration is needed. For directories outside the amp home,
+   use `amp runner dirs add <path>` as the `amp` user.
 
    Runtime defaults are in `/etc/amp/runtime.sh`: timezone `Europe/Stockholm`,
    memory `/var/lib/amp/memory`, vault `/home/nikita/Vault`, and external mail/SOPS
