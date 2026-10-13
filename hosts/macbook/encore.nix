@@ -71,10 +71,6 @@
         skills = agentSkills;
       };
 
-      home.file = lib.mapAttrs' (
-        name: src: lib.nameValuePair ".codex/skills/${name}" { source = src; }
-      ) agentSkills;
-
       programs.encore = {
         enable = true;
         settings = {

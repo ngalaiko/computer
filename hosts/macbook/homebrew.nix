@@ -68,7 +68,6 @@ in
     casks = [
       "amp-app" # ampcode.com coding agent app
       "calibre"
-      "chatgpt" # OpenAI's desktop app; hosts Codex since the standalone Codex app was discontinued (2026-07)
       "daisydisk"
       "firefox"
       "ghostty@tip" # tip build
