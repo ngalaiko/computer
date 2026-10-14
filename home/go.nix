@@ -1,9 +1,14 @@
-{ pkgs, ... }:
+{ config, ... }:
+let
+  goPath = "${config.home.homeDirectory}/.local/share/go";
+in
 {
-  home.packages = [ pkgs.go ];
+  programs.go = {
+    enable = true;
+    env.GOPATH = goPath;
+  };
 
   programs.fish.shellInit = ''
-    set --global --export GOPATH "$HOME/.local/share/go"
-    fish_add_path --global --move --path "$GOPATH/bin"
+    fish_add_path --global --move --path "${goPath}/bin"
   '';
 }
