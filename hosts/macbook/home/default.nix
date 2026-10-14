@@ -11,6 +11,7 @@
     ./neovim.nix
     ./nix-paths.nix
     ./packages.nix
+    ./rex.nix
     ./ssh.nix
   ];
 
