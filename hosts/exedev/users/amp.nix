@@ -5,14 +5,12 @@
 }:
 let
   home = "/var/lib/amp";
-  assistantTools = inputs.assistant.devShells.${pkgs.stdenv.hostPlatform.system}.default;
-  assistantPkgs = inputs.assistant.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
   # These are tool requirements, not private account or data-path configuration.
   toolEnvironment = {
-    inherit (assistantTools) AGENT_BROWSER_EXECUTABLE_PATH;
+    AGENT_BROWSER_EXECUTABLE_PATH = pkgs.lib.getExe pkgs.chromium;
     FONTCONFIG_FILE = toString (
-      assistantPkgs.makeFontsConf {
-        fontDirectories = [ assistantPkgs.dejavu_fonts ];
+      pkgs.makeFontsConf {
+        fontDirectories = [ pkgs.dejavu_fonts ];
       }
     );
   };
@@ -22,7 +20,7 @@ let
       inherit (pkgs.stdenv.hostPlatform) system;
       config.allowUnfreePredicate = p: pkgs.lib.getName p == "amp-cli";
     }).amp-cli;
-  runner = pkgs.writeShellScript "assistant-amp-runner" ''
+  runner = pkgs.writeShellScript "amp-runner" ''
     set -eu
     # Load user-owned configuration after dropping privileges.
     envfile=${home}/.config/amp-runner/env
@@ -54,20 +52,29 @@ in
     shell = "/bin/sh";
     description = "Amp runner";
     environment = toolEnvironment;
-    packages =
-      assistantTools.nativeBuildInputs
-      ++ (with pkgs; [
-        amp
-        assistantPkgs.chromium
-        python3
-        openssl
-        nodejs_22
-        git
-        jujutsu
-        tmux
-        fd
-        ledger
-      ]);
+    packages = with pkgs; [
+      amp
+      chromium
+      agent-browser
+      himalaya
+      sops
+      age
+      gh
+      curl
+      jq
+      ripgrep
+      coreutils
+      findutils
+      gnused
+      python3
+      openssl
+      nodejs_22
+      git
+      jujutsu
+      tmux
+      fd
+      ledger
+    ];
   };
   users.groups.amp.gid = 2002;
 

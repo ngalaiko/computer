@@ -201,9 +201,8 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    sudo chown 2002:2002 /var/lib/amp/.config/amp-runner/env
    ```
 
-   Amp and its coding tools are installed for the unprivileged `amp` user,
-   including the tools from <https://github.com/ngalaiko/assistant> pinned by
-   `flake.lock`. The runner starts in `/var/lib/amp` without creating or updating
+   Amp and its coding tools are installed for the unprivileged `amp` user.
+   The runner starts in `/var/lib/amp` without creating or updating
    checkouts. The agent owns its home contents: repositories, instructions,
    skills, integration launchers, credentials, and private configuration. The
    whole home is covered by backups and restored before the runner starts.
@@ -213,10 +212,6 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    automatically discovers Git checkouts up to three levels beneath `/var/lib/amp`,
    including repositories cloned into `~amp/src` while it runs. For directories
    outside the amp home, use `amp runner dirs add <path>` as the `amp` user.
-
-   Update the installed assistant tools with `nix flake update assistant`, review
-   the lock diff, run checks, and deploy through the normal workflow. This does
-   not update the agent's editable checkouts or home configuration.
 
    The runner enables `--remote-control-terminal`, allowing terminal access
    from ampcode.com for its threads. Terminals run as the unprivileged `amp`
