@@ -150,10 +150,13 @@
           # Dirty/clean status of @
           set -l wc_status (jj log --ignore-working-copy --no-graph -r @ -T 'if(empty, "clean", "dirty")' 2>/dev/null)
 
+          # Change and commit ids of @
+          set -l ids (jj log --ignore-working-copy --no-graph --color always -r @ -T 'change_id.shortest(4) ++ " " ++ commit_id.shortest(4)' 2>/dev/null)
+
           # If @ has bookmarks, show them directly
           set -l bookmark_display (jj log --ignore-working-copy --no-graph --color always -r @ -T 'local_bookmarks.join(", ")' 2>/dev/null)
           if test -n "$bookmark_display"
-              printf ' [%s %s]' "$bookmark_display" "$wc_status"
+              printf ' [%s %s %s]' "$bookmark_display" "$ids" "$wc_status"
               return 0
           end
 
@@ -161,14 +164,15 @@
           # and append +N for the number of commits between it and @ (excluding @)
           set -l closest (jj log --ignore-working-copy --no-graph --color always -r 'heads(::@ & bookmarks())' -T '"~" ++ local_bookmarks.join(", ~")' 2>/dev/null)
           if test -z "$closest"
+              printf ' [%s %s]' "$ids" "$wc_status"
               return 0
           end
 
           set -l ahead (string length -- (jj log --ignore-working-copy --no-graph -r 'heads(::@ & bookmarks())::@- ~ heads(::@ & bookmarks())' -T '"x"' 2>/dev/null))
           if test -n "$ahead" -a "$ahead" -gt 0
-              printf ' [%s +%s %s]' "$closest" "$ahead" "$wc_status"
+              printf ' [%s +%s %s %s]' "$closest" "$ahead" "$ids" "$wc_status"
           else
-              printf ' [%s %s]' "$closest" "$wc_status"
+              printf ' [%s %s %s]' "$closest" "$ids" "$wc_status"
           end
         '';
       };
