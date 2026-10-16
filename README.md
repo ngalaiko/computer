@@ -59,8 +59,9 @@ boots the current system profile. The provider owns the kernel, network, DNS,
 Everyday deploys are **in place** with `nixos-rebuild switch`, so the Tailscale
 node, the public URL, and all on-disk state are preserved:
 
-- **From your Mac:** `nix run .#deploy`. Builds in the box's own store over
-  Tailscale (the Mac is aarch64, the box x86_64) and switches it.
+- **From your Mac:** `nix run .#deploy`. Copies the flake source to the box
+  over Tailscale, then runs `nixos-rebuild switch` there (the Mac is aarch64,
+  the box x86_64).
 - **From CI:** `.github/workflows/deploy.yaml` runs after a green `build` on
   `master` and is **self-deciding**:
   - **no VM tagged `exedev`** → it `exe.dev new`s one from the built image

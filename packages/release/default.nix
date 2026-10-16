@@ -81,24 +81,34 @@ rec {
     '';
   };
 
-  # In-place deploy: `nixos-rebuild switch` on the live box, built in the box's
-  # own store (the Mac is aarch64, the box x86_64). `nix` comes from the caller's
-  # PATH so it keeps the host's config.
+  # In-place deploy: `nixos-rebuild switch` run on the box itself, which fetches
+  # inputs from GitHub and the binary cache directly instead of through the
+  # (often relayed) tailnet link. A local checkout is copied over once as a
+  # flake source.
   #   DEPLOY_NODE   tailnet node / ssh host   (default: exedev)
   #   DEPLOY_FLAKE  flake ref                 (default: . = the working tree)
   deploy = pkgs.writeShellApplication {
     name = "deploy";
     runtimeInputs = [
-      pkgs.nixos-rebuild-ng
+      pkgs.jq
       pkgs.openssh
     ];
     text = ''
       node="''${DEPLOY_NODE:-exedev}"
       ref="''${DEPLOY_FLAKE:-.}"
       # accept-new so a fresh runner (CI) trusts the tailnet host key on first sight.
-      export NIX_SSHOPTS="''${NIX_SSHOPTS:--o StrictHostKeyChecking=accept-new -o ConnectTimeout=20}"
-      exec nixos-rebuild switch --flake "$ref#exedev" \
-        --target-host "nikita@$node" --build-host "nikita@$node" --sudo
+      ssh_opts=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
+      export NIX_SSHOPTS="''${NIX_SSHOPTS:-''${ssh_opts[*]}}"
+
+      case "$ref" in
+        . | ./* | /* | path:* | git+file:*)
+          ref="$(nix flake archive --json --to "ssh-ng://nikita@$node" "$ref" | jq -r .path)"
+          ;;
+      esac
+
+      # shellcheck disable=SC2029 # $ref expands client-side, by design
+      exec ssh "''${ssh_opts[@]}" "nikita@$node" \
+        "sudo nixos-rebuild switch --flake '$ref#exedev'"
     '';
   };
 }
