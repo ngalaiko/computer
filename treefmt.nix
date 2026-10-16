@@ -18,6 +18,5 @@
     # Generated / externally-managed lock files — never hand-format.
     "flake.lock"
     "packages/obsidian-headless/package-lock.json"
-    "packages/pi/npm-shrinkwrap.json"
   ];
 }

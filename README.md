@@ -103,7 +103,7 @@ sudo sh -c '
     --exclude __pycache__ --exclude .venv --exclude venv --exclude node_modules \
     --exclude "!**/.pi/**/node_modules" --exclude .cache \
     --exclude checkpoints --exclude backups \
-    /home/nikita /var/lib/amp /var/lib/assistant /var/lib/tailscale/authkey
+    /home/nikita /var/lib/amp /var/lib/tailscale/authkey
   restic snapshots --host exedev --tag auto --latest 1
   restic ls latest /home/nikita /var/lib/amp | head -50
 '
@@ -176,7 +176,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
      public share is the stable public path if that matters.
 
 5. Place the wherenow bearer token (the value the "Where Now?" iOS app sends as
-   `Authorization: Bearer …`) so the `assistant-wherenow` service can start.
+   `Authorization: Bearer …`) so the `wherenow` service can start.
    The runtime env file is kept out of this (public) repo
    and the image, and backed up under nikita's home so it survives
    recreation:
@@ -188,14 +188,11 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    ```
 
    Then point the iOS app at `https://computer.<tailnet>.ts.net/assistant/wherenow`
-   with the same token — wherenow is fronted by the assistant's own caddy. On a
-   box that already has `~assistant/.caddy/Caddyfile`, add the `/wherenow/*`
-   handle to it once (or delete the file to let the seed regenerate) and reload
-   caddy, since the seed only writes when the file is absent. wherenow writes
-   each position straight into nikita's Obsidian vault as a note; the
-   service retries every 10s until the file exists.
+   with the same token; the root caddy routes it to wherenow on loopback 8085.
+   wherenow writes each position straight into nikita's Obsidian vault as a
+   note; the service retries every 10s until the file exists.
 
-6. **(Optional)** Place a Discogs personal access token so `assistant-vault-sync`
+6. **(Optional)** Place a Discogs personal access token so `vault-sync`
    can sync your record collection + wantlist into Album notes. Letterboxd is
    public and needs nothing; without this file only the Discogs half is skipped.
    Get the token at <https://www.discogs.com/settings/developer>. Same runtime
@@ -261,14 +258,12 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
 ## Vault ownership
 
 The Vault lives at `/home/nikita/Vault`. Obsidian Sync, Letterboxd/Discogs polls,
-and Where Now all run as `nikita`. The existing `assistant-*` service names and
-`/assistant/wherenow` URL are retained. Sync tools are installed for `nikita`;
-`amp` and `assistant` have direct read/write access to notes, not nikita's sync
-credentials. Vault data, Obsidian login/sync state, and both runtime env
+and Where Now all run as `nikita`. Sync tools are installed for `nikita`;
+`amp` has direct read/write access to notes, not nikita's sync credentials. Vault data, Obsidian login/sync state, and both runtime env
 directories are backed up.
 
 `vault-permissions` runs after backup restore and when its unit changes. It sets nikita as
-the owner, replaces existing Vault ACLs with access for these three users, and installs default ACLs on
+the owner, replaces existing Vault ACLs with access for nikita and amp, and installs default ACLs on
 every directory so normal new files remain shared even with a restrictive
 umask. Tools that explicitly create files with mode `0600`, preserve foreign
 ACLs, or move files in from elsewhere can bypass inheritance; run

@@ -69,4 +69,4 @@ TOKEN=<bearer> wherenow --vault-dir=/path/to/Vault --tz=Europe/Stockholm
 
 Built with Nix from `packages/wherenow` in the
 [computer](https://github.com/ngalaiko/computer) flake (a systemd service behind a
-path-routed ingress; see `hosts/exedev/users/assistant.nix`).
+path-routed ingress; see `hosts/exedev/users/nikita/vault.nix`).
