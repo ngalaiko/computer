@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   programs.nixvim.lsp.servers.golangci_lint_ls = {
     enable = true;
     config.init_options.command = [

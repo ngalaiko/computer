@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   programs.nixvim.lsp.servers.html = {
     enable = true;
     config = {

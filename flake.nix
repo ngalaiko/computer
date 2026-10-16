@@ -52,7 +52,7 @@
       ...
     }:
     let
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
 
       linuxSystems = [
         "x86_64-linux"
@@ -78,10 +78,27 @@
 
       releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
 
+      # Repo packages available on `system`.
+      repoPackagesFor =
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+        in
+        lib.filterAttrs (_: lib.meta.availableOn pkgs.stdenv.hostPlatform) {
+          inherit (pkgs)
+            obsidian-headless
+            transcripted
+            vault-sync
+            wherenow
+            ;
+        };
+
       treefmtFor =
         system: inputs.treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix;
     in
     {
+      overlays.default = import ./overlays { inherit inputs; };
+
       # The exe.dev VM. `nix run .#deploy` switches it in place.
       nixosConfigurations.exedev = exedevFor "x86_64-linux";
 
@@ -103,6 +120,7 @@
           default = cfg.system.build.ociImage;
         }
         // releaseFor system
+        // repoPackagesFor system
       );
 
       devShells = lib.genAttrs allSystems (system: {

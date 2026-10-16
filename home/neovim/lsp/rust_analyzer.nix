@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   # rustup owns cargo/rustc; only the server itself comes from nix.
   programs.nixvim.lsp.servers.rust_analyzer = {
     enable = true;

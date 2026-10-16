@@ -13,6 +13,10 @@
 
   system.stateVersion = "26.05";
 
+  nixpkgs.overlays = [ (import ../../overlays { inherit inputs; }) ];
+  # Only these unfree packages, here and in pkgs.unstable.
+  nixpkgs.config.allowUnfreePredicate = p: builtins.elem (lib.getName p) [ "amp-cli" ];
+
   exedev.image = {
     name = "computer.exe";
     labels = {
@@ -38,7 +42,6 @@
       "nix-command"
       "flakes"
     ];
-    sandbox = false;
   };
 
   programs.nix-ld = {

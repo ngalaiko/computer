@@ -1,6 +1,5 @@
 # encore work setup: darwin-level homebrew plus the home-manager config.
-{ ... }:
-{
+_: {
   homebrew = {
     taps = [
       "hamed-elfayome/claude-usage"
@@ -30,7 +29,6 @@
       ...
     }:
     let
-      unstable = import inputs.nixpkgs-unstable { inherit (pkgs.stdenv.hostPlatform) system; };
       # shared skills from encoredev/agents-setup; sync-skills is replaced by
       # `nix flake update encore-agents-setup`.
       agentSkills = lib.mapAttrs (name: _: "${inputs.encore-agents-setup}/skills/${name}") (
@@ -48,7 +46,7 @@
         protobuf
         pulumi
         pulumiPackages.pulumi-go
-        unstable.clickhouse
+        pkgs.unstable.clickhouse
         overmind
         docker-compose
         cloudflared

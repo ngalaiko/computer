@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   # SSH keys live in the Secure Enclave via Secretive
   # (https://github.com/maxgoedjen/secretive), which serves them from its own
   # ssh-agent socket. The auth+signing key is created in the Secretive GUI with

@@ -1,6 +1,5 @@
 {
   pkgs,
-  inputs,
   ...
 }:
 let
@@ -14,12 +13,8 @@ let
       }
     );
   };
-  # amp-cli is unfree; allow just it. unstable for a fresher build.
-  amp =
-    (import inputs.nixpkgs-unstable {
-      inherit (pkgs.stdenv.hostPlatform) system;
-      config.allowUnfreePredicate = p: pkgs.lib.getName p == "amp-cli";
-    }).amp-cli;
+  # unstable for a fresher build.
+  amp = pkgs.unstable.amp-cli;
   runner = pkgs.writeShellScript "amp-runner" ''
     set -eu
     # Load user-owned configuration after dropping privileges.

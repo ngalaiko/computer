@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   programs.nixvim.lsp.servers.gopls = {
     enable = true;
     config.settings.gopls = {

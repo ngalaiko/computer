@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   # XDG base dirs — define with the spec defaults if the session hasn't.
   programs.fish.shellInit = ''
     set --query XDG_CONFIG_HOME; or set --global --export XDG_CONFIG_HOME "$HOME/.config"

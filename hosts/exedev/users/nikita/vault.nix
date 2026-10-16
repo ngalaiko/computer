@@ -2,9 +2,7 @@
 let
   home = "/home/nikita";
   vault = "${home}/Vault";
-  obsidian-headless = import ../../../../packages/obsidian-headless { inherit pkgs; };
-  wherenow = import ../../../../packages/wherenow { inherit pkgs; };
-  vault-sync = import ../../../../packages/vault-sync { inherit pkgs; };
+  inherit (pkgs) obsidian-headless wherenow vault-sync;
   obsidian-sync = pkgs.writeShellScriptBin "obsidian-sync" ''
     set -eu
     exec ${obsidian-headless}/bin/ob sync --path "''${OBSIDIAN_VAULT_DIR:-${vault}}" "$@"

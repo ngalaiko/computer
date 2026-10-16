@@ -1,12 +1,14 @@
-{ pkgs }:
+{
+  lib,
+  stdenv,
+  python3,
+  makeWrapper,
+}:
 # Two tiny stdlib-only Python scripts that write vault notes from Letterboxd
 # (Movies) and Discogs (Albums). No third-party deps, so they build against the
 # pinned python3 directly; a shared vaultlib.py sits on PYTHONPATH. Exposes
 # `vault-sync-letterboxd` and `vault-sync-discogs`.
-let
-  inherit (pkgs) lib python3 makeWrapper;
-in
-pkgs.stdenv.mkDerivation {
+stdenv.mkDerivation {
   pname = "vault-sync";
   version = "0.1.0";
   src = ./.;

@@ -1,4 +1,4 @@
-{ ... }:
+_:
 let
   key = mode: k: action: {
     inherit mode action;

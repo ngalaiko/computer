@@ -1,6 +1,6 @@
-{ pkgs }:
+{ buildGoModule }:
 
-pkgs.buildGoModule {
+buildGoModule {
   pname = "wherenow";
   version = "0.1.0";
   src = ./.;

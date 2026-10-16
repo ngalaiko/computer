@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   # brew's fish never sources nix-darwin's /etc/fish init, so wire the nix
   # profiles onto PATH ourselves; runs after brew.nix, so nix bins win.
   programs.fish.shellInit = ''

@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   programs.nixvim.lsp.servers.cssls = {
     enable = true;
     config = {

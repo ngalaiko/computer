@@ -1,4 +1,9 @@
-{ inputs, pkgs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 {
   imports = [
     inputs.home-manager.darwinModules.home-manager
@@ -10,8 +15,14 @@
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
-  # home-manager's claude-code wrapper inherits the unfree meta.
-  nixpkgs.config.allowUnfreePredicate = p: pkgs.lib.getName p == "claude-code";
+  nixpkgs.overlays = [ (import ../../overlays { inherit inputs; }) ];
+  # Only these unfree packages, here and in pkgs.unstable.
+  nixpkgs.config.allowUnfreePredicate =
+    p:
+    builtins.elem (lib.getName p) [
+      "claude-code"
+      "amp-cli"
+    ];
   system.primaryUser = "nikita";
   system.stateVersion = 6;
 
@@ -20,7 +31,7 @@
     pkgs.mas
     # Transcripted has no cask/MAS listing; packaged from its release DMG and
     # linked into /Applications/Nix Apps.
-    (import ../../packages/transcripted { inherit pkgs; })
+    pkgs.transcripted
   ];
 
   users.users."nikita".home = "/Users/nikita";

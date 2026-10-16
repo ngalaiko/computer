@@ -1,4 +1,4 @@
-{ ... }:
+_:
 let
   user = "nikita";
   # podman machine's docker-compatible API socket: a stable on-disk symlink that

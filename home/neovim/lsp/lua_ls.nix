@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   programs.nixvim.lsp.servers.lua_ls = {
     enable = true;
     # settings go to the server verbatim, so the `Lua` section is explicit here
