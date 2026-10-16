@@ -53,6 +53,12 @@
   # the image closure. These are runtime qemu flags, so a re-switch is cheap.
   nix.linux-builder = {
     enable = true;
+    # qemu user emulation, for the x86_64 exe.dev image.
+    systems = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+    config.boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
     config.virtualisation = {
       cores = 6;
       # virtualisation.memorySize is derived from this by the darwin-builder
