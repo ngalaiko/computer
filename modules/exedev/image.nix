@@ -53,12 +53,37 @@ let
     install -m 0755 ${init} $out/init
   '';
 
-  workingDirOwner =
+  owner =
     let
       owners = lib.filterAttrs (_: u: u.home == cfg.workingDir) config.users.users;
-      u = lib.head (lib.attrValues owners);
     in
-    if owners == { } then "0:0" else "${toString u.uid}:${toString config.users.groups.${u.group}.gid}";
+    if owners == { } then
+      null
+    else
+      lib.head (lib.attrValues owners) // { name = lib.head (lib.attrNames owners); };
+  ownerGid = toString config.users.groups.${owner.group}.gid;
+  workingDirOwner = if owner == null then "0:0" else "${toString owner.uid}:${ownerGid}";
+
+  # Accounts exe-init needs before NixOS activation writes the real files.
+  passwd = pkgs.writeText "passwd" (
+    ''
+      root:x:0:0:System administrator:/root:/bin/sh
+    ''
+    + lib.optionalString (owner != null) ''
+      ${owner.name}:x:${toString owner.uid}:${ownerGid}::${owner.home}:/bin/sh
+    ''
+  );
+  group = pkgs.writeText "group" (
+    ''
+      root:x:0:
+      wheel:x:1:
+      sshd:x:${toString config.users.groups.sshd.gid}:
+      users:x:100:
+    ''
+    + lib.optionalString (owner != null) ''
+      ${owner.group}:x:${ownerGid}:
+    ''
+  );
 
   image = pkgs.dockerTools.buildLayeredImageWithNixDb {
     inherit (cfg) name maxLayers;
@@ -71,7 +96,11 @@ let
     extraCommands = ''
       rm init
       install -m 0755 ${init} init
-      mkdir -p nix/var/nix/profiles tmp
+      mkdir -p nix/var/nix/profiles tmp etc
+      install -m 0644 ${passwd} etc/passwd
+      install -m 0644 ${group} etc/group
+      # empty, not absent: systemd generates one per VM on first boot.
+      : > etc/machine-id
       ln -s ${toplevel} nix/var/nix/profiles/system-1-link
       ln -s system-1-link nix/var/nix/profiles/system
     '';
@@ -83,6 +112,10 @@ let
     '';
     config = {
       Cmd = [ "/init" ];
+      Env = [
+        "container=oci"
+        "PATH=/run/current-system/sw/bin:/usr/bin:/bin"
+      ];
       WorkingDir = cfg.workingDir;
       Labels = cfg.labels;
       ExposedPorts = lib.genAttrs (map (p: "${toString p}/tcp") cfg.exposedPorts.tcp) (_: { });
@@ -148,6 +181,16 @@ in
       firewall.enable = false;
     };
     environment.etc.hosts.enable = false;
+
+    # Privilege-separation account for exe.dev's injected sshd; without it
+    # every connection fails during the handshake.
+    users.users.sshd = {
+      uid = 22;
+      isSystemUser = true;
+      group = "sshd";
+      home = "/var/empty";
+    };
+    users.groups.sshd.gid = 22;
 
     # Provider-managed mounts and early-boot units, as in exe.dev's exeuntu.
     systemd.units =

@@ -95,6 +95,10 @@
     '';
   };
   exedev.backup.paths = [ "/var/lib/tailscale/authkey" ];
+  # TODO: back to `latest` once the recreated box is up; pinned to the
+  # pre-NixOS cutover snapshot over snapshots taken by the box that never
+  # joined the tailnet.
+  exedev.backup.restoreSnapshot = "6bddfdfa";
 
   # Public path-routed ingress via node Funnel:
   # https://exedev.<tailnet>.ts.net/<tenant>/. World-reachable with NO auth,

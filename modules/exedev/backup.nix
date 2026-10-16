@@ -1,5 +1,5 @@
 # restic -> B2, credentials from the exe.dev VM environment. Backups and
-# retention run on separate timers; the latest snapshot is restored on boot.
+# retention run on separate timers; a fresh disk is restored on first boot.
 {
   pkgs,
   config,
@@ -27,6 +27,7 @@ let
   };
 
   restic = "${pkgs.restic}/bin/restic";
+  restored = "/var/lib/backup-restore/done";
 in
 {
   options.exedev.backup = {
@@ -43,7 +44,12 @@ in
     paths = mkOption {
       type = types.listOf types.str;
       default = [ ];
-      description = "Absolute paths to back up; restored to the same locations on boot.";
+      description = "Absolute paths to back up; restored to the same locations on a fresh disk.";
+    };
+    restoreSnapshot = mkOption {
+      type = types.str;
+      default = "latest";
+      description = "Snapshot restored on a fresh disk: an ID, or `latest` within host and tag.";
     };
   };
 
@@ -86,36 +92,47 @@ in
     };
 
     systemd.services = {
-      restic-backups-b2.unitConfig.ConditionFileNotEmpty = envFile;
+      # an unrestored disk is never snapshotted.
+      restic-backups-b2.unitConfig = {
+        ConditionFileNotEmpty = envFile;
+        ConditionPathExists = restored;
+      };
       restic-backups-b2-prune.unitConfig.ConditionFileNotEmpty = envFile;
 
       # Runs as root, so restic restores the snapshot's numeric owners. Order
-      # services that need restored state after this unit.
+      # services that need restored state after this unit. Only a fresh disk is
+      # restored: a reboot keeps newer local state.
       backup-restore = {
         wantedBy = [ "multi-user.target" ];
         wants = [ "network-online.target" ];
         after = [ "network-online.target" ];
-        unitConfig.ConditionFileNotEmpty = envFile;
+        unitConfig = {
+          ConditionFileNotEmpty = envFile;
+          ConditionPathExists = "!${restored}";
+        };
         restartIfChanged = false;
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           EnvironmentFile = envFile;
           CacheDirectory = "restic-backups-b2";
-          TimeoutStartSec = 300;
+          StateDirectory = "backup-restore";
+          TimeoutStartSec = "1h";
         };
         environment.RESTIC_CACHE_DIR = "/var/cache/restic-backups-b2";
         script = ''
           if ! ${restic} cat config >/dev/null 2>&1; then
             echo "restore: repo has no snapshots yet" >&2
+            touch ${restored}
             exit 0
           fi
-          if ${restic} snapshots ${lib.escapeShellArgs scope} --latest 1 >/dev/null 2>&1; then
-            ${restic} restore latest ${lib.escapeShellArgs scope} --target / \
-              || echo "restore: failed; continuing with on-disk state" >&2
-          else
+          if ! ${restic} snapshots ${lib.escapeShellArgs scope} --json | grep -q '"id"'; then
             echo "restore: no snapshots for host ${cfg.host} yet" >&2
+            touch ${restored}
+            exit 0
           fi
+          ${restic} restore ${cfg.restoreSnapshot} ${lib.escapeShellArgs scope} --target /
+          touch ${restored}
         '';
       };
     };
