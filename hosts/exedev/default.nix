@@ -68,7 +68,7 @@
     extraSpecialArgs = { inherit inputs; };
   };
 
-  # One tailnet node, `computer`: ssh + the public ingress funnel on its own
+  # One tailnet node, `exedev`: ssh + the public ingress funnel on its own
   # name. Node state lives in /var/lib/tailscale and is not backed up, so a
   # fresh disk registers a new node; the ephemeral key retires the old one.
   services.tailscale = {
@@ -76,10 +76,12 @@
     authKeyFile = "/var/lib/tailscale/authkey";
     extraUpFlags = [
       "--ssh"
-      "--hostname=computer"
-      "--advertise-tags=tag:computer"
+      "--hostname=exedev"
+      "--advertise-tags=tag:exedev"
       "--accept-dns=false"
     ];
+    # re-applied on every boot; up flags apply only at login.
+    extraSetFlags = [ "--hostname=exedev" ];
   };
   systemd.services.tailscaled = {
     wants = [ "backup-restore.service" ];
@@ -95,7 +97,7 @@
   exedev.backup.paths = [ "/var/lib/tailscale/authkey" ];
 
   # Public path-routed ingress via node Funnel:
-  # https://computer.<tailnet>.ts.net/<tenant>/. World-reachable with NO auth,
+  # https://exedev.<tailnet>.ts.net/<tenant>/. World-reachable with NO auth,
   # unlike the exe.dev-shared 8080, which exe.dev gates. Node-named, so the URL
   # can churn when the machine is recreated; exe.dev's share stays the stable
   # public path. Reconstructed on every boot: `serve reset` makes this list

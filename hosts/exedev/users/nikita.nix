@@ -40,6 +40,6 @@ in
 
   home-manager.users.${name} = {
     imports = [ ../../../home ];
-    programs.fish.interactiveShellInit = "set --global prompt_host computer";
+    programs.fish.interactiveShellInit = "set --global prompt_host exedev";
   };
 }

@@ -63,7 +63,7 @@ node, the public URL, and all on-disk state are preserved:
   Tailscale (the Mac is aarch64, the box x86_64) and switches it.
 - **From CI:** `.github/workflows/deploy.yaml` runs after a green `build` on
   `master` and is **self-deciding**:
-  - **no VM tagged `computer`** → it `exe.dev new`s one from the built image
+  - **no VM tagged `exedev`** → it `exe.dev new`s one from the built image
     (bootstrap / disaster recovery), passing the backup secrets so the box can
     restore from B2 on boot. This is the only path that uses `RESTIC_PASSWORD` /
     `B2_ACCOUNT_KEY` (CI secrets).
@@ -71,14 +71,14 @@ node, the public URL, and all on-disk state are preserved:
     secrets** — runtime secrets already live on the box. This path needs only
     tailnet access: a Tailscale OAuth client tagged `tag:ci` (client id inline in
     `deploy.yaml`, secret in the `TS_OAUTH_SECRET` repo secret) and a policy rule
-    letting `tag:ci` SSH the computer node:
+    letting `tag:ci` SSH the exedev node:
 
     ```jsonc
     "ssh": [{ "action": "accept", "src": ["tag:ci"],
-              "dst": ["tag:computer"], "users": ["nikita"] }]
+              "dst": ["tag:exedev"], "users": ["nikita"] }]
     ```
 
-Roll back with `nixos-rebuild switch --rollback --target-host nikita@computer --sudo`.
+Roll back with `nixos-rebuild switch --rollback --target-host nikita@exedev --sudo`.
 `exe.dev restart` boots the latest generation; only the image's `/init` is fixed
 at create time.
 
@@ -134,20 +134,20 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    ```
 
 3. Create the tailscale secret: an [OAuth client](https://login.tailscale.com/admin/settings/oauth)
-   with the **Keys → Auth Keys: write** scope, tagged `tag:computer`. The
+   with the **Keys → Auth Keys: write** scope, tagged `tag:exedev`. The
    [tailnet policy](https://login.tailscale.com/admin/acls) must define the
    tag and allow ssh into it:
 
    ```jsonc
-   "tagOwners": { "tag:computer": ["autogroup:admin"] },
+   "tagOwners": { "tag:exedev": ["autogroup:admin"] },
    "ssh": [{
      "action": "accept",
      "src":    ["ngalaiko@github"],
-     "dst":    ["tag:computer"],
+     "dst":    ["tag:exedev"],
      "users":  ["nikita"]
    }],
    // required for `funnel = true` serve entries (the public ingress).
-   "nodeAttrs": [{ "target": ["tag:computer"], "attr": ["funnel"] }]
+   "nodeAttrs": [{ "target": ["tag:exedev"], "attr": ["funnel"] }]
    ```
 
    Place the secret on the machine (ephemeral, so retired VMs' nodes auto-clean):
@@ -159,20 +159,20 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
 
    Reboot (or run the per-node `tailscale up` from
    `systemctl restart tailscaled-autoconnect`), then
-   `tailscale ssh nikita@computer` over the tailnet. The authkey is backed up so
+   `tailscale ssh nikita@exedev` over the tailnet. The authkey is backed up so
    you don't re-place it, and it registers every node. Each tailscaled keeps its
    node key (and, for the ssh node, its SSH host keys) in its own persistent
    statedir (not backed up), so a fresh machine registers new nodes; the
    ephemeral key lets retired ones auto-remove once offline — no manual cleanup.
 
 4. Enable **HTTPS Certificates** (admin console → DNS → _Enable HTTPS_, needs
-   MagicDNS on). Required to provision the `*.ts.net` certs. The `computer`
+   MagicDNS on). Required to provision the `*.ts.net` certs. The `exedev`
    node's `tailscale-serve` service re-asserts this on every boot:
-   - `https://computer.<tailnet>.ts.net/<tenant>/` → ingress, **public via
+   - `https://exedev.<tailnet>.ts.net/<tenant>/` → ingress, **public via
      Funnel** (needs the `nodeAttrs` above). Unauthenticated — see the note in
      `hosts/exedev/default.nix`. This one is named after the _node_, so on a
      recreation where the retired ephemeral node hasn't dropped yet Tailscale
-     may suffix it (`computer-1`) until the stale one is culled; exe.dev's
+     may suffix it (`exedev-1`) until the stale one is culled; exe.dev's
      public share is the stable public path if that matters.
 
 5. Place the wherenow bearer token (the value the "Where Now?" iOS app sends as
@@ -187,7 +187,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    sudo chown 1000:1000 /home/nikita/.config/wherenow/env
    ```
 
-   Then point the iOS app at `https://computer.<tailnet>.ts.net/assistant/wherenow`
+   Then point the iOS app at `https://exedev.<tailnet>.ts.net/assistant/wherenow`
    with the same token; the root caddy routes it to wherenow on loopback 8085.
    wherenow writes each position straight into nikita's Obsidian vault as a
    note; the service retries every 10s until the file exists.
@@ -210,7 +210,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    record you buy gets its blank `lp:` filled — hand edits are never clobbered.
 
 7. Place an Amp access token so `amp-runner` can serve threads started on
-   ampcode.com (runner id `computer`). Get it at
+   ampcode.com (runner id `exedev`). Get it at
    <https://ampcode.com/settings/security#access-token>:
 
    ```
@@ -240,7 +240,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    and `FONTCONFIG_FILE` supplies pinned DejaVu fonts. Browser tools need no
    separate browser download or host font installation.
 
-   Amp can serve HTTP under `https://computer.<tailnet>.ts.net/amp/` through
+   Amp can serve HTTP under `https://exedev.<tailnet>.ts.net/amp/` through
    its own Caddy on port 8084. As the `amp` user, edit `~/.caddy/Caddyfile` to
    add routes inside the `:8084` site block, then validate and reload:
 

@@ -84,7 +84,7 @@ rec {
   # In-place deploy: `nixos-rebuild switch` on the live box, built in the box's
   # own store (the Mac is aarch64, the box x86_64). `nix` comes from the caller's
   # PATH so it keeps the host's config.
-  #   DEPLOY_NODE   tailnet node / ssh host   (default: computer)
+  #   DEPLOY_NODE   tailnet node / ssh host   (default: exedev)
   #   DEPLOY_FLAKE  flake ref                 (default: . = the working tree)
   deploy = pkgs.writeShellApplication {
     name = "deploy";
@@ -93,7 +93,7 @@ rec {
       pkgs.openssh
     ];
     text = ''
-      node="''${DEPLOY_NODE:-computer}"
+      node="''${DEPLOY_NODE:-exedev}"
       ref="''${DEPLOY_FLAKE:-.}"
       # accept-new so a fresh runner (CI) trusts the tailnet host key on first sight.
       export NIX_SSHOPTS="''${NIX_SSHOPTS:--o StrictHostKeyChecking=accept-new -o ConnectTimeout=20}"

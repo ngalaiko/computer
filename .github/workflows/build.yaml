@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  VM_NAME: computer
-  VM_TAG: computer
+  VM_NAME: exedev
+  VM_TAG: exedev
 
 jobs:
   check:
@@ -53,7 +53,7 @@ jobs:
             | grep -q "SHA256:JJOP/lwiBGOMilfONPWZCXUrfK154cnJFXcqlsi6lPo" \
             || { echo "exe.dev host-key fingerprint mismatch"; exit 1; }
 
-      - name: Is there a computer VM?
+      - name: Is there an exedev VM?
         id: check
         run: |
           if ! ssh -i ~/.ssh/id_ed25519 exe.dev ls --l --json > vms.json; then
@@ -84,7 +84,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # exe.dev runs the computer host on x86_64; do not spend an ARM runner
+          # exe.dev runs the exedev host on x86_64; do not spend an ARM runner
           # building an image that is never deployed.
           - { system: x86_64-linux, runner: ubuntu-24.04 }
     steps:
@@ -138,7 +138,7 @@ jobs:
             | grep -q "SHA256:JJOP/lwiBGOMilfONPWZCXUrfK154cnJFXcqlsi6lPo" \
             || { echo "exe.dev host-key fingerprint mismatch"; exit 1; }
 
-      - name: Create the computer VM
+      - name: Create the exedev VM
         env:
           IN_TAG: ${{ inputs.image_tag || github.sha }}
           RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}

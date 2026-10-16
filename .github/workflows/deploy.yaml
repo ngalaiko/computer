@@ -24,9 +24,9 @@ jobs:
       # The box is reachable only over its tailnet. This tailnet OAuth client is
       # the only credential the in-place path needs — NOT an app secret. The client
       # id is public (inline); only the secret is a repo secret. The policy must let
-      # tag:ci tailscale-ssh nikita@ the computer node (README):
+      # tag:ci tailscale-ssh nikita@ the exedev node (README):
       #   "ssh": [{ "action": "accept", "src": ["tag:ci"],
-      #             "dst": ["tag:computer"], "users": ["nikita"] }]
+      #             "dst": ["tag:exedev"], "users": ["nikita"] }]
       - name: Join tailnet
         uses: tailscale/github-action@v3
         with:
@@ -39,13 +39,13 @@ jobs:
       - name: Diagnose Tailscale connectivity
         run: |
           tailscale status
-          tailscale ping computer || true
-          getent ahostsv4 computer || true
-          nc -vz -w10 computer 22 || true
+          tailscale ping exedev || true
+          getent ahostsv4 exedev || true
+          nc -vz -w10 exedev 22 || true
           # Tailscale SSH needs a working target /etc/passwd; retain its result
           # as diagnostics only, so a broken rootfs can still be repaired via
           # the platform's OpenSSH server below.
-          tailscale ssh nikita@computer true || true
+          tailscale ssh nikita@exedev true || true
 
       - name: Activate in place
         env:

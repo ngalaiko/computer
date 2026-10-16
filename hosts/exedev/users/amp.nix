@@ -35,7 +35,7 @@ let
       echo "amp-runner: AMP_API_KEY unset in $envfile. Retrying." >&2
       exit 1
     fi
-    exec ${amp}/bin/amp --no-tui --runner-id computer --remote-control-terminal \
+    exec ${amp}/bin/amp --no-tui --runner-id exedev --remote-control-terminal \
       --discover-dirs=${home} --discover-depth 3
   '';
 in
