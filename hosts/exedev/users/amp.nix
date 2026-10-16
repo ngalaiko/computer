@@ -26,7 +26,6 @@ let
     envfile=${home}/.config/amp-runner/env
     if [ ! -f "$envfile" ]; then
       echo "amp-runner: $envfile missing; place AMP_API_KEY=... (see README). Retrying." >&2
-      sleep 30
       exit 1
     fi
     set -a
@@ -34,10 +33,8 @@ let
     set +a
     if [ -z "''${AMP_API_KEY:-}" ]; then
       echo "amp-runner: AMP_API_KEY unset in $envfile. Retrying." >&2
-      sleep 30
       exit 1
     fi
-    cd ${home}
     exec ${amp}/bin/amp --no-tui --runner-id computer --remote-control-terminal \
       --discover-dirs=${home} --discover-depth 3
   '';
@@ -49,9 +46,9 @@ in
     group = "amp";
     inherit home;
     createHome = true;
-    shell = "/bin/sh";
+    isSystemUser = true;
+    shell = pkgs.bashInteractive;
     description = "Amp runner";
-    environment = toolEnvironment;
     packages = with pkgs; [
       amp
       chromium
@@ -83,25 +80,27 @@ in
     upstreamPort = 8084;
   };
 
-  services.backup.paths = [ home ];
+  exedev.backup.paths = [ home ];
 
-  s6.services.amp-runner = {
-    dependencies = [
-      "base"
-      # Restore the user-owned configuration before starting the runner.
-      "backup-restore"
-    ];
-    run = ''
-      exec ${pkgs.s6}/bin/s6-setuidgid amp \
-        env \
-          HOME=${home} \
-          USER=amp \
-          SHELL=/bin/sh \
-          PATH=/etc/profiles/per-user/amp/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-          SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-          NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-          NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-        ${runner}
-    '';
+  systemd.services.amp-runner = {
+    wantedBy = [ "multi-user.target" ];
+    # Restore the user-owned configuration before starting the runner.
+    wants = [ "backup-restore.service" ];
+    after = [ "backup-restore.service" ];
+    path = [ "/etc/profiles/per-user/amp" ];
+    environment = toolEnvironment // {
+      HOME = home;
+      SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt";
+      NIX_SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt";
+      NODE_EXTRA_CA_CERTS = "/etc/ssl/certs/ca-certificates.crt";
+    };
+    serviceConfig = {
+      User = "amp";
+      WorkingDirectory = home;
+      ExecStart = runner;
+      Restart = "always";
+      RestartSec = 30;
+    };
+    startLimitIntervalSec = 0;
   };
 }

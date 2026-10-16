@@ -51,20 +51,23 @@ installing ad-hoc packages before the first rebuild.
 
 ## Deploying
 
-Everyday deploys are **in place** — they update the running VM without recreating
-it, so the Tailscale node, the public URL, and all on-disk state are preserved, and
-only changed services reload (unchanged ones keep their PIDs):
+The exe.dev VM runs NixOS (`nixosConfigurations.exedev`) with systemd as PID 1:
+exe.dev's init execs an image `Cmd` named `init`, and the image's `/init`
+boots the current system profile. The provider owns the kernel, network, DNS,
+`/etc/hosts` and `/etc/hostname`.
 
-- **From your Mac:** `nix run .#deploy`. Builds the system generation, ships its
-  closure to the box over Tailscale, and runs `<gen>/activate switch`. The Mac is
-  aarch64 and the box is x86_64, so the build is realised in the box's own store.
+Everyday deploys are **in place** with `nixos-rebuild switch`, so the Tailscale
+node, the public URL, and all on-disk state are preserved:
+
+- **From your Mac:** `nix run .#deploy`. Builds in the box's own store over
+  Tailscale (the Mac is aarch64, the box x86_64) and switches it.
 - **From CI:** `.github/workflows/deploy.yaml` runs after a green `build` on
   `master` and is **self-deciding**:
   - **no VM tagged `computer`** → it `exe.dev new`s one from the built image
     (bootstrap / disaster recovery), passing the backup secrets so the box can
     restore from B2 on boot. This is the only path that uses `RESTIC_PASSWORD` /
     `B2_ACCOUNT_KEY` (CI secrets).
-  - **VM exists** → it activates in place (`nix run .#deploy`) with **no app
+  - **VM exists** → it switches in place (`nix run .#deploy`) with **no app
     secrets** — runtime secrets already live on the box. This path needs only
     tailnet access: a Tailscale OAuth client tagged `tag:ci` (client id inline in
     `deploy.yaml`, secret in the `TS_OAUTH_SECRET` repo secret) and a policy rule
@@ -75,28 +78,46 @@ only changed services reload (unchanged ones keep their PIDs):
               "dst": ["tag:computer"], "users": ["nikita"] }]
     ```
 
-Roll back with `sudo nix-env -p /nix/var/nix/profiles/system --rollback` then
-re-run `activate`. `sudo <gen>/activate test` is a dry run that prints the
-overlay/reload plan and changes nothing.
+Roll back with `nixos-rebuild switch --rollback --target-host nikita@computer --sudo`.
+`exe.dev restart` boots the latest generation; only the image's `/init` is fixed
+at create time.
 
-**Base changes still take effect only through a create** (s6-overlay / nix / kernel
-layer, the init/mount wrapper, `image.env`): they're excluded from in-place
-activation, so they land when CI next has to create a VM — or when you `rm` the VM
-to force a fresh one. After a create, the next `deploy` re-establishes the latest
-generation, and the base `init-wrapper` hands off to it on `exe.dev restart`.
+Service logs are in the journal: `journalctl -u <service>`.
 
-Service supervision, logging, environment loading, and user switching use
-Nix-packaged s6 tools through their store paths, not the base image's `/command`
-links. Their matching helpers travel with the system generation, so an in-place
-deploy does not depend on the base image's `/package` version. s6-overlay remains
-the PID-1 boot layer for Docker; exe.dev uses the Nix-packaged supervisor.
-The Linux `s6-runtime` flake check exercises user switching, container environment
-loading, logging, and service restart without `/command` or `/package` present.
+### Cutover from the s6 image
+
+The s6-based image can't switch in place to NixOS; the box must be recreated.
+Before deleting it, take a snapshot of every home on the **old** box, under the
+host and tag the new box restores from:
+
+```sh
+sudo sh -c '
+  set -eu
+  cd /run/s6/container_environment
+  for v in RESTIC_REPOSITORY RESTIC_PASSWORD B2_ACCOUNT_ID B2_ACCOUNT_KEY; do
+    export "$v=$(cat "$v")"
+  done
+  export RESTIC_CACHE_DIR=/var/cache/restic
+  restic unlock
+  restic backup --host exedev --tag auto \
+    --exclude __pycache__ --exclude .venv --exclude venv --exclude node_modules \
+    --exclude "!**/.pi/**/node_modules" --exclude .cache \
+    --exclude checkpoints --exclude backups \
+    /home/nikita /var/lib/amp /var/lib/assistant /var/lib/tailscale/authkey
+  restic snapshots --host exedev --tag auto --latest 1
+  restic ls latest /home/nikita /var/lib/amp | head -50
+'
+```
+
+Stop writers first (Obsidian sync, amp runner) if the snapshot must be exact.
+Then delete the VM and let CI create a new one; `backup-restore` restores the
+snapshot on first boot and home-manager links the dotfiles over the restored
+copies, moving those aside with a `.backup` suffix.
 
 ## After creating a machine
 
 One-time steps that place secrets; backups persist them across recreations
-(confirm a snapshot ran: `cat /var/log/backup-cron/current`). nikita's ssh key
+(confirm a snapshot ran: `journalctl -u restic-backups-b2`). nikita's ssh key
 (`~/.ssh`) and the tailscale authkey are both backed up, so neither is
 re-placed on recreation. Each tailscale node's state lives in its own statedir
 on the persistent disk but isn't backed up, so a fresh machine registers new
@@ -137,7 +158,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    ```
 
    Reboot (or run the per-node `tailscale up` from
-   `modules/exedev/services/tailscale.nix` by hand), then
+   `systemctl restart tailscaled-autoconnect`), then
    `tailscale ssh nikita@computer` over the tailnet. The authkey is backed up so
    you don't re-place it, and it registers every node. Each tailscaled keeps its
    node key (and, for the ssh node, its SSH host keys) in its own persistent
@@ -237,7 +258,7 @@ nodes; use an ephemeral key so retired ones auto-clean (see step 3).
    Funnel access is public and unauthenticated: add authentication for private
    content, and keep backend servers on loopback.
 
-## Vault ownership and migration
+## Vault ownership
 
 The Vault lives at `/home/nikita/Vault`. Obsidian Sync, Letterboxd/Discogs polls,
 and Where Now all run as `nikita`. The existing `assistant-*` service names and
@@ -246,7 +267,7 @@ and Where Now all run as `nikita`. The existing `assistant-*` service names and
 credentials. Vault data, Obsidian login/sync state, and both runtime env
 directories are backed up.
 
-`vault-permissions` runs after backup restore and on deploy. It sets nikita as
+`vault-permissions` runs after backup restore and when its unit changes. It sets nikita as
 the owner, replaces existing Vault ACLs with access for these three users, and installs default ACLs on
 every directory so normal new files remain shared even with a restrictive
 umask. Tools that explicitly create files with mode `0600`, preserve foreign
@@ -255,123 +276,16 @@ ACLs, or move files in from elsewhere can bypass inheritance; run
 The remote filesystem must support POSIX ACLs; stop and investigate if
 `setfacl` reports an error rather than falling back to world-writable notes.
 
-### Move an existing assistant Vault
-
-Run these on the **remote computer**, before deploying this refactor. Stop
-manual syncs and agent edits too. The script refuses to overwrite any of the
-destination directories. It moves Obsidian's separate global state as well as
-the Vault; moving only the Vault would lose the login and local sync tracking.
-
-```sh
-sudo /bin/sh <<'SH'
-set -eu
-for name in Vault .config/obsidian-headless .config/vault-sync .config/wherenow; do
-  test ! -e "/home/nikita/$name" || {
-    echo "Destination exists: /home/nikita/$name; inspect it before migrating." >&2
-    exit 1
-  }
-done
-test -d /var/lib/assistant/Vault/.obsidian
-test -d /var/lib/assistant/.config/obsidian-headless/sync
-
-for service in assistant-obsidian-sync assistant-vault-sync assistant-wherenow; do
-  /command/s6-svc -d "/run/service/$service"
-  /command/s6-svc -wd -T 30000 "/run/service/$service"
-done
-
-install -d -o 1000 -g 1000 /home/nikita/.config
-mv /var/lib/assistant/Vault /home/nikita/Vault
-for app in obsidian-headless vault-sync wherenow; do
-  if [ -d "/var/lib/assistant/.config/$app" ]; then
-    mv "/var/lib/assistant/.config/$app" /home/nikita/.config/
-  fi
-done
-
-# Headless 0.0.14 registers an absolute vaultPath in config.json. Update only
-# that path while stopped; preserve encryption keys, settings, and state.db.
-umask 077
-for config in /home/nikita/.config/obsidian-headless/sync/*/config.json; do
-  test -f "$config" || continue
-  tmp=$(mktemp "$config.XXXXXX")
-  /etc/profiles/per-user/assistant/bin/jq '
-    if .vaultPath == "/var/lib/assistant/Vault"
-    then .vaultPath = "/home/nikita/Vault" else . end
-  ' "$config" > "$tmp"
-  mv "$tmp" "$config"
-done
-
-chown -R 1000:1000 /home/nikita/Vault
-for app in obsidian-headless vault-sync wherenow; do
-  dir="/home/nikita/.config/$app"
-  if [ -d "$dir" ]; then
-    chown -R 1000:1000 "$dir"
-    chmod -R u+rwX,go-rwx "$dir"
-  fi
-done
-SH
-```
-
-Then deploy from your checkout (`nix run .#deploy`). Deployment installs the
-ACL tools, reapplies Vault permissions, and restarts the changed services as
-nikita. Do not restart the old services before deployment: they still target
-the old location. Do not reboot until a backup of the migrated paths succeeds.
-
-On the remote computer, as `nikita`, verify the registration and exercise
-access in **both directions** (including inheritance with `umask 077`):
-
-```sh
-/etc/profiles/per-user/nikita/bin/ob sync-status --path /home/nikita/Vault --json
-sudo /etc/profiles/per-user/nikita/bin/vault-permissions
-/etc/profiles/per-user/nikita/bin/getfacl /home/nikita /home/nikita/Vault
-
-sudo /bin/sh <<'SH'
-set -eu
-for user in nikita amp assistant; do
-  sudo -u "$user" sh -c '
-    umask 077
-    mkdir /home/nikita/Vault/.permission-check-"$1"
-    printf "%s\n" "$1" > /home/nikita/Vault/.permission-check-"$1"/note
-  ' sh "$user"
-done
-for user in nikita amp assistant; do
-  sudo -u "$user" sh -c '
-    for owner in nikita amp assistant; do
-      file=/home/nikita/Vault/.permission-check-$owner/note
-      cat "$file"
-      printf "%s\n" "$1" >> "$file"
-    done
-  ' sh "$user"
-done
-rm -r /home/nikita/Vault/.permission-check-nikita \
-  /home/nikita/Vault/.permission-check-amp \
-  /home/nikita/Vault/.permission-check-assistant
-SH
-
-ps -eo user,args | grep -E 'ob sync|supercronic.*vault-sync|bin/wherenow'
-tail /var/log/assistant-obsidian-sync/current
-tail /var/log/assistant-vault-sync/current
-tail /var/log/assistant-wherenow/current
-```
-
-Confirm `/var/log/backup-cron/current` shows a successful snapshot containing
-the new paths before considering migration finished. On a fresh machine with
-no existing Vault, run `ob login`, `ob sync-list-remote`, and
-`ob sync-setup --vault <remote-vault-id> --path /home/nikita/Vault` as nikita.
-
 ## Configuration
 
 ### Backups
 
 We have to store it outside of the machine to be able to restore everything else on startup.
 
-Backup environment variables are removed from other service processes, including
-loggers and oneshot hooks. Only `backup-restore` and `backup-cron` opt in through
-`s6.services.<name>.passEnvironment`. This preserves non-secret container settings
-and service-specific private env files. `/run/s6/container_environment` is root-only
-on both boot paths and after activation; it must not be made readable to tenants.
-This isolates the documented backup variables, not arbitrary credentials placed
-in the container environment. Add other sensitive names to `s6.sensitiveEnvironment`
-with explicit per-service opt-ins. Root still has access to the container credentials.
+`exedev.backup.paths` are snapshotted every 15 minutes by
+`services.restic.backups.b2` and restored on every boot by `backup-restore`.
+The variables below are passed to `exe.dev new --env`; `/init` writes them to
+the root-only `/run/exedev/environment`, which only the restic units read.
 
 | Variable            | Description                              |
 | ------------------- | ---------------------------------------- |

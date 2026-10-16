@@ -1,3 +1,5 @@
+# restic -> B2, credentials from the exe.dev VM environment. Backups and
+# retention run on separate timers; the latest snapshot is restored on boot.
 {
   pkgs,
   config,
@@ -6,196 +8,116 @@
 }:
 let
   inherit (lib) mkOption types;
-  cfg = config.services.backup;
-  restic = "${pkgs.restic}/bin/restic";
-  backupEnvironment = [
-    "RESTIC_REPOSITORY"
-    "RESTIC_PASSWORD"
-    "RESTIC_CACHE_DIR"
-    "B2_ACCOUNT_ID"
-    "B2_ACCOUNT_KEY"
+  cfg = config.exedev.backup;
+  envFile = config.exedev.image.environmentFile;
+
+  # Every restic op is scoped to this host. Without it, a repo shared with
+  # another machine restores whichever box wrote the newest snapshot, and
+  # forget --prune applies retention across both boxes.
+  scope = [
+    "--host"
+    cfg.host
+    "--tag"
+    "auto"
   ];
-  # Every restic op is scoped to this machine's host. Without it, a repo shared
-  # with another machine breaks two ways: `restore latest` grabs whichever box
-  # wrote the globally-newest snapshot (so a foreign snapshot silently replaces
-  # this box's home), and `forget --prune` applies retention across both boxes'
-  # snapshots (so one box prunes the other's backups). --host confines both to
-  # our own snapshot lineage. MUST be unique per machine sharing a repo.
-  hostArg = "--host ${lib.escapeShellArg cfg.host}";
-  isPathExclude = p: lib.hasPrefix "!" p;
-  stripPathExclude = p: lib.removePrefix "!" p;
-  backupPaths = lib.filter (p: !isPathExclude p) cfg.paths;
-  pathExcludes = map (p: lib.trim (stripPathExclude p)) (lib.filter isPathExclude cfg.paths);
-  quotedPaths = lib.concatMapStringsSep " " lib.escapeShellArg backupPaths;
-  allExcludes = cfg.exclude ++ pathExcludes;
-  excludeArgs = lib.concatMapStringsSep " " (p: "--exclude=${lib.escapeShellArg p}") allExcludes;
 
-  # retention flags for `restic forget`; a null keep-* is omitted.
-  keepArgs = lib.concatStringsSep " " (
-    lib.optional (cfg.keepLast != null) "--keep-last ${toString cfg.keepLast}"
-    ++ lib.optional (cfg.keepHourly != null) "--keep-hourly ${toString cfg.keepHourly}"
-    ++ lib.optional (cfg.keepDaily != null) "--keep-daily ${toString cfg.keepDaily}"
-    ++ lib.optional (cfg.keepWeekly != null) "--keep-weekly ${toString cfg.keepWeekly}"
-    ++ lib.optional (cfg.keepMonthly != null) "--keep-monthly ${toString cfg.keepMonthly}"
-  );
+  common = {
+    environmentFile = envFile;
+    initialize = true;
+  };
 
-  # no repo configured -> no-op (so the image runs without B2).
-  guard = ''
-    if [ -z "''${RESTIC_REPOSITORY:-}" ]; then
-      echo "backup: RESTIC_REPOSITORY unset — skipping." >&2
-      exit 0
-    fi
-    export RESTIC_CACHE_DIR="''${RESTIC_CACHE_DIR:-/var/cache/restic}"
-  '';
-
-  backupScript = pkgs.writeShellScript "b2-backup" ''
-    set -u
-    ${guard}
-    ${restic} cat config >/dev/null 2>&1 || ${restic} init
-    # hard VM stops strand locks; drop the stale ones before backing up.
-    ${restic} unlock
-    ${restic} backup ${hostArg} --tag auto ${excludeArgs} ${quotedPaths}
-  '';
-
-  # retention runs on its own, infrequent schedule: --prune repacks pack files
-  # (B2 API calls + egress), so running it per-backup is wasteful. Decoupled
-  # here so snapshots span days rather than the ~6h a 15-min keep-last-24 kept.
-  forgetScript = pkgs.writeShellScript "b2-forget" ''
-    set -u
-    ${guard}
-    if ! ${restic} cat config >/dev/null 2>&1; then
-      echo "forget: repo not initialized yet — skipping." >&2
-      exit 0
-    fi
-    # prune's lock is exclusive; drop locks stranded by hard stops first.
-    ${restic} unlock
-    ${restic} forget ${hostArg} --tag auto ${keepArgs} --prune \
-      || echo "backup: forget/prune failed — retention not applied." >&2
-  '';
-
-  # runs as root, so restic restores the snapshot's numeric owners.
-  restoreScript = pkgs.writeShellScript "b2-restore" ''
-    set -u
-    ${guard}
-    if ! ${restic} cat config >/dev/null 2>&1; then
-      echo "restore: repo has no snapshots yet — nothing to restore." >&2
-      exit 0
-    fi
-    if ${restic} snapshots ${hostArg} --tag auto --latest 1 >/dev/null 2>&1; then
-      echo "restore: restoring latest snapshot for host ${cfg.host}" >&2
-      ${restic} restore latest ${hostArg} --tag auto --target / \
-        || echo "restore: failed — continuing with current on-disk state." >&2
-    else
-      echo "restore: no snapshots for host ${cfg.host} yet" >&2
-    fi
-  '';
-
-  crontab = pkgs.writeText "b2-crontab" ''
-    ${cfg.schedule} ${backupScript}
-    ${cfg.pruneSchedule} ${forgetScript}
-  '';
+  restic = "${pkgs.restic}/bin/restic";
 in
 {
-  options.services.backup = {
-    enable = lib.mkEnableOption "periodic restic->B2 backup of services.backup.paths with restore-on-start";
+  options.exedev.backup = {
     host = mkOption {
       type = types.str;
       default = "exedev";
       description = ''
-        restic --host tag for this machine's snapshots. backup, forget/prune,
-        and restore-on-boot are all confined to it. MUST be unique per machine
-        when several share one repo — otherwise restore grabs a foreign box's
-        latest snapshot and forget prunes across boxes. Defaults to a fixed
-        value rather than the OS hostname because exe.dev boxes share the
-        hostname "ngalaiko-computer", which is what caused them to collide.
+        restic --host for this machine's snapshots; backup, forget and
+        restore-on-boot are confined to it. Must be unique per machine sharing
+        a repo. Fixed rather than the OS hostname because exe.dev boxes share
+        hostnames.
       '';
     };
     paths = mkOption {
       type = types.listOf types.str;
       default = [ ];
-      description = ''
-        Absolute paths to back up; restored to the same locations on boot.
-        Entries prefixed with `!` (for example `! /path/to/volatile-file`)
-        are treated as module-local exclude patterns instead of backup roots.
-      '';
-    };
-    exclude = mkOption {
-      type = types.listOf types.str;
-      default = [
-        "__pycache__"
-        ".venv"
-        "venv"
-        "node_modules"
-        # ...but a node_modules under ~/.pi is a pi plugin installed at runtime
-        # (`pi install npm:…`), which is NOT regeneratable on a fresh machine, so
-        # re-include those. restic evaluates patterns in order (last match wins)
-        # and re-includes the whole subtree once the dir itself is un-excluded.
-        "!**/.pi/**/node_modules"
-        ".cache"
-        "checkpoints"
-        "backups"
-      ];
-      description = "Base restic exclude patterns (regeneratable dirs); a leading '!' re-includes.";
-    };
-    schedule = mkOption {
-      type = types.str;
-      default = "*/15 * * * *";
-      description = "Backup cron schedule (supercronic 5-field format).";
-    };
-    pruneSchedule = mkOption {
-      type = types.str;
-      default = "17 3 * * *";
-      description = "forget+prune (retention) cron schedule; runs far less often than backups because prune is expensive.";
-    };
-    keepLast = mkOption {
-      type = types.nullOr types.int;
-      default = 24;
-      description = "restic forget --keep-last (null to omit).";
-    };
-    keepHourly = mkOption {
-      type = types.nullOr types.int;
-      default = 24;
-      description = "restic forget --keep-hourly (null to omit).";
-    };
-    keepDaily = mkOption {
-      type = types.nullOr types.int;
-      default = 14;
-      description = "restic forget --keep-daily (null to omit).";
-    };
-    keepWeekly = mkOption {
-      type = types.nullOr types.int;
-      default = null;
-      description = "restic forget --keep-weekly (null to omit).";
-    };
-    keepMonthly = mkOption {
-      type = types.nullOr types.int;
-      default = null;
-      description = "restic forget --keep-monthly (null to omit).";
+      description = "Absolute paths to back up; restored to the same locations on boot.";
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    s6.sensitiveEnvironment = backupEnvironment;
-    image.packages = [
-      pkgs.restic
-      pkgs.supercronic
+  config = {
+    exedev.image.passEnvironment = [
+      "RESTIC_REPOSITORY"
+      "RESTIC_PASSWORD"
+      "B2_ACCOUNT_ID"
+      "B2_ACCOUNT_KEY"
     ];
 
-    s6.services.backup-restore = {
-      type = "oneshot";
-      passEnvironment = backupEnvironment;
-      run = ''
-        mkdir -p /var/cache/restic
-        timeout 300 ${restoreScript} || echo "restore: timed out — continuing." >&2
-      '';
+    services.restic.backups = {
+      b2 = common // {
+        inherit (cfg) paths;
+        extraBackupArgs = scope;
+        exclude = [
+          "__pycache__"
+          ".venv"
+          "venv"
+          "node_modules"
+          # pi plugins installed at runtime (`pi install npm:…`) are not
+          # regeneratable; last match wins, so this re-includes them.
+          "!**/.pi/**/node_modules"
+          ".cache"
+          "checkpoints"
+          "backups"
+        ];
+        timerConfig.OnCalendar = "*:0/15";
+      };
+      # --prune repacks pack files (B2 API calls + egress); run it daily, not
+      # per backup.
+      b2-prune = common // {
+        pruneOpts = scope ++ [
+          "--keep-last 24"
+          "--keep-hourly 24"
+          "--keep-daily 14"
+        ];
+        timerConfig.OnCalendar = "03:17";
+      };
     };
 
-    s6.services.backup-cron = {
-      passEnvironment = backupEnvironment;
-      run = ''
-        mkdir -p /var/cache/restic
-        exec ${pkgs.supercronic}/bin/supercronic ${crontab}
-      '';
+    systemd.services = {
+      restic-backups-b2.unitConfig.ConditionFileNotEmpty = envFile;
+      restic-backups-b2-prune.unitConfig.ConditionFileNotEmpty = envFile;
+
+      # Runs as root, so restic restores the snapshot's numeric owners. Order
+      # services that need restored state after this unit.
+      backup-restore = {
+        wantedBy = [ "multi-user.target" ];
+        wants = [ "network-online.target" ];
+        after = [ "network-online.target" ];
+        unitConfig.ConditionFileNotEmpty = envFile;
+        restartIfChanged = false;
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          EnvironmentFile = envFile;
+          CacheDirectory = "restic-backups-b2";
+          TimeoutStartSec = 300;
+        };
+        environment.RESTIC_CACHE_DIR = "/var/cache/restic-backups-b2";
+        script = ''
+          if ! ${restic} cat config >/dev/null 2>&1; then
+            echo "restore: repo has no snapshots yet" >&2
+            exit 0
+          fi
+          if ${restic} snapshots ${lib.escapeShellArgs scope} --latest 1 >/dev/null 2>&1; then
+            ${restic} restore latest ${lib.escapeShellArgs scope} --target / \
+              || echo "restore: failed; continuing with on-disk state" >&2
+          else
+            echo "restore: no snapshots for host ${cfg.host} yet" >&2
+          fi
+        '';
+      };
     };
   };
 }

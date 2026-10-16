@@ -1,5 +1,5 @@
 {
-  description = "Nix-built OCI image for exe.dev machines";
+  description = "NixOS for exe.dev machines and nix-darwin for the Mac";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -66,13 +66,15 @@
       allSystems = linuxSystems ++ builtins.attrNames darwinToLinux;
       linuxOf = system: darwinToLinux.${system} or system;
 
-      configFor =
+      exedevFor =
         linuxSystem:
-        (import ./modules/exedev {
-          pkgs = nixpkgs.legacyPackages.${linuxSystem};
+        nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs; };
-        }).eval
-          ./hosts/exedev;
+          modules = [
+            ./hosts/exedev
+            { nixpkgs.hostPlatform = linuxSystem; }
+          ];
+        };
 
       releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
 
@@ -80,23 +82,26 @@
         system: inputs.treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix;
     in
     {
+      # The exe.dev VM. `nix run .#deploy` switches it in place.
+      nixosConfigurations.exedev = exedevFor "x86_64-linux";
+
       # This Mac, configured with a Linux builder VM (so it can build *-linux).
       darwinConfigurations.macbook = nix-darwin.lib.darwinSystem {
         specialArgs = { inherit inputs; };
         modules = [ ./hosts/macbook ];
       };
 
-      # `nix build .#exedev` (base image) or `.#system` (the in-place generation);
+      # `nix build .#exedev` (base image) or `.#system` (the NixOS toplevel);
       # `.#packages.<sys>.{exedev,system}` for a specific arch.
       packages = lib.genAttrs allSystems (
         system:
         let
-          cfg = configFor (linuxOf system);
+          cfg = (exedevFor (linuxOf system)).config;
         in
         {
-          exedev = cfg.build.image;
-          system = cfg.build.system;
-          default = cfg.build.image;
+          exedev = cfg.system.build.ociImage;
+          system = cfg.system.build.toplevel;
+          default = cfg.system.build.ociImage;
         }
         // releaseFor system
       );
@@ -122,16 +127,8 @@
 
       # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
       # instead of a bespoke `nix fmt && git diff` step.
-      checks = lib.genAttrs allSystems (
-        system:
-        {
-          formatting = (treefmtFor system).config.build.check self;
-        }
-        // lib.optionalAttrs (lib.elem system linuxSystems) {
-          s6-runtime = import ./packages/s6-overlay/test.nix {
-            pkgs = nixpkgs.legacyPackages.${system};
-          };
-        }
-      );
+      checks = lib.genAttrs allSystems (system: {
+        formatting = (treefmtFor system).config.build.check self;
+      });
     };
 }

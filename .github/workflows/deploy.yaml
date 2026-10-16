@@ -34,9 +34,8 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      # DEPLOY_FLAKE pins the workflow commit, so the box fetches +
-      # builds the generation itself — nothing is pushed from the runner (which
-      # the box would reject as unsigned). `.#deploy` is still the local app.
+      # DEPLOY_FLAKE pins the workflow commit; nixos-rebuild evaluates here and
+      # builds in the box's store as the trusted nikita user.
       - name: Diagnose Tailscale connectivity
         run: |
           tailscale status

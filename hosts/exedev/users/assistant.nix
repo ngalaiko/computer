@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ pkgs, ... }:
 let
   # pi (the coding agent) is an npm CLI, packaged from its published tarball.
   # MIT, all-JS deps, so it builds against the pinned nixpkgs directly.
@@ -10,7 +10,8 @@ in
     group = "assistant";
     home = "/var/lib/assistant";
     createHome = true;
-    shell = "/bin/sh";
+    isSystemUser = true;
+    shell = pkgs.bashInteractive;
     description = "Assistant (pi coding agent)";
 
     # pi plus the tools it drives (git, gh, ripgrep, Chromium, …) and a node
@@ -55,13 +56,8 @@ in
     '';
   };
 
-  services.backup = {
-    enable = true;
-    # pi's config, auth (provider keys), session history, and the agent
-    # workspace all live under the home. This also covers the runtime-installed
-    # pi plugins (~/.pi/agent/npm), so a recreated machine restores them.
-    paths = [
-      "/var/lib/assistant"
-    ];
-  };
+  # pi's config, auth (provider keys), session history, and the agent workspace
+  # all live under the home. This also covers the runtime-installed pi plugins
+  # (~/.pi/agent/npm), so a recreated machine restores them.
+  exedev.backup.paths = [ "/var/lib/assistant" ];
 }

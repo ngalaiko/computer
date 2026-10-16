@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   home = "/home/nikita";
   vault = "${home}/Vault";
@@ -30,22 +30,31 @@ let
   requireVault = ''
     if [ ! -d ${vault}/.obsidian ]; then
       echo "${vault} not configured yet; run ob login + ob sync-setup as nikita. Retrying." >&2
-      sleep 30
       exit 1
     fi
   '';
-  asNikita = ''
-    exec ${pkgs.s6}/bin/s6-setuidgid nikita \
-      env \
-        HOME=${home} \
-        USER=nikita \
-        SHELL=/bin/sh \
-        PATH=/etc/profiles/per-user/nikita/bin:/nix/var/nix/profiles/default/bin:/bin:/sbin:/usr/bin \
-        SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-        NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-        NODE_EXTRA_CA_CERTS=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \
-        OBSIDIAN_VAULT_DIR=${vault} \
-  '';
+  # Runs as nikita after the Vault's ACLs are in place; failures retry.
+  asNikita =
+    attrs:
+    lib.recursiveUpdate {
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "vault-permissions.service" ];
+      after = [ "vault-permissions.service" ];
+      path = [ "/etc/profiles/per-user/nikita" ];
+      environment = {
+        HOME = home;
+        OBSIDIAN_VAULT_DIR = vault;
+        SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt";
+        NODE_EXTRA_CA_CERTS = "/etc/ssl/certs/ca-certificates.crt";
+      };
+      serviceConfig = {
+        User = "nikita";
+        WorkingDirectory = home;
+        Restart = "always";
+        RestartSec = 30;
+      };
+      startLimitIntervalSec = 0;
+    } attrs;
 in
 {
   users.users.nikita.packages = [
@@ -55,80 +64,61 @@ in
     vault-permissions
     pkgs.acl
   ];
-  services.backup.paths = [
-    vault
-    "${home}/.config/obsidian-headless"
-    "${home}/.config/vault-sync"
-    "${home}/.config/wherenow"
-  ];
 
-  # Reapply after restore and on deploy; ACL defaults keep newly created notes
-  # shared regardless of the creating account's umask.
-  s6.services.vault-permissions = {
-    type = "oneshot";
-    reactivate = true;
-    dependencies = [ "backup-restore" ];
-    run = "${vault-permissions}/bin/vault-permissions";
+  # Reapplied after restore and whenever this unit changes; ACL defaults keep
+  # newly created notes shared regardless of the creating account's umask.
+  systemd.services.vault-permissions = {
+    wantedBy = [ "multi-user.target" ];
+    wants = [ "backup-restore.service" ];
+    after = [ "backup-restore.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${vault-permissions}/bin/vault-permissions";
+    };
   };
 
-  # Keep service names stable for in-place upgrades and existing log paths.
-  s6.services.assistant-obsidian-sync = {
-    dependencies = [ "vault-permissions" ];
-    run =
-      requireVault
-      + asNikita
-      + ''
-        ${obsidian-headless}/bin/ob sync --path ${vault} --continuous
-      '';
+  # Service names kept from the assistant-owned Vault.
+  systemd.services.assistant-obsidian-sync = asNikita {
+    script = requireVault + ''
+      exec ${obsidian-headless}/bin/ob sync --path ${vault} --continuous
+    '';
   };
 
-  # Still served through /assistant/wherenow on loopback port 8085.
-  s6.services.assistant-wherenow = {
-    dependencies = [ "vault-permissions" ];
-    run =
-      requireVault
-      + ''
-        envfile=${home}/.config/wherenow/env
-        if [ ! -f "$envfile" ]; then
-          echo "assistant-wherenow: $envfile missing; place TOKEN=... (see README). Retrying." >&2
-          sleep 10
-          exit 1
-        fi
-        set -a
-        . "$envfile"
-        set +a
-        if [ -z "''${TOKEN:-}" ]; then
-          echo "assistant-wherenow: TOKEN unset in $envfile. Retrying." >&2
-          sleep 10
-          exit 1
-        fi
-      ''
-      + asNikita
-      + ''
-        PORT=8085 \
-        ${wherenow}/bin/wherenow --vault-dir=${vault} --tz=Europe/Stockholm
-      '';
+  # Served through /assistant/wherenow on loopback port 8085.
+  systemd.services.assistant-wherenow = asNikita {
+    environment.PORT = "8085";
+    serviceConfig.RestartSec = 10;
+    script = requireVault + ''
+      envfile=${home}/.config/wherenow/env
+      if [ ! -f "$envfile" ]; then
+        echo "assistant-wherenow: $envfile missing; place TOKEN=... (see README). Retrying." >&2
+        exit 1
+      fi
+      set -a
+      . "$envfile"
+      set +a
+      if [ -z "''${TOKEN:-}" ]; then
+        echo "assistant-wherenow: TOKEN unset in $envfile. Retrying." >&2
+        exit 1
+      fi
+      exec ${wherenow}/bin/wherenow --vault-dir=${vault} --tz=Europe/Stockholm
+    '';
   };
 
   # Letterboxd is public (hourly); Discogs self-skips without a token (every 6h).
   # Runtime secrets are exported, never passed in argv or baked into the store.
-  s6.services.assistant-vault-sync = {
-    dependencies = [ "vault-permissions" ];
-    run =
-      requireVault
-      + ''
-        envfile=${home}/.config/vault-sync/env
-        if [ -f "$envfile" ]; then
-          set -a
-          . "$envfile"
-          set +a
-        else
-          echo "assistant-vault-sync: $envfile missing; Discogs sync skipped until DISCOGS_TOKEN is placed (see README)." >&2
-        fi
-      ''
-      + asNikita
-      + ''
-        ${pkgs.supercronic}/bin/supercronic ${vaultSyncCrontab}
-      '';
+  systemd.services.assistant-vault-sync = asNikita {
+    script = requireVault + ''
+      envfile=${home}/.config/vault-sync/env
+      if [ -f "$envfile" ]; then
+        set -a
+        . "$envfile"
+        set +a
+      else
+        echo "assistant-vault-sync: $envfile missing; Discogs sync skipped until DISCOGS_TOKEN is placed (see README)." >&2
+      fi
+      exec ${pkgs.supercronic}/bin/supercronic ${vaultSyncCrontab}
+    '';
   };
 }

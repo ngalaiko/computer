@@ -6,7 +6,7 @@
   programs = {
     nixfmt.enable = true; # nix
     ruff-format.enable = true; # python (packages/vault-sync)
-    shfmt.enable = true; # shell (modules/exedev/activate.sh)
+    shfmt.enable = true;
     prettier.enable = true; # yaml (.github/workflows), markdown, json
   };
 

@@ -1,59 +1,120 @@
-{ pkgs, ... }:
 {
-  imports = [ ./users ];
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
+{
+  imports = [
+    ../../modules/exedev
+    inputs.home-manager.nixosModules.home-manager
+    ./users
+  ];
 
-  image = {
+  system.stateVersion = "26.05";
+
+  exedev.image = {
     name = "computer.exe";
     labels = {
       "org.opencontainers.image.title" = "computer.exe";
-      "org.opencontainers.image.description" = "exe.dev image: s6-overlay and Tailscale SSH";
+      "org.opencontainers.image.description" = "exe.dev image: NixOS and Tailscale SSH";
       "exe.dev/login-user" = "nikita";
     };
-    packages = with pkgs; [
-      bashInteractive
-      coreutils-full
-      findutils
-      gnugrep
-      gnused
-      iproute2
-      openssh # ssh client + ssh-keygen (git/jj signing); no sshd server
-      procps
-      tzdata
-      util-linux
-      curl
+  };
+
+  environment.systemPackages = with pkgs; [
+    curl
+    iproute2
+    openssh # ssh client + ssh-keygen (git/jj signing); no sshd server
+  ];
+
+  # Accounts are passwordless; access is Tailscale SSH and exe.dev's own ssh.
+  users.mutableUsers = false;
+  users.allowNoPasswordLogin = true;
+  security.sudo.wheelNeedsPassword = false;
+
+  nix.settings = {
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+    sandbox = false;
+  };
+
+  programs.nix-ld = {
+    enable = true;
+    libraries = map lib.getLib [
+      pkgs.zlib
+      pkgs.zstd
+      pkgs.stdenv.cc.cc
+      pkgs.curl
+      pkgs.openssl
+      pkgs.attr
+      pkgs.libssh
+      pkgs.bzip2
+      pkgs.libxml2
+      pkgs.acl
+      pkgs.libsodium
+      pkgs.util-linux
+      pkgs.xz
     ];
   };
 
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    # dotfiles restored from backups of the pre-NixOS box are plain files.
+    backupFileExtension = "backup";
+    extraSpecialArgs = { inherit inputs; };
+  };
+
+  # One tailnet node, `computer`: ssh + the public ingress funnel on its own
+  # name. Node state lives in /var/lib/tailscale and is not backed up, so a
+  # fresh disk registers a new node; the ephemeral key retires the old one.
   services.tailscale = {
     enable = true;
-    # One tailnet node, `computer`: ssh + the public ingress funnel on its own
-    # name, rebuilt on every boot.
-    nodes.computer = {
-      ssh = true;
-      serve = [
-        # public path-routed ingress via node Funnel:
-        # https://computer.<tailnet>.ts.net/<tenant>/. World-reachable with NO
-        # auth — unlike the exe.dev-shared 8080, which exe.dev gates. Node-named,
-        # so this URL can churn when the machine is recreated; exe.dev's share
-        # stays the stable public path. Only configured tenants are served.
-        {
-          target = "localhost:8080";
-          port = 443;
-          funnel = true;
-        }
-      ];
+    authKeyFile = "/var/lib/tailscale/authkey";
+    extraUpFlags = [
+      "--ssh"
+      "--hostname=computer"
+      "--advertise-tags=tag:computer"
+      "--accept-dns=false"
+    ];
+  };
+  systemd.services.tailscaled = {
+    wants = [ "backup-restore.service" ];
+    after = [ "backup-restore.service" ];
+    # exe.dev's /dev has no tun node.
+    preStart = ''
+      if [ ! -e /dev/net/tun ]; then
+        mkdir -p /dev/net
+        ${pkgs.coreutils}/bin/mknod /dev/net/tun c 10 200
+      fi
+    '';
+  };
+  exedev.backup.paths = [ "/var/lib/tailscale/authkey" ];
+
+  # Public path-routed ingress via node Funnel:
+  # https://computer.<tailnet>.ts.net/<tenant>/. World-reachable with NO auth,
+  # unlike the exe.dev-shared 8080, which exe.dev gates. Node-named, so the URL
+  # can churn when the machine is recreated; exe.dev's share stays the stable
+  # public path. Reconstructed on every boot: `serve reset` makes this list
+  # authoritative.
+  systemd.services.tailscale-serve = {
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "tailscaled-autoconnect.service" ];
+    after = [ "tailscaled-autoconnect.service" ];
+    path = [ pkgs.tailscale ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
     };
+    script = ''
+      tailscale serve reset
+      tailscale funnel --bg --https=443 localhost:8080
+    '';
   };
 
   # tenants registered per-user in hosts/exedev/users/*.nix.
   services.ingress.enable = true;
-  nix-ld.enable = true;
-
-  # fish reads no /etc/profile; wire the nix profiles for fish logins.
-  environment.etc."fish/config.fish".text = ''
-    fish_add_path --global --move --path \
-      "$HOME/.nix-profile/bin" \
-      /etc/profiles/per-user/(whoami)/bin \
-      /nix/var/nix/profiles/default/bin
-  '';
 }
