@@ -16,7 +16,7 @@ in
     '')
   ];
 
-  xdg.configFile."rex/init.lua".source = ./rex/init.lua;
+  xdg.configFile."rex/init.lua".source = ./init.lua;
 
   targets.darwin.defaults."com.superlogical.rex"."Workspace.terminalStartupCommand" =
     "/etc/profiles/per-user/${config.home.username}/bin/fish";

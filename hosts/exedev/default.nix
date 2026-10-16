@@ -6,14 +6,14 @@
 }:
 {
   imports = [
-    ../../modules/exedev
+    ../../modules/nixos/exedev
     inputs.home-manager.nixosModules.home-manager
     ./users
   ];
 
   system.stateVersion = "26.05";
 
-  nixpkgs.overlays = [ (import ../../overlays { inherit inputs; }) ];
+  nixpkgs.overlays = [ (import ../../overlay.nix { inherit inputs; }) ];
   # Only these unfree packages, here and in pkgs.unstable.
   nixpkgs.config.allowUnfreePredicate = p: builtins.elem (lib.getName p) [ "amp-cli" ];
 

@@ -4,7 +4,7 @@ let
   home = "/home/${name}";
 in
 {
-  imports = [ ./nikita/vault.nix ];
+  imports = [ ./vault.nix ];
 
   exedev.image.workingDir = home;
 
@@ -39,7 +39,7 @@ in
   };
 
   home-manager.users.${name} = {
-    imports = [ ../../../home ];
+    imports = [ ../../../../home ];
     programs.fish.interactiveShellInit = "set --global prompt_host exedev";
   };
 }

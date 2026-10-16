@@ -15,7 +15,7 @@
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
-  nixpkgs.overlays = [ (import ../../overlays { inherit inputs; }) ];
+  nixpkgs.overlays = [ (import ../../overlay.nix { inherit inputs; }) ];
   # Only these unfree packages, here and in pkgs.unstable.
   nixpkgs.config.allowUnfreePredicate =
     p:

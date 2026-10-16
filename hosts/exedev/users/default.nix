@@ -1,7 +1,7 @@
 { ... }:
 {
   imports = [
-    ./nikita.nix
+    ./nikita
     ./amp.nix
   ];
 }

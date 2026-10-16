@@ -76,7 +76,7 @@
           ];
         };
 
-      releaseFor = system: import ./packages/release { pkgs = nixpkgs.legacyPackages.${system}; };
+      releaseFor = system: import ./scripts { pkgs = nixpkgs.legacyPackages.${system}; };
 
       # Repo packages available on `system`.
       repoPackagesFor =
@@ -97,7 +97,7 @@
         system: inputs.treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix;
     in
     {
-      overlays.default = import ./overlays { inherit inputs; };
+      overlays.default = import ./overlay.nix { inherit inputs; };
 
       # The exe.dev VM. `nix run .#deploy` switches it in place.
       nixosConfigurations.exedev = exedevFor "x86_64-linux";

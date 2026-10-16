@@ -4,14 +4,14 @@
     ./atuin.nix
     ./brew.nix
     ./docker.nix
-    ./fonts.nix
-    ./ghostty.nix
+    ./fonts
+    ./ghostty
     ./jj.nix
     ./ledger.nix
     ./neovim.nix
     ./nix-paths.nix
     ./packages.nix
-    ./rex.nix
+    ./rex
     ./ssh.nix
   ];
 

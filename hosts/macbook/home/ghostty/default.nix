@@ -40,5 +40,5 @@
     };
   };
 
-  xdg.configFile."ghostty/themes/zenwritten_dark".source = ./ghostty/zenwritten_dark;
+  xdg.configFile."ghostty/themes/zenwritten_dark".source = ./zenwritten_dark;
 }
