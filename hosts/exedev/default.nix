@@ -63,7 +63,7 @@
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    # dotfiles restored from backups of the pre-NixOS box are plain files.
+    # restored homes may hold plain copies of managed files.
     backupFileExtension = "backup";
     extraSpecialArgs = { inherit inputs; };
   };

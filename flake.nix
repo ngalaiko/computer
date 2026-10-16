@@ -91,8 +91,8 @@
         modules = [ ./hosts/macbook ];
       };
 
-      # `nix build .#exedev` (base image) or `.#system` (the NixOS toplevel);
-      # `.#packages.<sys>.{exedev,system}` for a specific arch.
+      # `nix build .#exedev` (base image); `.#packages.<sys>.exedev` for a
+      # specific arch.
       packages = lib.genAttrs allSystems (
         system:
         let
@@ -100,7 +100,6 @@
         in
         {
           exedev = cfg.system.build.ociImage;
-          system = cfg.system.build.toplevel;
           default = cfg.system.build.ociImage;
         }
         // releaseFor system

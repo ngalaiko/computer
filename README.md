@@ -85,36 +85,6 @@ at create time.
 
 Service logs are in the journal: `journalctl -u <service>`.
 
-### Cutover from the s6 image
-
-The s6-based image can't switch in place to NixOS; the box must be recreated.
-Before deleting it, take a snapshot of every home on the **old** box, under the
-host and tag the new box restores from:
-
-```sh
-sudo sh -c '
-  set -eu
-  cd /run/s6/container_environment
-  for v in RESTIC_REPOSITORY RESTIC_PASSWORD B2_ACCOUNT_ID B2_ACCOUNT_KEY; do
-    export "$v=$(cat "$v")"
-  done
-  export RESTIC_CACHE_DIR=/var/cache/restic
-  restic unlock
-  restic backup --host exedev --tag auto \
-    --exclude __pycache__ --exclude .venv --exclude venv --exclude node_modules \
-    --exclude "!**/.pi/**/node_modules" --exclude .cache \
-    --exclude checkpoints --exclude backups \
-    /home/nikita /var/lib/amp /var/lib/tailscale/authkey
-  restic snapshots --host exedev --tag auto --latest 1
-  restic ls latest /home/nikita /var/lib/amp | head -50
-'
-```
-
-Stop writers first (Obsidian sync, amp runner) if the snapshot must be exact.
-Then delete the VM and let CI create a new one; `backup-restore` restores the
-snapshot on first boot and home-manager links the dotfiles over the restored
-copies, moving those aside with a `.backup` suffix.
-
 ## After creating a machine
 
 One-time steps that place secrets; backups persist them across recreations

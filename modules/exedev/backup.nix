@@ -46,11 +46,6 @@ in
       default = [ ];
       description = "Absolute paths to back up; restored to the same locations on a fresh disk.";
     };
-    restoreSnapshot = mkOption {
-      type = types.str;
-      default = "latest";
-      description = "Snapshot restored on a fresh disk: an ID, or `latest` within host and tag.";
-    };
   };
 
   config = {
@@ -131,7 +126,7 @@ in
             touch ${restored}
             exit 0
           fi
-          ${restic} restore ${cfg.restoreSnapshot} ${lib.escapeShellArgs scope} --target /
+          ${restic} restore latest ${lib.escapeShellArgs scope} --target /
           touch ${restored}
         '';
       };

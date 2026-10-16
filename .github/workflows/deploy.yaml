@@ -34,25 +34,14 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      # DEPLOY_FLAKE pins the workflow commit; the box fetches, builds and
-      # switches to it itself.
       # A freshly created box joins the tailnet only after restoring its
       # backup, which takes minutes.
       - name: Wait for the node
         timeout-minutes: 30
         run: until tailscale ping -c 1 exedev; do sleep 15; done
 
-      - name: Diagnose Tailscale connectivity
-        run: |
-          tailscale status
-          tailscale ping exedev || true
-          getent ahostsv4 exedev || true
-          nc -vz -w10 exedev 22 || true
-          # Tailscale SSH needs a working target /etc/passwd; retain its result
-          # as diagnostics only, so a broken rootfs can still be repaired via
-          # the platform's OpenSSH server below.
-          tailscale ssh nikita@exedev true || true
-
+      # DEPLOY_FLAKE pins the workflow commit; the box fetches, builds and
+      # switches to it itself.
       - name: Activate in place
         env:
           DEPLOY_FLAKE: github:ngalaiko/computer/${{ github.sha }}
