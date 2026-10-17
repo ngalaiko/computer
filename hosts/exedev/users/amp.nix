@@ -18,9 +18,9 @@ let
   runner = pkgs.writeShellScript "amp-runner" ''
     set -eu
     # Load user-owned configuration after dropping privileges.
-    envfile=${home}/.config/amp-runner/env
+    envfile=$HOME/.config/amp-runner/env
     if [ ! -f "$envfile" ]; then
-      echo "amp-runner: $envfile missing; place AMP_API_KEY=... (see README). Retrying." >&2
+      echo "amp-runner: $envfile missing; place AMP_API_KEY=... there. Retrying." >&2
       exit 1
     fi
     set -a
@@ -31,7 +31,7 @@ let
       exit 1
     fi
     exec ${amp}/bin/amp --no-tui --runner-id exedev --remote-control-terminal \
-      --discover-dirs=${home} --discover-depth 3
+      --discover-dirs="$HOME" --discover-depth 3
   '';
 in
 {

@@ -70,7 +70,6 @@ in
       "calibre"
       "daisydisk"
       "firefox"
-      "ghostty@tip" # tip build
       "little-snitch"
       "mullvad-vpn"
       "netnewswire"

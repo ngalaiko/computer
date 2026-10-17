@@ -5,7 +5,6 @@
     ./brew.nix
     ./docker.nix
     ./fonts
-    ./ghostty
     ./jj.nix
     ./ledger.nix
     ./neovim.nix

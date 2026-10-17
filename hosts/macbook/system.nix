@@ -22,7 +22,6 @@ _: {
         "/System/Applications/Mail.app"
         "/System/Applications/Calendar.app"
         "/System/Applications/Reminders.app"
-        "/Applications/Ghostty.app"
         "/Applications/Discord.app"
         "/Applications/Slack.app"
         "/Applications/Linear.app"
