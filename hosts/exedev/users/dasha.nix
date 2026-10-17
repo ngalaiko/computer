@@ -61,6 +61,8 @@ in
     path = [ "/etc/profiles/per-user/dasha" ];
     environment = removeAttrs runner.environment [ "PATH" ] // {
       HOME = home;
+      XDG_RUNTIME_DIR = "/run/user/${toString config.users.users.dasha.uid}";
+      DBUS_SESSION_BUS_ADDRESS = "unix:path=/run/user/${toString config.users.users.dasha.uid}/bus";
     };
     serviceConfig = {
       User = "dasha";
