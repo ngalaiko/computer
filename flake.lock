@@ -239,7 +239,28 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvim": "nixvim",
+        "stinkpot": "stinkpot",
         "treefmt-nix": "treefmt-nix"
+      }
+    },
+    "stinkpot": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789557480,
+        "narHash": "sha256-Ku4xDZwvtGcMADQ0xrzznyHLQjEttDJTF2jzP8Yhgv8=",
+        "ref": "refs/heads/main",
+        "rev": "71ecf8b2ebcb0a0509040fba7622205ea243627a",
+        "revCount": 15,
+        "type": "git",
+        "url": "https://tangled.org/oppi.li/stinkpot"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://tangled.org/oppi.li/stinkpot"
       }
     },
     "systems": {

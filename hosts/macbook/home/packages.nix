@@ -14,7 +14,7 @@
 
   programs.claude-code = {
     enable = true;
-    # claude-code releases often; pin to unstable for a fresher build (cf. atuin).
+    # claude-code releases often; pin to unstable for a fresher build (cf. amp-cli).
     package = pkgs.unstable.claude-code;
   };
 }

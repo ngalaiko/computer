@@ -2,7 +2,6 @@
 {
   imports = [
     ./agents
-    ./atuin.nix
     ./fish
     ./go.nix
     ./jj.nix
@@ -10,6 +9,7 @@
     ./neovim
     ./packages.nix
     ./rust.nix
+    ./stinkpot.nix
     ./xdg.nix
   ];
 

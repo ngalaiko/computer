@@ -1,7 +1,6 @@
 { ... }:
 {
   imports = [
-    ./atuin.nix
     ./brew.nix
     ./docker.nix
     ./fonts
