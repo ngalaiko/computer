@@ -7,11 +7,10 @@ let
     set -eu
     exec ${obsidian-headless}/bin/ob sync --path "''${OBSIDIAN_VAULT_DIR:-${vault}}" "$@"
   '';
-  # Only the Vault is shared. Agents can traverse nikita's home, but this
-  # doesn't grant access to private app credentials under ~/.config.
+  # The bind mount shares only the Vault, without opening nikita's home.
   vault-permissions = pkgs.writeShellScriptBin "vault-permissions" ''
     set -eu
-    ${pkgs.acl}/bin/setfacl -m u:2002:--x ${home}
+    ${pkgs.acl}/bin/setfacl -x u:2002 ${home}
     mkdir -p ${vault}
     chown -R 1000:1000 ${vault}
     ${pkgs.acl}/bin/setfacl -Rb ${vault}
@@ -75,6 +74,27 @@ in
       ExecStart = "${vault-permissions}/bin/vault-permissions";
     };
   };
+
+  systemd.mounts = [
+    {
+      what = vault;
+      where = "/var/lib/amp/Vault";
+      type = "none";
+      # Restore runs after early boot; the mount must not block local-fs.target.
+      options = "bind,rw,nofail";
+      requires = [ "vault-permissions.service" ];
+      after = [ "vault-permissions.service" ];
+      wantedBy = [ "multi-user.target" ];
+    }
+  ];
+
+  systemd.services.amp-runner = {
+    requires = [ "var-lib-amp-Vault.mount" ];
+    after = [ "var-lib-amp-Vault.mount" ];
+  };
+
+  # The original Vault is already backed up under nikita's home.
+  services.restic.backups.b2.exclude = [ "/var/lib/amp/Vault" ];
 
   systemd.services.obsidian-sync = asNikita {
     script = requireVault + ''
