@@ -6,6 +6,8 @@ _: {
     ];
 
     brews = [
+      "e2fsprogs"
+      "squashfs"
       "vercel" # not in nixpkgs (nodePackages removed); npm tarball needs its own deps
     ];
 
