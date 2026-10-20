@@ -99,7 +99,6 @@ in
       "TestFlight" = 899247664;
       "The Unarchiver" = 425424353;
       "Translate for Safari" = 1445040281;
-      "Xcode" = 497799835;
     };
   };
 }
