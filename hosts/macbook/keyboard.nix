@@ -1,4 +1,15 @@
-_: {
+_:
+let
+  # WebKit text views (Safari, Mail, web views) keep their own copies
+  webkitNoAutocorrect = {
+    WebAutomaticSpellingCorrectionEnabled = false;
+    WebAutomaticTextReplacementEnabled = false;
+    WebAutomaticQuoteSubstitutionEnabled = false;
+    WebAutomaticDashSubstitutionEnabled = false;
+    WebAutomaticLinkDetectionEnabled = false;
+  };
+in
+{
   system.keyboard = {
     enableKeyMapping = true;
     remapCapsLockToControl = true;
@@ -14,12 +25,32 @@ _: {
     NSAutomaticInlinePredictionEnabled = false;
   };
 
-  system.defaults.CustomUserPreferences.NSGlobalDomain = {
+  system.defaults.CustomUserPreferences.NSGlobalDomain = webkitNoAutocorrect // {
     # disable inline typing suggestions
     NSAutomaticTextCompletionEnabled = false;
+    # disable automatic text replacement
+    NSAutomaticTextReplacementEnabled = false;
     # empty the text-replacement (shortcuts) list
     NSUserDictionaryReplacementItems = [ ];
   };
+
+  system.defaults.CustomUserPreferences."com.apple.Safari" = webkitNoAutocorrect;
+  system.defaults.CustomUserPreferences."com.apple.mail" = webkitNoAutocorrect;
+
+  system.defaults.CustomUserPreferences."com.apple.TextEdit" = {
+    CorrectSpellingAutomatically = false;
+    SmartQuotes = false;
+    SmartDashes = false;
+    SmartLinks = false;
+    TextReplacement = false;
+  };
+
+  system.defaults.CustomUserPreferences."com.apple.messageshelper.MessageController".SOInputLineSettings =
+    {
+      automaticEmojiSubstitutionEnablediMessage = false;
+      automaticQuoteSubstitutionEnabled = false;
+      automaticSpellingCorrectionEnabled = false;
+    };
 
   # enabled input sources: U.S. + Russian keyboard layouts
   system.defaults.CustomUserPreferences."com.apple.HIToolbox".AppleEnabledInputSources = [
