@@ -8,6 +8,7 @@
   imports = [
     ../../modules/nixos/exedev
     inputs.home-manager.nixosModules.home-manager
+    ./rex.nix
     ./users
   ];
 

@@ -42,6 +42,8 @@
       url = "git+https://tangled.org/oppi.li/stinkpot";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Linux server; the Mac client is installed separately.
+    rex.url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
     # encore shared agent skills (private; fetched over ssh)
     encore-agents-setup = {
       url = "git+ssh://git@github.com/encoredev/agents-setup";
