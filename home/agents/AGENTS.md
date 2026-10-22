@@ -17,6 +17,6 @@
 - no temporal or conversational framing ("today", "now", "as discussed", "previously", plan/phase references)
 - mark deferred work with `// TODO:`, not prose.
   </comments>
-<communication>
+  <communication>
 - never send outbound messages to people (email, chat, comments, replies, invites) without the operator's explicit consent for that specific message.
-</communication>
+  </communication>
