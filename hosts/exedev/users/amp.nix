@@ -66,6 +66,7 @@ in
       tmux
       fd
       ledger
+      qrencode
     ];
   };
   users.groups.amp.gid = 2002;
@@ -82,7 +83,12 @@ in
     # Restore the user-owned configuration before starting the runner.
     wants = [ "backup-restore.service" ];
     after = [ "backup-restore.service" ];
-    path = [ "/etc/profiles/per-user/amp" ];
+    # Account tools plus the system shell, Nix, SSH, and privileged wrappers.
+    path = [
+      "/run/wrappers"
+      "/etc/profiles/per-user/amp"
+      "/run/current-system/sw"
+    ];
     environment = toolEnvironment // {
       HOME = home;
       SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt";

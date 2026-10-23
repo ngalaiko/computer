@@ -58,7 +58,11 @@ in
       "backup-restore.service"
       "dasha-ledger.service"
     ];
-    path = [ "/etc/profiles/per-user/dasha" ];
+    path = [
+      "/run/wrappers"
+      "/etc/profiles/per-user/dasha"
+      "/run/current-system/sw"
+    ];
     environment = removeAttrs runner.environment [ "PATH" ] // {
       HOME = home;
       XDG_RUNTIME_DIR = "/run/user/${toString config.users.users.dasha.uid}";
