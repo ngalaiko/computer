@@ -36,9 +36,10 @@ jobs:
 
       # A freshly created box joins the tailnet only after restoring its
       # backup, which takes minutes.
+      # Relayed connectivity is sufficient for SSH; direct UDP is not required.
       - name: Wait for the node
         timeout-minutes: 30
-        run: until tailscale ping -c 1 exedev; do sleep 15; done
+        run: until tailscale ping --until-direct=false -c 1 exedev; do sleep 15; done
 
       # DEPLOY_FLAKE pins the workflow commit; the box fetches, builds and
       # switches to it itself.
