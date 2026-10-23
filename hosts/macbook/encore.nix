@@ -1,10 +1,6 @@
 # encore work setup: darwin-level homebrew plus the home-manager config.
 _: {
   homebrew = {
-    taps = [
-      "hamed-elfayome/claude-usage"
-    ];
-
     brews = [
       "e2fsprogs"
       "squashfs"
@@ -19,7 +15,6 @@ _: {
       "notion"
       "paper-design" # paper.design canvas design tool
       "slack"
-      "hamed-elfayome/claude-usage/claude-usage-tracker"
     ];
   };
 
@@ -61,6 +56,8 @@ _: {
         stripe-cli
         inputs.dash0-cli.packages.${pkgs.stdenv.hostPlatform.system}.dash0
       ];
+
+      programs.codex.skills = agentSkills;
 
       programs.claude-code = {
         mcpServers.plain = {

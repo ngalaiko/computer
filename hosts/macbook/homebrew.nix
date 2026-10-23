@@ -68,6 +68,7 @@ in
     casks = [
       "amp-app" # ampcode.com coding agent app
       "calibre"
+      "codexbar"
       "daisydisk"
       "firefox"
       "little-snitch"
