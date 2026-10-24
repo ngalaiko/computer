@@ -129,7 +129,7 @@ in
         lib.nameValuePair "ingress-${t.name}" {
           wantedBy = [ "multi-user.target" ];
           # a restored Caddyfile wins over the seed.
-          wants = [ "backup-restore.service" ];
+          requires = [ "backup-restore.service" ];
           after = [ "backup-restore.service" ];
           environment = {
             HOME = home;

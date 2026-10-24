@@ -90,7 +90,7 @@
     extraSetFlags = [ "--hostname=exedev" ];
   };
   systemd.services.tailscaled = {
-    wants = [ "backup-restore.service" ];
+    requires = [ "backup-restore.service" ];
     after = [ "backup-restore.service" ];
     # exe.dev's /dev has no tun node.
     preStart = ''

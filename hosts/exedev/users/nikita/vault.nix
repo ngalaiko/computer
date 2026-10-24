@@ -35,7 +35,7 @@ let
     attrs:
     lib.recursiveUpdate {
       wantedBy = [ "multi-user.target" ];
-      wants = [ "vault-permissions.service" ];
+      requires = [ "vault-permissions.service" ];
       after = [ "vault-permissions.service" ];
       path = [ "/etc/profiles/per-user/nikita" ];
       environment = {
@@ -66,7 +66,7 @@ in
   # newly created notes shared regardless of the creating account's umask.
   systemd.services.vault-permissions = {
     wantedBy = [ "multi-user.target" ];
-    wants = [ "backup-restore.service" ];
+    requires = [ "backup-restore.service" ];
     after = [ "backup-restore.service" ];
     serviceConfig = {
       Type = "oneshot";

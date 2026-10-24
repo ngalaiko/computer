@@ -81,7 +81,7 @@ in
   systemd.services.amp-runner = {
     wantedBy = [ "multi-user.target" ];
     # Restore the user-owned configuration before starting the runner.
-    wants = [ "backup-restore.service" ];
+    requires = [ "backup-restore.service" ];
     after = [ "backup-restore.service" ];
     # Account tools plus the system shell, Nix, SSH, and privileged wrappers.
     path = [

@@ -166,6 +166,10 @@
       # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
       # instead of a bespoke `nix fmt && git diff` step.
       checks = lib.genAttrs allSystems (system: {
+        backup-dependencies = import ./modules/nixos/exedev/backup-dependencies-test.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          inherit ((exedevFor (linuxOf system))) config;
+        };
         backup-restore = import ./modules/nixos/exedev/backup-test.nix {
           pkgs = nixpkgs.legacyPackages.${system};
           script = (exedevFor (linuxOf system)).config.systemd.services.backup-restore.script;

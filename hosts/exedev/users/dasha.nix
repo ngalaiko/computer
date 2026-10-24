@@ -24,7 +24,7 @@ in
   # Share only the ledger, without granting traversal into amp's private home.
   systemd.services.dasha-ledger = {
     wantedBy = [ "multi-user.target" ];
-    wants = [ "backup-restore.service" ];
+    requires = [ "backup-restore.service" ];
     after = [ "backup-restore.service" ];
     unitConfig.ConditionPathIsDirectory = "/var/lib/amp/src/finance";
     serviceConfig = {
@@ -50,7 +50,7 @@ in
 
   systemd.services.dasha-amp-runner = {
     wantedBy = [ "multi-user.target" ];
-    wants = [
+    requires = [
       "backup-restore.service"
       "dasha-ledger.service"
     ];

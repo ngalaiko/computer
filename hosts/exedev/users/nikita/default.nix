@@ -34,7 +34,7 @@ in
 
   # link over the restored home, not under it.
   systemd.services."home-manager-${name}" = {
-    wants = [ "backup-restore.service" ];
+    requires = [ "backup-restore.service" ];
     after = [ "backup-restore.service" ];
   };
 
