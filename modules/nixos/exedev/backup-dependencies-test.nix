@@ -6,13 +6,24 @@ let
   dependencies = {
     "tailscaled.service" = restore;
     "home-manager-nikita.service" = restore;
-    "amp-runner.service" = restore;
-    "dasha-ledger.service" = restore;
-    "dasha-amp-runner.service" = restore;
+    "amp-runner.service" = [
+      restore
+      "var-lib-amp-src-finance.mount"
+    ];
+    "finance-permissions.service" = restore;
+    "var-lib-amp-src-finance.mount" = "finance-permissions.service";
+    "home-dasha-finance.mount" = "finance-permissions.service";
+    "dasha-amp-runner.service" = [
+      restore
+      "home-dasha-finance.mount"
+    ];
     "vault-permissions.service" = restore;
     "obsidian-sync.service" = vault;
     "wherenow.service" = vault;
-    "vault-sync.service" = vault;
+    "vault-sync.service" = [
+      vault
+      "finance-permissions.service"
+    ];
   }
   // lib.mapAttrs' (
     name: _: lib.nameValuePair "ingress-${name}.service" restore
@@ -20,7 +31,7 @@ let
   units = pkgs.writeText "restore-dependencies.json" (
     builtins.toJSON (
       lib.mapAttrs (name: dependency: {
-        inherit dependency;
+        dependencies = lib.toList dependency;
         text = builtins.unsafeDiscardStringContext config.systemd.units.${name}.text;
       }) dependencies
     )
@@ -42,8 +53,9 @@ pkgs.runCommand "backup-dependencies-test" { nativeBuildInputs = [ pkgs.python3 
               if line.startswith(directive + "=")
               for dependency in line.split("=", 1)[1].split()
           }
-          if unit["dependency"] not in dependencies:
-              failures.append(f"{name}: missing {directive}={unit['dependency']}")
+          for dependency in unit["dependencies"]:
+              if dependency not in dependencies:
+                  failures.append(f"{name}: missing {directive}={dependency}")
   if failures:
       sys.exit("\n".join(failures))
   PY

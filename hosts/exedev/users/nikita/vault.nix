@@ -21,6 +21,7 @@ let
       ${pkgs.acl}/bin/setfacl -m d:u::rwx,d:u:1000:rwx,d:u:2002:rwx,d:g::---,d:m::rwx,d:o::--- {} +
   '';
   vaultSyncCrontab = pkgs.writeText "vault-sync-crontab" ''
+    */15 * * * * ${vault-sync}/bin/vault-sync-finance
     17 * * * * ${vault-sync}/bin/vault-sync-letterboxd
     47 */6 * * * ${vault-sync}/bin/vault-sync-discogs
   '';
@@ -130,7 +131,7 @@ in
     '';
   };
 
-  # Letterboxd is public (hourly); Discogs self-skips without a token (every 6h).
+  # Finance refreshes every 15m; Letterboxd hourly; Discogs every 6h.
   # Runtime secrets are exported, never passed in argv or baked into the store.
   systemd.services.vault-sync = asNikita {
     script = requireVault + ''

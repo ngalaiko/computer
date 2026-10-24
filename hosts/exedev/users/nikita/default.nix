@@ -4,7 +4,10 @@ let
   home = "/home/${name}";
 in
 {
-  imports = [ ./vault.nix ];
+  imports = [
+    ./vault.nix
+    ./finance.nix
+  ];
 
   exedev.image.workingDir = home;
 
