@@ -19,8 +19,11 @@ nix flake check                       # Check
 The `rex-login-server` service accepts the Tailscale principal
 `ngalaiko@github` as the Linux account `nikita`. On the Mac, with Tailscale
 connected, choose **Add Remote Host…** in Rex and enter
-`http://nikita@exedev.tail4fad0.ts.net:7297`. Tailscale encrypts the connection;
-this listener is separate from the public Funnel on port 443.
+`https://exedev.tail4fad0.ts.net:8443` and name it `exedev`. Tailscale selects
+`nikita` from the caller’s identity. This HTTPS listener is tailnet-only,
+separate from the public Funnel on port 443. The Mac app requires HTTPS and
+rejects account names in URLs. CLI hosts do not sync to the app.
+The direct HTTP listener on port 7297 remains available to CLI clients.
 
 Rex's snapshot packages currently require a package token. Provision
 `/etc/nix/rex.netrc` outside this repository, owned by root with mode `0600`,
