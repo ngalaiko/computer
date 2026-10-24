@@ -49,6 +49,10 @@
       url = "git+ssh://git@github.com/encoredev/agents-setup";
       flake = false;
     };
+    mattpocock-skills = {
+      url = "github:mattpocock/skills/49dd158d1076134a641b33efb035946536778336";
+      flake = false;
+    };
   };
 
   outputs =
@@ -153,6 +157,22 @@
       # instead of a bespoke `nix fmt && git diff` step.
       checks = lib.genAttrs allSystems (system: {
         formatting = (treefmtFor system).config.build.check self;
+        pi-search =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "pi-search" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+            PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s ${./home/agents/pi/skills/web-search}
+            touch $out
+          '';
+        pi-command-guards =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "pi-command-guards" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+            node --experimental-strip-types --test ${./home/agents/pi}/command-guards.test.mjs
+            touch $out
+          '';
       });
     };
 }

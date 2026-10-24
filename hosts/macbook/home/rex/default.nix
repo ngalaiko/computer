@@ -6,7 +6,7 @@
 }:
 let
   # the app comes from outside nix; link its cli
-  rex = "/Applications/Rex Beta.app/Contents/Helpers/Rex Server.app/Contents/MacOS/rex";
+  rex = "/Applications/Rex Beta.app/Contents/Helpers/Rex Server.rex/Contents/MacOS/rex";
 in
 {
   home.packages = [

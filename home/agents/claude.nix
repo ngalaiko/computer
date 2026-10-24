@@ -36,7 +36,7 @@ in
     settings = {
       theme = "auto";
       enabledPlugins = {
-        "mattpocock-skills@claude-plugins-official" = true;
+        "mattpocock-skills@claude-plugins-official" = false;
       };
       hooks.PreToolUse = [
         {

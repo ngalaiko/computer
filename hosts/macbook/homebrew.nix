@@ -60,6 +60,7 @@ in
     ];
 
     brews = [
+      "agent-browser"
       "mole"
       "pi-coding-agent" # pi.dev agent CLI; homebrew-core, no nixpkgs equivalent
       "podman" # nixpkgs podman lacks the machine/vm helpers on darwin

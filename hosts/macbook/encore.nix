@@ -57,7 +57,11 @@ _: {
         inputs.dash0-cli.packages.${pkgs.stdenv.hostPlatform.system}.dash0
       ];
 
-      programs.codex.skills = agentSkills;
+      agents.skills = agentSkills;
+
+      agents.pi = {
+        mcpServers.plain.url = "https://mcp.plain.com/mcp";
+      };
 
       programs.claude-code = {
         mcpServers.plain = {
@@ -65,7 +69,6 @@ _: {
           url = "https://mcp.plain.com/mcp";
         };
         settings.enabledPlugins."dash0@claude-plugins-official" = true;
-        skills = agentSkills;
       };
 
       programs.encore = {
