@@ -12,6 +12,9 @@ let
       defaultModel = "gpt-6.1-sol";
       defaultThinkingLevel = "medium";
       theme = "zenwritten";
+      quietStartup = true;
+      hideThinkingBlock = true;
+      collapseChangelog = true;
       skills = [ ];
     }
   );
@@ -34,6 +37,7 @@ in
     ".pi/agent/AGENTS.md".source = ./AGENTS.md;
     ".pi/agent/themes/zenwritten.json".source = ./pi/themes/zenwritten.json;
     ".pi/agent/extensions/command-guards.ts".source = ./pi/command-guards.ts;
+    ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };
   }
   // lib.mapAttrs' (
