@@ -14,6 +14,7 @@ let
       theme = "zenwritten";
       quietStartup = true;
       hideThinkingBlock = true;
+      showHardwareCursor = true;
       collapseChangelog = true;
       skills = [ ];
     }
