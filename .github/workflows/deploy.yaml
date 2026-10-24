@@ -21,6 +21,16 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
       - uses: nixbuild/nix-quick-install-action@v35
+      - name: Configure Rex package authentication
+        env:
+          REX_PACKAGE_TOKEN: ${{ secrets.REX_PACKAGE_TOKEN }}
+        run: |
+          test -n "$REX_PACKAGE_TOKEN"
+          umask 077
+          netrc="$RUNNER_TEMP/rex.netrc"
+          printf 'machine pkgs.superlogical.com login rex password %s\n' "$REX_PACKAGE_TOKEN" > "$netrc"
+          mkdir -p "$HOME/.config/nix"
+          printf 'netrc-file = %s\n' "$netrc" >> "$HOME/.config/nix/nix.conf"
       # The box is reachable only over its tailnet. This tailnet OAuth client is
       # the only credential the in-place path needs — NOT an app secret. The client
       # id is public (inline); only the secret is a repo secret. The policy must let
