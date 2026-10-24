@@ -116,12 +116,9 @@ in
         };
         environment.RESTIC_CACHE_DIR = "/var/cache/restic-backups-b2";
         script = ''
-          if ! ${restic} cat config >/dev/null 2>&1; then
-            echo "restore: repo has no snapshots yet" >&2
-            touch ${restored}
-            exit 0
-          fi
-          if ! ${restic} snapshots ${lib.escapeShellArgs scope} --json | grep -q '"id"'; then
+          set -euo pipefail
+          snapshots="$(${restic} snapshots ${lib.escapeShellArgs scope} --json)"
+          if [ "$snapshots" = '[]' ]; then
             echo "restore: no snapshots for host ${cfg.host} yet" >&2
             touch ${restored}
             exit 0

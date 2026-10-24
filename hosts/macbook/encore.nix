@@ -27,7 +27,7 @@ _: {
     }:
     let
       # shared skills from encoredev/agents-setup; sync-skills is replaced by
-      # `nix flake update encore-agents-setup`.
+      # `nix flake update --flake ./hosts/macbook encore-agents-setup`.
       agentSkills = lib.mapAttrs (name: _: "${inputs.encore-agents-setup}/skills/${name}") (
         lib.filterAttrs (name: type: type == "directory" && name != "sync-skills") (
           builtins.readDir "${inputs.encore-agents-setup}/skills"

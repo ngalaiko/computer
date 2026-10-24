@@ -102,8 +102,10 @@ rec {
 
       case "$ref" in
         . | ./* | /* | path:* | git+file:*)
-          ref="$(nix flake archive --json --to "ssh-ng://nikita@$node" "$ref" | jq -r .path)"
+          ref="$(nix flake archive --json --to "ssh-ng://nikita@$node" "$ref" | jq -r .path)/hosts/exedev"
           ;;
+        *\?*) ref="$ref&dir=hosts/exedev" ;;
+        *) ref="$ref?dir=hosts/exedev" ;;
       esac
 
       # shellcheck disable=SC2029 # $ref expands client-side, by design

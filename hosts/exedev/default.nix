@@ -8,7 +8,6 @@
   imports = [
     ../../modules/nixos/exedev
     inputs.home-manager.nixosModules.home-manager
-    ./rex.nix
     ./users
   ];
 
@@ -38,7 +37,10 @@
   users.allowNoPasswordLogin = true;
   security.sudo.wheelNeedsPassword = false;
 
+  # The bootstrap image needs authentication before evaluating the Rex flake.
+  # Provision the root-readable file outside Nix; restore it with the homes.
   nix.settings = {
+    netrc-file = "/etc/nix/rex.netrc";
     experimental-features = [
       "nix-command"
       "flakes"
@@ -98,7 +100,10 @@
       fi
     '';
   };
-  exedev.backup.paths = [ "/var/lib/tailscale/authkey" ];
+  exedev.backup.paths = [
+    "/var/lib/tailscale/authkey"
+    "/etc/nix/rex.netrc"
+  ];
 
   # Public path-routed ingress via node Funnel:
   # https://exedev.<tailnet>.ts.net/<tenant>/. World-reachable with NO auth,

@@ -42,13 +42,6 @@
       url = "git+https://tangled.org/oppi.li/stinkpot";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Linux server; the Mac client is installed separately.
-    rex.url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
-    # encore shared agent skills (private; fetched over ssh)
-    encore-agents-setup = {
-      url = "git+ssh://git@github.com/encoredev/agents-setup";
-      flake = false;
-    };
     mattpocock-skills = {
       url = "github:mattpocock/skills/49dd158d1076134a641b33efb035946536778336";
       flake = false;
@@ -79,12 +72,8 @@
 
       exedevFor =
         linuxSystem:
-        nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; };
-          modules = [
-            ./hosts/exedev
-            { nixpkgs.hostPlatform = linuxSystem; }
-          ];
+        self.lib.exedevFor {
+          system = linuxSystem;
         };
 
       releaseFor = system: import ./scripts { pkgs = nixpkgs.legacyPackages.${system}; };
@@ -110,14 +99,35 @@
     {
       overlays.default = import ./overlay.nix { inherit inputs; };
 
-      # The exe.dev VM. `nix run .#deploy` switches it in place.
-      nixosConfigurations.exedev = exedevFor "x86_64-linux";
-
-      # This Mac, configured with a Linux builder VM (so it can build *-linux).
-      darwinConfigurations.macbook = nix-darwin.lib.darwinSystem {
-        specialArgs = { inherit inputs; };
-        modules = [ ./hosts/macbook ];
+      lib = {
+        exedevFor =
+          {
+            system ? "x86_64-linux",
+            extraInputs ? { },
+            extraModules ? [ ],
+          }:
+          nixpkgs.lib.nixosSystem {
+            specialArgs.inputs = inputs // extraInputs;
+            modules = [
+              ./hosts/exedev
+              { nixpkgs.hostPlatform = system; }
+            ]
+            ++ extraModules;
+          };
+        macbookFor =
+          {
+            extraInputs ? { },
+            extraModules ? [ ],
+          }:
+          nix-darwin.lib.darwinSystem {
+            specialArgs.inputs = inputs // extraInputs;
+            modules = [ ./hosts/macbook ] ++ extraModules;
+          };
       };
+
+      # Public base configurations; private integrations live in host flakes.
+      nixosConfigurations.exedev = exedevFor "x86_64-linux";
+      darwinConfigurations.macbook = self.lib.macbookFor { };
 
       # `nix build .#exedev` (base image); `.#packages.<sys>.exedev` for a
       # specific arch.
@@ -156,6 +166,11 @@
       # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
       # instead of a bespoke `nix fmt && git diff` step.
       checks = lib.genAttrs allSystems (system: {
+        backup-restore = import ./modules/nixos/exedev/backup-test.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          script = (exedevFor (linuxOf system)).config.systemd.services.backup-restore.script;
+          sourceRestic = "${nixpkgs.legacyPackages.${linuxOf system}.restic}/bin/restic";
+        };
         formatting = (treefmtFor system).config.build.check self;
         pi-search =
           let

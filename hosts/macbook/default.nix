@@ -11,7 +11,6 @@
     ./system.nix
     ./docker.nix
     ./homebrew.nix
-    ./encore.nix
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";

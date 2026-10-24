@@ -28,19 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: nixbuild/nix-quick-install-action@v35
-      - name: Configure Rex package authentication
-        env:
-          REX_PACKAGE_TOKEN: ${{ secrets.REX_PACKAGE_TOKEN }}
-        run: |
-          test -n "$REX_PACKAGE_TOKEN"
-          umask 077
-          netrc="$RUNNER_TEMP/rex.netrc"
-          printf 'machine pkgs.superlogical.com login rex password %s\n' "$REX_PACKAGE_TOKEN" > "$netrc"
-          mkdir -p "$HOME/.config/nix"
-          printf 'netrc-file = %s\n' "$netrc" >> "$HOME/.config/nix/nix.conf"
       # Includes the treefmt `formatting` check (nix/python/shell/yaml), so a
       # dirty format fails here — no separate `nix fmt && git diff` step needed.
-      - run: nix flake check --all-systems
+      - run: nix flake check --all-systems --no-build
+      - run: nix flake check
 
   machine:
     name: Check machine exists
@@ -101,16 +92,6 @@ jobs:
       - uses: actions/checkout@v5
       # single-user install: /nix is owned by the runner, so it can be cached.
       - uses: nixbuild/nix-quick-install-action@v35
-      - name: Configure Rex package authentication
-        env:
-          REX_PACKAGE_TOKEN: ${{ secrets.REX_PACKAGE_TOKEN }}
-        run: |
-          test -n "$REX_PACKAGE_TOKEN"
-          umask 077
-          netrc="$RUNNER_TEMP/rex.netrc"
-          printf 'machine pkgs.superlogical.com login rex password %s\n' "$REX_PACKAGE_TOKEN" > "$netrc"
-          mkdir -p "$HOME/.config/nix"
-          printf 'netrc-file = %s\n' "$netrc" >> "$HOME/.config/nix/nix.conf"
       - uses: nix-community/cache-nix-action@v7
         with:
           primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'flake.nix', 'overlay.nix', 'modules/**', 'packages/**', 'scripts/**', 'hosts/**', 'home/**') }}
