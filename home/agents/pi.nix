@@ -16,6 +16,10 @@ let
       hideThinkingBlock = true;
       showHardwareCursor = true;
       collapseChangelog = true;
+      packages = [
+        "npm:pi-subagents@0.82.1"
+        "npm:pi-web-access@0.44.0"
+      ];
       skills = [ ];
     }
   );
@@ -39,19 +43,15 @@ in
     ".pi/agent/themes/zenwritten.json".source = ./pi/themes/zenwritten.json;
     ".pi/agent/extensions/command-guards.ts".source = ./pi/command-guards.ts;
     ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
+    ".pi/agent/extensions/skill-policy.ts".source = ./pi/skill-policy.ts;
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };
   }
   // lib.mapAttrs' (
     name: source: lib.nameValuePair ".pi/agent/skills/${name}" { inherit source; }
   ) cfg.skills;
 
-  config.agents.pi = {
-    skills = {
-      web-search = ./pi/skills/web-search;
-    }
-    // lib.optionalAttrs pkgs.stdenv.isDarwin {
-      agent-browser = ./pi/skills/agent-browser;
-    };
+  config.agents.pi.skills = lib.optionalAttrs pkgs.stdenv.isDarwin {
+    agent-browser = ./pi/skills/agent-browser;
   };
 
   config.home.activation.piSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

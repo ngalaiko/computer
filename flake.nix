@@ -184,6 +184,14 @@
             PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s ${./home/agents/pi/skills/web-search}
             touch $out
           '';
+        pi-skill-policy =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "pi-skill-policy" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+            node --experimental-strip-types --test ${./home/agents/pi}/skill-policy.test.mjs
+            touch $out
+          '';
         pi-command-guards =
           let
             pkgs = nixpkgs.legacyPackages.${system};
