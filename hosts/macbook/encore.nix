@@ -54,6 +54,7 @@ _: {
         zig
         cargo-zigbuild
         stripe-cli
+        semgrep
         inputs.dash0-cli.packages.${pkgs.stdenv.hostPlatform.system}.dash0
       ];
 
