@@ -44,6 +44,7 @@ in
     ".pi/agent/extensions/command-guards.ts".source = ./pi/command-guards.ts;
     ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
     ".pi/agent/extensions/skill-policy.ts".source = ./pi/skill-policy.ts;
+    ".pi/agent/extensions/rex-inspector.ts".source = ./pi/rex-inspector.ts;
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };
   }
   // lib.mapAttrs' (

@@ -1,3 +1,12 @@
+# Rex inspector
+
+`rex-inspector.ts` connects Fleet's Enter/H actions to a split beside Pi's Rex
+pane. Focus stays on Pi unless explicitly requested. Inspector commands run
+directly, preserving their arguments and permissions.
+
+This integration is open-only: close panes through Rex. Closing an inspector
+does not stop its subagent.
+
 # Skill policy
 
 `skill-policy.ts` limits automatic discovery for user-level skills:
