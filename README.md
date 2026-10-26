@@ -15,6 +15,8 @@ for Mac apps.
 sudo darwin-rebuild switch --flake ./hosts/macbook#macbook
 ```
 
+After the first switch, `sudo darwin-rebuild switch` is enough.
+
 The MacBook flake adds Encore's private agent skills over SSH.
 
 ## exe.dev

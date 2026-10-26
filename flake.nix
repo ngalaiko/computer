@@ -125,9 +125,9 @@
           };
       };
 
-      # Public base configurations; private integrations live in host flakes.
+      # Public base configuration; private integrations live in host flakes.
+      # The MacBook builds only from hosts/macbook.
       nixosConfigurations.exedev = exedevFor "x86_64-linux";
-      darwinConfigurations.macbook = self.lib.macbookFor { };
 
       # `nix build .#exedev` (base image); `.#packages.<sys>.exedev` for a
       # specific arch.

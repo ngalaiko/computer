@@ -34,6 +34,9 @@
   ];
 
   users.users."nikita".home = "/Users/nikita";
+  # bare `darwin-rebuild switch` builds the host flake, encore included.
+  environment.etc."nix-darwin/flake.nix".source =
+    "/Users/nikita/Developer/ngalaiko/computer/hosts/macbook/flake.nix";
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
