@@ -4,7 +4,6 @@ _: {
     brews = [
       "e2fsprogs"
       "squashfs"
-      "vercel" # not in nixpkgs (nodePackages removed); npm tarball needs its own deps
     ];
 
     casks = [
@@ -15,6 +14,7 @@ _: {
       "notion"
       "paper-design" # paper.design canvas design tool
       "slack"
+      "vercel" # not in nixpkgs (nodePackages removed); npm tarball needs its own deps
     ];
   };
 
