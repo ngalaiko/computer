@@ -192,6 +192,14 @@
             node --experimental-strip-types --test ${./home/agents/pi}/skill-policy.test.mjs
             touch $out
           '';
+        pi-model-routing =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "pi-model-routing" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+            node --experimental-strip-types --test ${./home/agents/pi}/model-routing.test.mjs
+            touch $out
+          '';
         pi-command-guards =
           let
             pkgs = nixpkgs.legacyPackages.${system};
