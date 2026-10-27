@@ -13,6 +13,8 @@ let
   };
 in
 {
+  programs.nixvim.extraConfigLua = builtins.readFile ./rex-navigator.lua;
+
   programs.nixvim.keymaps = [
     # trouble
     (key "n" "<space>q" "<cmd>Trouble diagnostics toggle<CR>")
@@ -53,12 +55,6 @@ in
     # split tab vertically and horizontally
     (raw "n" "<leader>v" "vim.cmd.vsp")
     (raw "n" "<leader>s" "vim.cmd.sp")
-
-    # move between nvim splits
-    (key "n" "<C-h>" "<C-w>h")
-    (key "n" "<C-j>" "<C-w>j")
-    (key "n" "<C-k>" "<C-w>k")
-    (key "n" "<C-l>" "<C-w>l")
 
     # Move lines around (macOS <A-j> = ˚ <A-k> = ∆)
     (key "n" "∆" ":m+<CR>==")
