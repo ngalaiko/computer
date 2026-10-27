@@ -1,75 +1,77 @@
-# Model routing
+# Delegation
 
-`model-routing.ts` registers `tiered/main`, `tiered/scout`, `tiered/worker`,
-`tiered/reviewer`, and `tiered/oracle`. Main sessions and native subagents use
-these routes; explicit physical model overrides and external CLI agents bypass them.
+Main sessions use Sol at medium effort. `delegate.ts` adds one tool:
 
-| Tier                       | Mixed       | OpenAI-only | Claude-only | Thinking |
-| -------------------------- | ----------- | ----------- | ----------- | -------- |
-| Main                       | GPT-6.1 Sol | GPT-6.1 Sol | Opus 5.5    | Medium   |
-| Scout, researcher          | GPT-6 Luna  | GPT-6 Luna  | Haiku 5.5   | High     |
-| Worker, delegate           | GPT-6.1 Sol | GPT-6.1 Sol | Sonnet 5.5  | Medium   |
-| Reviewer, evidence auditor | Opus 5.5    | GPT-6.1 Sol | Opus 5.5    | High     |
-| Oracle                     | GPT-6 Astra | GPT-6 Astra | Opus 5.5    | Low      |
+| Role               | Model           | Effort | Access                            |
+| ------------------ | --------------- | ------ | --------------------------------- |
+| `worker` (default) | GPT-6.1 Sol     | Medium | Isolated JJ workspace             |
+| `small-worker`     | GPT-6.1 Terra   | Medium | Isolated JJ workspace             |
+| `reviewer`         | Claude CLI Opus | High   | Read-only tools, no new workspace |
 
-Thinking levels pass through to the physical model and are clamped by Pi.
-`/thinking` and explicit subagent thinking overrides remain available.
+Main decides when to delegate without asking: independent implementation to
+`worker`, bounded changes to `small-worker`, and substantive review to `reviewer`.
+It works directly when delegation adds overhead. Each task includes requirements,
+relevant paths, and acceptance criteria. Workspace creation and child sessions are
+automatic. You can also request delegation explicitly.
 
-Mixed mode excludes a provider after a quota or rate-limit error. All tiered
-sessions and children on that machine then use the remaining provider's column.
-Each routed request rechecks availability. Normal routing resumes after the
-reported ChatGPT retry interval, or after a heuristic cooldown: five minutes
-for throttling, one hour for quota exhaustion. These timers are not quota probes.
-Missing credentials also select the remaining provider in mixed mode.
-
-Recovery continues the existing session, omitting only the failed response from
-model context. Completed tool results remain. A failed response containing tool
-calls stops for inspection rather than automatically continuing. Auth, network,
-server, and context errors do not trigger provider failover. Both providers being
-unavailable stops routing. Direct calls such as compaction use the routes, but
-terminal failures outside the agent loop do not get automatic continuation.
-
-Commands:
-
-- `/agent-tier mixed`: automatic cross-provider fallback; default.
-- `/agent-tier openai`: restrict every tier to OpenAI; no cross-provider fallback.
-- `/agent-tier claude`: restrict every tier to Claude; no cross-provider fallback.
-- `/agent-tier status`: show mode and provider cooldowns.
-- `/agent-tier reset`: clear cooldowns without changing mode.
-
-Mode and cooldown files live in `~/.pi/agent/model-routing/`, shared across local
-sessions and children. Mode commands also select `tiered/main` in the current
-session. New sessions select it through settings. Existing physical-model
-sessions need `/agent-tier mixed` after `/reload`.
-
-Tests:
-
-```sh
-node --experimental-strip-types --test home/agents/pi/model-routing.test.mjs
-PI_SDK_ENTRY=/path/to/pi-coding-agent/dist/index.js \
-  node --experimental-strip-types --test home/agents/pi/model-routing.integration.test.mjs
+```json
+{ "task": "Add input validation and tests in the API service." }
 ```
 
-The SDK integration tests use simulated model responses, with no inference requests.
+Review retained work with its returned workspace path:
 
-# Rex inspector
+```json
+{
+  "role": "reviewer",
+  "cwd": "/returned/workspace",
+  "task": "Review API input validation against these requirements: ..."
+}
+```
 
-`rex-inspector.ts` connects Fleet's Enter/H actions to a split beside Pi's Rex
-pane. Focus stays on Pi unless explicitly requested. Inspector commands run
-directly, preserving their arguments and permissions.
+Writers start on top of the source working-copy change, including its snapshotted
+files. A source subdirectory maps to the same subdirectory in the new workspace.
+Untracked ignored files, dependencies, and local secrets are not copied; workers
+may need to install dependencies. Reviewers receive the current-change diff and
+can inspect source files, but cannot run tests.
 
-This integration is open-only: close panes through Rex. Closing an inspector
-does not stop its subagent.
+The tool waits for completion. Two delegates may run concurrently per parent
+session. There is no background scheduler, nested delegation, provider fallback,
+or automatic integration. Parent cancellation and session shutdown terminate
+child process groups. Process-group cancellation requires macOS or Linux.
+
+Results, prompts, sessions, and writer workspaces remain under
+`~/.pi/agent/delegations/`, including after failure or cancellation. Nothing is
+automatically merged or deleted. Ask Pi to inspect and integrate a returned JJ
+change, or remove its workspace, only when ready. Integration and deletion require
+explicit approval. Retained artifacts can contain private source and prompts.
+
+Children start with fresh context. Writers load only command-guards; reviewers
+also load `claude-code-pi@1.2.1` and use `claude-code-cli/opus` through local
+`claude -p`. Claude Code must be installed and signed in with your subscription.
+The bridge has no API fallback and starts a process per model turn. Pi executes
+read-only review tools; Claude Code tools and MCP are disabled by the bridge.
+MCP and ambient Pi extensions are disabled. Parent project trust carries only to its
+source workspace and trusted workspaces created in that session. Read-only tool
+selection and nested-delegation guards are workflow controls, not a sandbox.
+
+Tests use real temporary JJ repositories and a simulated Pi subprocess:
+
+```sh
+node --experimental-strip-types --test home/agents/pi/delegate.test.mjs
+```
+
+Set `PI_SDK_ENTRY` to Pi's `dist/index.js` to include validated SDK tool dispatch.
+No inference requests are made.
+
+Apply the Home Manager configuration and restart Pi to replace the old subagent
+package and routing extensions. Existing sessions may restore their recorded
+`tiered/*` selection; select `openai-codex/gpt-6.1-sol` with `/model` or start a new
+session. Old routing state and plugin artifacts are left untouched.
 
 # Skill policy
 
-`skill-policy.ts` limits automatic discovery for user-level skills:
-
-- Global: agent-browser, pi-subagents, diagnosing-bugs, tdd, code-review,
-  codebase-design, writing-for-agents, encore-service, rex.
-- Everything else: explicit `/skill:name` invocation.
-
-Project-local and command-line skills retain their discovery settings. Upstream
-explicit-only flags remain respected. Shared skill files are unchanged.
-
-The DuckDuckGo fallback remains in `skills/web-search/search.py`, outside Pi discovery.
+`skill-policy.ts` limits automatic user-level skill discovery to agent-browser,
+diagnosing-bugs, tdd, code-review, codebase-design, writing-for-agents,
+encore-service, and rex. Other user skills require explicit invocation.
+Project-local and command-line discovery, and upstream explicit-only flags,
+remain unchanged.

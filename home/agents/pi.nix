@@ -8,8 +8,8 @@ let
   cfg = config.agents.pi;
   settings = pkgs.writeText "pi-settings.json" (
     builtins.toJSON {
-      defaultProvider = "tiered";
-      defaultModel = "main";
+      defaultProvider = "openai-codex";
+      defaultModel = "gpt-6.1-sol";
       defaultThinkingLevel = "medium";
       theme = "zenwritten";
       quietStartup = true;
@@ -17,46 +17,10 @@ let
       showHardwareCursor = true;
       collapseChangelog = true;
       packages = [
-        "npm:pi-subagents@0.82.1"
         "npm:pi-web-access@0.44.0"
+        "npm:claude-code-pi@1.2.1"
       ];
       skills = [ ];
-      subagents = {
-        defaultModel = "tiered/worker";
-        defaultSubagentOnlyExtensions = [
-          "${config.home.homeDirectory}/.pi/agent/extensions/model-routing.ts"
-        ];
-        agentOverrides = {
-          delegate = {
-            model = "tiered/worker";
-            thinking = "medium";
-          };
-          worker = {
-            model = "tiered/worker";
-            thinking = "medium";
-          };
-          scout = {
-            model = "tiered/scout";
-            thinking = "high";
-          };
-          researcher = {
-            model = "tiered/scout";
-            thinking = "high";
-          };
-          reviewer = {
-            model = "tiered/reviewer";
-            thinking = "high";
-          };
-          evidence-auditor = {
-            model = "tiered/reviewer";
-            thinking = "high";
-          };
-          oracle = {
-            model = "tiered/oracle";
-            thinking = "low";
-          };
-        };
-      };
     }
   );
 in
@@ -80,8 +44,7 @@ in
     ".pi/agent/extensions/command-guards.ts".source = ./pi/command-guards.ts;
     ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
     ".pi/agent/extensions/skill-policy.ts".source = ./pi/skill-policy.ts;
-    ".pi/agent/extensions/model-routing.ts".source = ./pi/model-routing.ts;
-    ".pi/agent/extensions/rex-inspector.ts".source = ./pi/rex-inspector.ts;
+    ".pi/agent/extensions/delegate.ts".source = "${./pi}/delegate.ts";
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };
   }
   // lib.mapAttrs' (

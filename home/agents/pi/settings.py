@@ -6,6 +6,7 @@ import tempfile
 
 target, defaults = map(Path, sys.argv[1:])
 settings = json.loads(target.read_text()) if target.exists() else {}
+settings.pop("subagents", None)
 settings.update(json.loads(defaults.read_text()))
 target.parent.mkdir(parents=True, exist_ok=True)
 with tempfile.NamedTemporaryFile(mode="w", dir=target.parent, delete=False) as handle:

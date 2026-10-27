@@ -36,7 +36,6 @@ function apply(names, cwd = homedir(), explicit = [], scope = "user") {
 
 test("advertises the global coding skills", () => {
   const names = [
-    "pi-subagents",
     "agent-browser",
     "diagnosing-bugs",
     "tdd",
@@ -50,6 +49,7 @@ test("advertises the global coding skills", () => {
 test("keeps document and deliberate workflows explicit-only", () => {
   assert.deepEqual(
     apply([
+      "pi-subagents",
       "docx",
       "xlsx",
       "pptx",

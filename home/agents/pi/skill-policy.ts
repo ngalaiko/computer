@@ -1,7 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const automatic = new Set([
-  "pi-subagents",
   "agent-browser",
   "diagnosing-bugs",
   "tdd",
