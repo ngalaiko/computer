@@ -17,10 +17,15 @@ let
       showHardwareCursor = true;
       collapseChangelog = true;
       packages = [
+        "npm:pi-subagents@0.82.1"
         "npm:pi-web-access@0.44.0"
         "npm:claude-code-pi@1.2.1"
       ];
       skills = [ ];
+      subagents = {
+        disableBuiltins = true;
+        defaultExtensions = [ ];
+      };
     }
   );
 in
@@ -39,12 +44,15 @@ in
   };
 
   config.home.file = {
-    ".pi/agent/AGENTS.md".source = ./AGENTS.md;
+    ".pi/agent/AGENTS.md".text = builtins.readFile ./AGENTS.md + builtins.readFile ./pi/AGENTS.md;
     ".pi/agent/themes/zenwritten.json".source = ./pi/themes/zenwritten.json;
     ".pi/agent/extensions/command-guards.ts".source = ./pi/command-guards.ts;
     ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
     ".pi/agent/extensions/skill-policy.ts".source = ./pi/skill-policy.ts;
-    ".pi/agent/extensions/delegate.ts".source = "${./pi}/delegate.ts";
+    ".pi/agent/extensions/subagent/config.json".source = ./pi/subagents/config.json;
+    ".pi/agent/agents/worker.md".source = ./pi/subagents/worker.md;
+    ".pi/agent/agents/small-worker.md".source = ./pi/subagents/small-worker.md;
+    ".pi/agent/agents/reviewer.md".source = ./pi/subagents/reviewer.md;
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };
   }
   // lib.mapAttrs' (

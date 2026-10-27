@@ -42,6 +42,7 @@ test("advertises the global coding skills", () => {
     "code-review",
     "codebase-design",
     "writing-for-agents",
+    "pi-subagents",
   ];
   assert.deepEqual(apply(names), names);
 });
@@ -49,7 +50,6 @@ test("advertises the global coding skills", () => {
 test("keeps document and deliberate workflows explicit-only", () => {
   assert.deepEqual(
     apply([
-      "pi-subagents",
       "docx",
       "xlsx",
       "pptx",

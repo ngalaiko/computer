@@ -192,21 +192,19 @@
             node --experimental-strip-types --test ${./home/agents/pi}/skill-policy.test.mjs
             touch $out
           '';
-        pi-delegate =
+        pi-subagents =
           let
             pkgs = nixpkgs.legacyPackages.${system};
           in
-          pkgs.runCommand "pi-delegate"
+          pkgs.runCommand "pi-subagents"
             {
               nativeBuildInputs = [
                 pkgs.nodejs
-                pkgs.jujutsu
+                pkgs.python3
               ];
             }
             ''
-              export HOME="$TMPDIR/home"
-              mkdir -p "$HOME"
-              node --experimental-strip-types --test ${./home/agents/pi}/delegate.test.mjs
+              node --test ${./home/agents}/pi/subagents.test.mjs
               touch $out
             '';
         pi-command-guards =

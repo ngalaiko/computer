@@ -9,6 +9,7 @@ const automatic = new Set([
   "writing-for-agents",
   "encore-service",
   "rex",
+  "pi-subagents",
 ]);
 
 export default function (pi: ExtensionAPI) {
