@@ -1,13 +1,16 @@
 {
-  "asyncByDefault": true,
-  "forceTopLevelAsync": true,
-  "defaultSubagentContext": "fresh",
-  "fleetView": true,
-  "asyncWidget": false,
-  "inlineToolDisplay": "summary",
-  "maxActiveAsyncRunsPerSession": 2,
-  "globalConcurrencyLimit": 2,
+  "maxConcurrent": 2,
+  "maxConcurrentForeground": 2,
   "maxSubagentDepth": 1,
-  "worktree": false,
-  "autoResume": false
+  "fallbackSubagent": "none",
+  "disableDefaultAgents": true,
+  "worktreeIsolation": false,
+  "schedulingEnabled": false,
+  "workflowsEnabled": false,
+  "packageAgents": false,
+  "packageWorkflows": false,
+  "backgroundByDefault": true,
+  "widgetMode": "all",
+  "fleetView": true,
+  "showModel": true
 }

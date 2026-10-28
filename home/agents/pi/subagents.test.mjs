@@ -1,251 +1,292 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
-  mkdirSync,
   mkdtempSync,
+  mkdirSync,
   readFileSync,
-  realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-
-test("subagents run in the background with live fleet visibility", () => {
-  const config = JSON.parse(read("./subagents/config.json"));
-  assert.equal(config.asyncByDefault, true);
-  assert.equal(config.forceTopLevelAsync, true);
-  assert.equal(config.fleetView, true);
-  assert.equal(config.maxActiveAsyncRunsPerSession, 2);
-  assert.equal(config.globalConcurrencyLimit, 2);
-  assert.equal(config.maxSubagentDepth, 1);
-  assert.equal(config.worktree, false);
-  assert.equal(config.defaultSubagentContext, "fresh");
-  assert.equal(config.autoResume, false);
-  assert.equal(config.asyncWidget, false);
-  assert.equal(config.inlineToolDisplay, "summary");
+const json = (path) => JSON.parse(read(path));
+const guard = "/home/test/.pi/agent/extensions/command-guards.ts";
+const expectedProfiles = {
+  explorer: ["openai-codex/gpt-6-luna", "high"],
+  worker: ["openai-codex/gpt-6.1-sol", undefined],
+  "small-worker": ["openai-codex/gpt-6-luna", "high"],
+  reviewer: ["claude-code-cli/opus", "high"],
+};
+const settings = () => json("./subagents/config.json");
+const profiles = () => json("./subagents/profiles.json");
+const prompt = (role) =>
+  read(`./subagents/${role === "small-worker" ? "worker" : role}.md`);
+const fields = (name, profile) => ({
+  ...profile,
+  name,
+  extensions: [guard],
+  skills: true,
+  allowed_subagents: false,
+  prompt_mode: "replace",
+  inherit_context: false,
+  isolation: "off",
 });
+const render = (name, profile) =>
+  `---\n${Object.entries(fields(name, profile))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+    .join("\n")}\n---\n\n${read("../AGENTS.md")}\n${prompt(name)}`;
 
-test("custom agents pin models, tools, extensions, and fresh context", () => {
-  for (const [role, model, thinking, tools] of [
-    ["worker", "openai-codex/gpt-6.1-sol", "medium", "read, bash, edit, write"],
-    [
-      "small-worker",
-      "openai-codex/gpt-6.1-terra",
-      "medium",
-      "read, bash, edit, write",
-    ],
-    ["reviewer", "claude-code-cli/opus", "high", "read, grep, find, ls"],
-  ]) {
-    const definition = read(`./subagents/${role}.md`);
-    const [, frontmatter] = definition.split("---");
-    const fields = Object.fromEntries(
-      frontmatter
-        .trim()
-        .split("\n")
-        .map((line) => {
-          const colon = line.indexOf(":");
-          return [line.slice(0, colon), line.slice(colon + 1).trim()];
-        }),
-    );
-    assert.equal(fields.name, role);
-    assert.equal(fields.model, model);
-    assert.equal(fields.thinking, thinking);
-    assert.equal(fields.tools, tools);
-    assert.equal(fields.async, "true");
-    assert.equal(fields.advertise, "true");
-    assert.equal(fields.defaultContext, "fresh");
-    if (role !== "reviewer") assert.equal(fields.acceptance, "attested");
-    assert.equal(fields.inheritProjectContext, "true");
-    assert.equal(fields.inheritGlobalContext, "true");
-    assert.equal(fields.inheritSkills, "false");
-    assert.equal(fields.systemPromptMode, "append");
-    assert.equal(
-      fields.acceptanceRole,
-      role === "reviewer" ? "read-only" : "writer",
-    );
-    assert.equal(
-      fields.extensions,
-      role === "reviewer"
-        ? "../extensions/command-guards.ts, ../npm/node_modules/claude-code-pi"
-        : "../extensions/command-guards.ts",
-    );
-    assert.match(definition, /Work directly without delegating/);
-  }
-});
-
-test("Home Manager deploys upstream subagents instead of the custom runner", () => {
-  const module = read("../pi.nix");
-  assert.match(module, /npm:pi-subagents@0\.82\.1/);
-  assert.match(module, /disableBuiltins = true/);
-  assert.match(module, /\.pi\/agent\/extensions\/subagent\/config\.json/);
-  for (const role of ["worker", "small-worker", "reviewer"]) {
-    assert.ok(module.includes(`".pi/agent/agents/${role}.md"`));
-  }
-  assert.doesNotMatch(module, /delegate\.ts|model-routing\.ts/);
-});
-
-test("delegation instructions are Pi-only and scoped to parent sessions", () => {
-  assert.doesNotMatch(read("../AGENTS.md"), /<delegation>/);
-  const instructions = read("./AGENTS.md");
-  assert.match(instructions, /Parent Pi sessions only/);
-  assert.match(instructions, /git\.colocate=false workspace add/);
-  assert.match(read("../pi.nix"), /builtins\.readFile \.\/pi\/AGENTS\.md/);
-});
-
-test("settings activation replaces stale routing without losing unrelated settings", (t) => {
-  const directory = mkdtempSync(join(tmpdir(), "pi-settings-"));
+function temporary(t) {
+  const directory = mkdtempSync(join(tmpdir(), "pi-subagents-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const target = join(directory, "settings.json");
-  const defaults = join(directory, "defaults.json");
-  writeFileSync(
-    target,
-    JSON.stringify({
-      editorPaddingX: 3,
-      subagents: {
-        defaultModel: "tiered/worker",
-        defaultSubagentOnlyExtensions: ["model-routing.ts"],
-      },
-    }),
-  );
-  const managed = {
-    packages: ["npm:pi-subagents@0.82.1"],
-    subagents: { disableBuiltins: true },
-  };
-  writeFileSync(defaults, JSON.stringify(managed));
-  execFileSync("python3", [
-    new URL("./settings.py", import.meta.url).pathname,
-    target,
-    defaults,
-  ]);
-  assert.deepEqual(JSON.parse(readFileSync(target, "utf8")), {
-    editorPaddingX: 3,
-    ...managed,
+  return directory;
+}
+
+test("upstream settings disable fallback, nesting, Git isolation, and optional orchestrators", () => {
+  assert.deepEqual(settings(), {
+    maxConcurrent: 2,
+    maxConcurrentForeground: 2,
+    maxSubagentDepth: 1,
+    fallbackSubagent: "none",
+    disableDefaultAgents: true,
+    worktreeIsolation: false,
+    schedulingEnabled: false,
+    workflowsEnabled: false,
+    packageAgents: false,
+    packageWorkflows: false,
+    backgroundByDefault: true,
+    widgetMode: "all",
+    fleetView: true,
+    showModel: true,
   });
 });
 
-test(
-  "installed upstream resolves the deployed agent launch contracts",
-  {
-    skip: !process.env.PI_SDK_ENTRY || !process.env.PI_SUBAGENTS_DIR,
-  },
-  async (t) => {
-    const directory = realpathSync(
-      mkdtempSync(join(tmpdir(), "pi-subagents-")),
+test("Home Manager deploys stock upstream settings and standalone Markdown agents", () => {
+  const module = read("../pi.nix");
+  assert.match(module, /npm:@tintinweb\/pi-subagents@0\.22\.0/);
+  assert.match(
+    module,
+    /"\.pi\/agent\/subagents\.json"\.text = builtins\.toJSON subagentSettings/,
+  );
+  assert.match(module, /"\.pi\/agent\/agents\/\$\{name\}\.md"/);
+  assert.match(module, /builtins\.readFile \.\/pi\/subagents\/profiles\.json/);
+  assert.match(module, /builtins\.readFile \.\/AGENTS\.md/);
+  assert.match(
+    module,
+    /extensions = \[ "\$\{config\.home\.homeDirectory\}\/\.pi\/agent\/extensions\/command-guards\.ts" \]/,
+  );
+  for (const fragment of [
+    "skills = true",
+    "allowed_subagents = false",
+    'prompt_mode = "replace"',
+    "inherit_context = false",
+    'isolation = "off"',
+  ])
+    assert.ok(module.includes(fragment), fragment);
+  assert.doesNotMatch(
+    module,
+    /pi-actor-subagents|actor-subagents|roles\.json|childExtensions/,
+  );
+  assert.deepEqual(
+    Object.keys(profiles()).sort(),
+    Object.keys(expectedProfiles).sort(),
+  );
+  for (const [role, [model, thinking]] of Object.entries(expectedProfiles)) {
+    const profile = profiles()[role];
+    assert.equal(profile.model, model);
+    assert.equal(profile.thinking, thinking);
+    assert.equal(
+      profile.tools,
+      ["explorer", "reviewer"].includes(role)
+        ? "read, grep, find, ls"
+        : "read, bash, edit, write, grep, find, ls",
     );
-    t.after(() => rmSync(directory, { recursive: true, force: true }));
-    const agentDir = join(directory, "agent");
-    const cwd = join(directory, "repo");
-    for (const path of [
-      cwd,
-      join(agentDir, "agents"),
-      join(agentDir, "extensions", "subagent"),
-      join(agentDir, "npm", "node_modules"),
-    ])
-      mkdirSync(path, { recursive: true });
+    assert.ok(profile.description);
+    assert.match(prompt(role), /Work directly without delegating/);
+    assert.match(prompt(role), /absolute.*workspace|absolute paths rooted/);
+    assert.doesNotMatch(
+      prompt(role),
+      /handshake|send_message|set_status|go-ahead/,
+    );
+    assert.match(render(role, profile), /^---\n/);
+  }
+  for (const fragment of [
+    "Keep the workspace unchanged",
+    "execution path",
+    "file and symbol references",
+    "uncertainty",
+    "Stop when the question is answered",
+  ])
+    assert.ok(prompt("explorer").includes(fragment), fragment);
+  assert.match(prompt("reviewer"), /Keep the workspace unchanged/);
+});
+
+test("parent orchestration is one-shot, event-driven, and explicit about JJ paths", () => {
+  const instructions = read("./AGENTS.md");
+  assert.doesNotMatch(read("../AGENTS.md"), /<delegation>/);
+  for (const fragment of [
+    "Parent Pi sessions only",
+    "Agent",
+    "subagent_type",
+    "get_subagent_result",
+    "steer_subagent",
+    "thinking",
+    '"medium"',
+    '"high"',
+    "Use explorer for bounded codebase questions",
+    "Escalate ambiguous small-worker tasks to worker",
+    "goal, scope, constraints, paths, expected evidence, and stop condition",
+    "Start a new reviewer",
+    "not the implementation conversation",
+    "git.colocate=false workspace add",
+    "Children retain the parent's cwd",
+    "absolute",
+    "prompt-only",
+    "two",
+    "completion notification",
+    "rather than polling",
+    "operator approval",
+  ])
+    assert.ok(instructions.includes(fragment), fragment);
+  assert.doesNotMatch(
+    instructions,
+    /spawn_subagent|send_message|handshake|roles\.json|pause_subagents|kill_subagents/,
+  );
+  const docs = read("./README.md");
+  for (const fragment of [
+    "maxConcurrentForeground",
+    "separate",
+    "resume",
+    "options.cwd",
+    "prompt-only",
+    "unavailable",
+    "/agents",
+    "not migrated",
+  ])
+    assert.ok(docs.includes(fragment), fragment);
+});
+
+test("activation replaces legacy packages and removes obsolete inline settings", (t) => {
+  const directory = temporary(t);
+  const target = join(directory, "settings.json");
+  const defaults = join(directory, "defaults.json");
+  const managed = { packages: ["npm:@tintinweb/pi-subagents@0.22.0"] };
+  writeFileSync(defaults, JSON.stringify(managed));
+  for (const source of [
+    "npm:pi-subagents@0.82.1",
+    "npm:pi-actor-subagents@0.1.32",
+  ]) {
     writeFileSync(
-      join(agentDir, "settings.json"),
+      target,
       JSON.stringify({
-        subagents: { disableBuiltins: true, defaultExtensions: [] },
+        editorPaddingX: 3,
+        packages: [source],
+        subagents: { disableBuiltins: true },
       }),
     );
-    writeFileSync(
-      join(agentDir, "extensions", "subagent", "config.json"),
-      read("./subagents/config.json"),
+    execFileSync("python3", [
+      new URL("./settings.py", import.meta.url).pathname,
+      target,
+      defaults,
+    ]);
+    assert.deepEqual(JSON.parse(readFileSync(target, "utf8")), {
+      editorPaddingX: 3,
+      ...managed,
+    });
+  }
+});
+
+test(
+  "evaluated Home Manager deployment matches rendered agents",
+  { skip: !process.env.PI_SUBAGENTS_DEPLOYMENT },
+  () => {
+    const deployed = JSON.parse(
+      readFileSync(process.env.PI_SUBAGENTS_DEPLOYMENT, "utf8"),
     );
-    const profiles = [
-      [
-        "worker",
-        "openai-codex/gpt-6.1-sol",
-        "medium",
-        ["read", "bash", "edit", "write"],
-      ],
-      [
-        "small-worker",
-        "openai-codex/gpt-6.1-terra",
-        "medium",
-        ["read", "bash", "edit", "write"],
-      ],
-      [
-        "reviewer",
-        "claude-code-cli/opus",
-        "high",
-        ["read", "grep", "find", "ls"],
-      ],
-    ];
-    for (const [role] of profiles)
-      symlinkSync(
-        fileURLToPath(new URL(`./subagents/${role}.md`, import.meta.url)),
-        join(agentDir, "agents", `${role}.md`),
-      );
-    symlinkSync(
-      fileURLToPath(new URL("./command-guards.ts", import.meta.url)),
-      join(agentDir, "extensions", "command-guards.ts"),
+    assert.deepEqual(JSON.parse(deployed.settings), settings());
+    assert.deepEqual(
+      Object.keys(deployed.agents).sort(),
+      Object.keys(expectedProfiles).sort(),
     );
-    symlinkSync(
-      join(dirname(process.env.PI_SUBAGENTS_DIR), "claude-code-pi"),
-      join(agentDir, "npm", "node_modules", "claude-code-pi"),
+    for (const [role, profile] of Object.entries(profiles()))
+      assert.equal(deployed.agents[role], render(role, profile));
+  },
+);
+
+test(
+  "public upstream loader accepts settings and rendered role definitions",
+  {
+    skip: !process.env.PI_SUBAGENTS_DIR,
+  },
+  async (t) => {
+    // Pi's loader resolves TypeScript and host packages; native Node cannot load installed .ts files.
+    assert.ok(
+      process.env.PI_JITI_MODULE,
+      "PI_JITI_MODULE must name Pi's jiti module",
     );
-    const previous = process.env.PI_CODING_AGENT_DIR;
+    assert.ok(
+      process.env.PI_CODING_AGENT_MODULE,
+      "PI_CODING_AGENT_MODULE must name Pi's host module",
+    );
+    const directory = temporary(t);
+    const agentDir = join(directory, "agent");
+    const cwd = join(directory, "project");
+    mkdirSync(join(agentDir, "agents"), { recursive: true });
+    mkdirSync(cwd);
+    const old = process.env.PI_CODING_AGENT_DIR;
     process.env.PI_CODING_AGENT_DIR = agentDir;
     t.after(() => {
-      if (previous === undefined) delete process.env.PI_CODING_AGENT_DIR;
-      else process.env.PI_CODING_AGENT_DIR = previous;
+      if (old === undefined) delete process.env.PI_CODING_AGENT_DIR;
+      else process.env.PI_CODING_AGENT_DIR = old;
     });
-    const sdk = process.env.PI_SDK_ENTRY;
-    const sdkRoot = dirname(dirname(sdk));
-    const require = createRequire(sdk);
-    const { createJiti } = require("jiti");
-    const alias = Object.fromEntries(
-      ["pi-ai", "pi-agent-core", "pi-tui"].map((name) => [
-        `@earendil-works/${name}`,
-        join(
-          sdkRoot,
-          "node_modules",
-          "@earendil-works",
-          name,
-          "dist",
-          "index.js",
-        ),
-      ]),
+    for (const [role, profile] of Object.entries(profiles()))
+      writeFileSync(
+        join(agentDir, "agents", `${role}.md`),
+        render(role, profile),
+      );
+    writeFileSync(join(agentDir, "subagents.json"), JSON.stringify(settings()));
+    const { createJiti } = await import(
+      pathToFileURL(process.env.PI_JITI_MODULE).href
     );
-    alias["@earendil-works/pi-coding-agent"] = sdk;
-    const jiti = createJiti(import.meta.url, { alias });
-    const { resolveSubagentLaunchContract } = await jiti.import(
-      join(process.env.PI_SUBAGENTS_DIR, "bundle", "preflight.js"),
-    );
-    const availableModels = profiles.map(([, model]) => {
-      const [provider, id] = model.split("/");
-      return { provider, id, reasoning: true };
+    const jiti = createJiti(import.meta.url, {
+      fsCache: false,
+      alias: {
+        "@earendil-works/pi-coding-agent": process.env.PI_CODING_AGENT_MODULE,
+      },
     });
-    for (const [agent, model, thinking, tools] of profiles) {
-      const result = await resolveSubagentLaunchContract({
-        agent,
-        task: "Check the launch contract.",
-        cwd,
-        agentScope: "user",
-        availableModels,
-        intercomBridge: { mode: "off" },
-      });
-      assert.equal(result.ok, true, JSON.stringify(result));
-      const contract = result.contract;
-      assert.equal(contract.model, `${model}:${thinking}`);
-      assert.equal(contract.context, "fresh");
-      assert.equal(contract.tools.disableAmbientExtensions, true);
-      assert.equal(contract.tools.fanoutAuthorized, false);
-      assert.deepEqual(contract.tools.effectiveAllowlist, tools);
-      assert.deepEqual(contract.tools.configuredExtensions, [
-        join(agentDir, "extensions", "command-guards.ts"),
-        ...(agent === "reviewer"
-          ? [join(agentDir, "npm", "node_modules", "claude-code-pi")]
-          : []),
-      ]);
+    const upstream = (file) =>
+      jiti.import(join(process.env.PI_SUBAGENTS_DIR, "src", file));
+    const { loadCustomAgents } = await upstream("custom-agents.ts");
+    const { loadSettings } = await upstream("settings.ts");
+    assert.deepEqual(loadSettings(cwd), settings());
+    const agents = loadCustomAgents(cwd, true, {
+      packageDirs: [],
+      packageFiles: [],
+    });
+    assert.deepEqual(
+      [...agents.keys()].sort(),
+      Object.keys(expectedProfiles).sort(),
+    );
+    for (const [role, profile] of Object.entries(profiles())) {
+      const agent = agents.get(role);
+      assert.equal(agent.model, profile.model);
+      assert.equal(agent.thinking, profile.thinking);
+      assert.deepEqual(agent.builtinToolNames, profile.tools.split(", "));
+      assert.deepEqual(agent.extensions, [guard]);
+      assert.equal(agent.skills, true);
+      assert.equal(agent.allowedSubagents, undefined);
+      assert.equal(agent.inheritContext, false);
+      assert.equal(agent.promptMode, "replace");
+      assert.equal(agent.isolation, "off");
+      assert.equal(
+        agent.systemPrompt,
+        `${read("../AGENTS.md")}\n${prompt(role)}`.trim(),
+      );
     }
   },
 );

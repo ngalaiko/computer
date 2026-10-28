@@ -42,7 +42,6 @@ test("advertises the global coding skills", () => {
     "code-review",
     "codebase-design",
     "writing-for-agents",
-    "pi-subagents",
   ];
   assert.deepEqual(apply(names), names);
 });
@@ -69,6 +68,10 @@ test("keeps document and deliberate workflows explicit-only", () => {
     ]),
     [],
   );
+});
+
+test("keeps subagent guidance discoverable", () => {
+  assert.deepEqual(apply(["pi-subagents"]), ["pi-subagents"]);
 });
 
 test("preserves an upstream explicit-only flag", () => {

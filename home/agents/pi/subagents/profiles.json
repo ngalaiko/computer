@@ -1,0 +1,25 @@
+{
+  "explorer": {
+    "description": "Answer bounded codebase questions with execution paths and evidence; keep files unchanged.",
+    "model": "openai-codex/gpt-6-luna",
+    "thinking": "high",
+    "tools": "read, grep, find, ls"
+  },
+  "worker": {
+    "description": "Implement cross-file tasks; caller selects medium effort or high for difficult work.",
+    "model": "openai-codex/gpt-6.1-sol",
+    "tools": "read, bash, edit, write, grep, find, ls"
+  },
+  "small-worker": {
+    "description": "Implement bounded, low-uncertainty edits.",
+    "model": "openai-codex/gpt-6-luna",
+    "thinking": "high",
+    "tools": "read, bash, edit, write, grep, find, ls"
+  },
+  "reviewer": {
+    "description": "Review requirements and diffs independently; report concrete bugs and missing tests.",
+    "model": "claude-code-cli/opus",
+    "thinking": "high",
+    "tools": "read, grep, find, ls"
+  }
+}

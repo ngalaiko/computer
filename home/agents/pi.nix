@@ -6,6 +6,35 @@
 }:
 let
   cfg = config.agents.pi;
+  subagentSettings = builtins.fromJSON (builtins.readFile ./pi/subagents/config.json);
+  subagentProfiles = builtins.fromJSON (builtins.readFile ./pi/subagents/profiles.json);
+  subagentFiles = lib.mapAttrs' (
+    name: profile:
+    let
+      frontmatter = profile // {
+        inherit name;
+        extensions = [ "${config.home.homeDirectory}/.pi/agent/extensions/command-guards.ts" ];
+        skills = true;
+        allowed_subagents = false;
+        prompt_mode = "replace";
+        inherit_context = false;
+        isolation = "off";
+      };
+    in
+    lib.nameValuePair ".pi/agent/agents/${name}.md" {
+      text =
+        "---\n"
+        + lib.concatStringsSep "\n" (
+          lib.mapAttrsToList (key: value: "${key}: ${builtins.toJSON value}") frontmatter
+        )
+        + "\n---\n\n"
+        + builtins.readFile ./AGENTS.md
+        + "\n"
+        + builtins.readFile (
+          if name == "small-worker" then ./pi/subagents/worker.md else ./pi/subagents + "/${name}.md"
+        );
+    }
+  ) subagentProfiles;
   settings = pkgs.writeText "pi-settings.json" (
     builtins.toJSON {
       defaultProvider = "openai-codex";
@@ -17,15 +46,11 @@ let
       showHardwareCursor = true;
       collapseChangelog = true;
       packages = [
-        "npm:pi-subagents@0.82.1"
+        "npm:@tintinweb/pi-subagents@0.22.0"
         "npm:pi-web-access@0.44.0"
         "npm:claude-code-pi@1.2.1"
       ];
       skills = [ ];
-      subagents = {
-        disableBuiltins = true;
-        defaultExtensions = [ ];
-      };
     }
   );
 in
@@ -49,12 +74,10 @@ in
     ".pi/agent/extensions/command-guards.ts".source = ./pi/command-guards.ts;
     ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
     ".pi/agent/extensions/skill-policy.ts".source = ./pi/skill-policy.ts;
-    ".pi/agent/extensions/subagent/config.json".source = ./pi/subagents/config.json;
-    ".pi/agent/agents/worker.md".source = ./pi/subagents/worker.md;
-    ".pi/agent/agents/small-worker.md".source = ./pi/subagents/small-worker.md;
-    ".pi/agent/agents/reviewer.md".source = ./pi/subagents/reviewer.md;
+    ".pi/agent/subagents.json".text = builtins.toJSON subagentSettings;
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };
   }
+  // subagentFiles
   // lib.mapAttrs' (
     name: source: lib.nameValuePair ".pi/agent/skills/${name}" { inherit source; }
   ) cfg.skills;

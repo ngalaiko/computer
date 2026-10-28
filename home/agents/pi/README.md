@@ -1,89 +1,128 @@
 # Subagents
 
-`pi.nix` installs `pi-subagents@0.82.1` with three custom agents:
+`pi.nix` pins stock [`@tintinweb/pi-subagents@0.22.0`](https://github.com/tintinweb/pi-subagents).
+No upstream patches or custom RPC bridge are installed.
 
-| Agent          | Model           | Effort | Tools                    |
-| -------------- | --------------- | ------ | ------------------------ |
-| `worker`       | GPT-6.1 Sol     | Medium | Read, shell, edit, write |
-| `small-worker` | GPT-6.1 Terra   | Medium | Read, shell, edit, write |
-| `reviewer`     | Claude CLI Opus | High   | Read, grep, find, ls     |
+Home Manager deploys `~/.pi/agent/subagents.json` from `subagents/config.json`
+and four `~/.pi/agent/agents/*.md` definitions. Nix renders frontmatter from
+`subagents/profiles.json`, then appends shared `home/agents/AGENTS.md` and the
+role prompt. Worker and small-worker share `subagents/worker.md`. Replace-mode
+prompts exclude parent orchestration instructions and conversation history.
 
-Definitions live in `subagents/*.md`; runtime settings in `subagents/config.json`.
-Builtins are disabled. Project agents can still override user definitions.
-Home Manager owns the `subagents` settings block; activation replaces runtime
-changes made by model-profile or agent-management commands.
+| Role         | Model                    | Effort                                  |
+| ------------ | ------------------------ | --------------------------------------- |
+| explorer     | openai-codex/gpt-6-luna  | high                                    |
+| worker       | openai-codex/gpt-6.1-sol | caller: medium, high for difficult work |
+| small-worker | openai-codex/gpt-6-luna  | high                                    |
+| reviewer     | claude-code-cli/opus     | high                                    |
 
-Runs start asynchronously with fresh context. The parent continues independent
-work and receives completion notifications. Two top-level async runs may be active;
-workflow concurrency is also two. Nested delegation is disabled for these agents.
-Automatic workflow revival is disabled; resume interrupted work explicitly.
+Worker deliberately omits `thinking` frontmatter: upstream pins are authoritative,
+so a medium pin would prevent a caller requesting high. Always pass worker
+`thinking` explicitly. Ambiguous small-worker tasks go to worker. Explorer and
+reviewer have only `read, grep, find, ls`; the parent runs review tests. Workers
+have the seven built-in coding tools. All four allow only the absolute command-guards
+extension path and inherit skills, not the parent's full extension set.
+Upstream allowlists filter extension registration; discovered extension factories
+may still execute during loading. Guards and allowlists are not an OS sandbox. Nested delegation is disabled by both depth and
+agent allowlists. Default agents, fallback dispatch, package agents/workflows,
+scheduling, scripted workflows, and Git worktree isolation are disabled.
+Project-local definitions and `.pi/subagents.json` can override these global defaults.
 
-## Visibility and control
+Before use, check `/agents → Agent types` for model availability, especially
+`claude-code-cli/opus`; Claude Code must be installed and signed in. Upstream
+resolves model pins tolerantly, including other providers, and can inherit the
+parent model when a pin is unavailable. Pins are not fail-closed model enforcement.
+Thinking can be clamped to the model's supported levels; `showModel` displays the
+actual model/effort in the widget. Widget mode is `all`; FleetView is enabled.
 
-- FleetView shows live activity below the editor.
-- `/subagents-fleet` opens transcripts and tool output; `s` steers, `D` stops.
-- `/subagents-stop` selects background runs to stop.
-- `/subagents-models` shows effective role mappings.
-- `/subagent-cost` includes async child usage, unlike Pi's session footer.
+## Dispatch and completion
 
-Background children survive parent-turn cancellation and may outlive Pi. Use the
-upstream stop controls to terminate them. Artifacts and retention follow upstream
-policy; retain important evidence separately.
+Use a self-contained task; children execute and return a final answer without a
+confirmation handshake. Resolve material questions before dispatch. For example:
 
-## JJ isolation
-
-The Pi-only parent instructions in `AGENTS.md` require a separate JJ workspace per
-writer. This is instruction-based, not an enforced isolation boundary. Upstream's
-managed worktrees use Git, so `worktree` stays false. There is no custom runner or
-workspace adapter.
-
-The parent creates a unique workspace from the source working-copy change, then
-launches the writer with its absolute path:
-
-```json
-{
-  "agent": "worker",
-  "task": "Add input validation and focused tests. Report changed files and results.",
-  "cwd": "/absolute/path/to/jj/workspace",
-  "async": true,
-  "worktree": false
-}
+```js
+Agent({
+  subagent_type: "worker",
+  name: "settings-migration",
+  description: "Migrate settings and tests",
+  thinking: "medium",
+  run_in_background: true,
+  prompt:
+    "Implement <goal> in /absolute/jj/workspace. Scope: <files>. Constraints: <rules>. Use absolute file paths and cd /absolute/jj/workspace && for shell commands; your cwd remains the parent's. Run <tests>. Stop at <acceptance criteria>. Return changed files, test results, and blockers.",
+});
 ```
 
-Preserve the source-relative subdirectory for package-scoped tasks. Ignored files,
-dependencies, and secrets are not copied. Pass the writer's workspace as reviewer
-`cwd` and include the parent's `jj diff`; the read-only reviewer cannot run it.
-The parent runs review test commands. Integration and workspace deletion require
-explicit approval. Existing custom-delegate artifacts remain untouched.
+Continue independent work, then yield for the background completion notification.
+Use `get_subagent_result({agent_id: "<id>"})` for full output, not repeated polling.
+`steer_subagent({agent_id: "<id>", message: "<correction>"})` redirects a running
+agent. `Agent({resume: "<id>", ...})` continues a completed conversation; use a
+fresh reviewer instead for each independent review. Supply requirements, paths,
+and `jj diff`, not implementation reasoning or another agent's history.
 
-Writers use attested acceptance instead of Git-index checks. Their reports are
-claims, not independent verification; the parent reviews diffs and test evidence.
+`maxConcurrent: 2` and `maxConcurrentForeground: 2` bound **separate** pools,
+not a combined total. Foreground resume bypasses its pool, and handing foreground
+work to the background can exceed the background cap. The parent must maintain
+a combined two-active-child policy. Prefer background dispatch throughout.
+Finished runs do not require actor-style slot cleanup. `/agents` and FleetView
+inspect live conversations; persisted upstream sessions can be resumed.
 
-## Child environment
+## JJ workspaces
 
-Children inherit repository and global instructions, but not the skills catalog.
-Explicit extension allowlists load command guards; reviewers also load
-`claude-code-pi@1.2.1`. Other ambient extensions are excluded. Reviewer model calls
-use local `claude -p`; Claude Code must be installed and signed in. Read-only tool
-selection is a workflow restriction, not a sandbox.
+Before each writer, the parent creates a unique workspace based on its working copy:
+
+```sh
+jj --config git.colocate=false workspace add --name <unique-name> -r @ <absolute-path>
+```
+
+Keep workspaces under `~/.pi/agent/jj-workspaces/` and preserve package-relative
+subdirectories. Ignored files, dependencies, and secrets are not copied.
+`Agent` has **no per-invocation cwd parameter**: the child retains the parent's cwd.
+Require absolute paths and explicit shell `cd` into the supplied workspace.
+This is prompt-only workspace discipline, not runtime isolation. Read-only tool
+scoping also does not restrict which paths can be read.
+
+Upstream cross-extension RPC supports a real `options.cwd` for tools, while still
+loading the parent's project configuration. That API is not exposed by the standard
+`Agent` tool and is not wired here. Built-in Git worktrees are disabled to avoid
+Git commands and automatic commits. Integration and workspace deletion require
+explicit operator approval; completion never authorizes either.
 
 ## Apply and test
 
-Apply the Home Manager configuration, then restart Pi. This removes the managed
-`delegate.ts` extension and enables upstream subagents. `/subagents-doctor` checks
-the live setup. Existing sessions may retain obsolete tool declarations; use a
-fresh session after switching.
+Apply Home Manager, then restart Pi. Activation replaces the managed package list
+and removes the obsolete inline `settings.json` subagents block while retaining
+other settings. Home Manager removes obsolete actor-managed settings/roles files.
+Old actor sessions are not migrated; existing untracked files are not deleted.
+
+Network-free checks:
 
 ```sh
 node --experimental-strip-types --test home/agents/pi/{subagents,skill-policy,command-guards}.test.mjs
 ```
 
-Set `PI_SDK_ENTRY` to Pi's `dist/index.js` and `PI_SUBAGENTS_DIR` to the installed
-pi-subagents package to include upstream launch-contract checks. These make no
-model requests.
+Optional parser integration uses a read-only upstream checkout or unpacked npm
+package, plus the host's existing jiti loader; it does not edit installed packages:
+
+```sh
+PI_SUBAGENTS_DIR=/absolute/path/to/pi-subagents \
+PI_JITI_MODULE=/absolute/path/to/jiti/lib/jiti.mjs \
+PI_CODING_AGENT_MODULE=/absolute/path/to/pi-coding-agent/dist/index.js \
+node --test home/agents/pi/subagents.test.mjs
+```
+
+This checks rendered definitions through public `loadCustomAgents` and settings
+through `loadSettings`, without model requests. `PI_SUBAGENTS_DEPLOYMENT` can
+point to evaluated Home Manager JSON shaped as `{settings: "<JSON>", agents:
+{explorer: "<Markdown>", ...}}` to verify actual Nix rendering as well.
+
+Schema references: upstream [agent fields and tools](https://github.com/tintinweb/pi-subagents#frontmatter-fields),
+[persistent settings](https://github.com/tintinweb/pi-subagents#persistent-settings),
+and [RPC cwd](https://github.com/tintinweb/pi-subagents/blob/master/docs/rpc.md).
 
 # Skill policy
 
-`skill-policy.ts` advertises the coding skills, Encore, Rex, and pi-subagents.
-Other user skills require explicit invocation. Project-local and command-line
-skills, and upstream explicit-only flags, remain unchanged.
+`skill-policy.ts` advertises coding skills, Encore, Rex, and `pi-subagents` guidance
+if discovered. The subagent extension's tools are registered independently of skill
+advertising; this package currently ships no skills. Other user skills require
+explicit invocation. Project-local, command-line, and upstream explicit-only flags
+remain unchanged.
