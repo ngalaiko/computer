@@ -204,9 +204,25 @@
               ];
             }
             ''
-              node --test ${./home/agents}/pi/subagents.test.mjs
+              node --test ${./.}/home/agents/pi/subagents.test.mjs
               touch $out
             '';
+        hunk-config =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "hunk-config" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+            PYTHONDONTWRITEBYTECODE=1 python ${./.}/home/hunk/config_test.py
+            touch $out
+          '';
+        hunk-review =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "hunk-review" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+            node --experimental-strip-types --test ${./home/hunk}/review.test.mjs
+            touch $out
+          '';
         pi-command-guards =
           let
             pkgs = nixpkgs.legacyPackages.${system};

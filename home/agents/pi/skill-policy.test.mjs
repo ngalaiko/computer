@@ -96,3 +96,17 @@ test("advertises Encore and Rex regardless of directory", () => {
     assert.deepEqual(apply(names, cwd), names);
   }
 });
+
+test("advertises feature tabs globally, respecting explicit-only", () => {
+  for (const cwd of [homedir(), join(homedir(), "Developer/other")]) {
+    assert.deepEqual(apply(["feature-tabs"], cwd), ["feature-tabs"]);
+    assert.deepEqual(apply(["feature-tabs"], cwd, ["feature-tabs"]), []);
+  }
+});
+
+test("advertises Hunk reviews globally, respecting explicit-only", () => {
+  for (const cwd of [homedir(), join(homedir(), "Developer/other")]) {
+    assert.deepEqual(apply(["hunk-review"], cwd), ["hunk-review"]);
+    assert.deepEqual(apply(["hunk-review"], cwd, ["hunk-review"]), []);
+  }
+});

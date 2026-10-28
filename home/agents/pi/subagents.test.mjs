@@ -150,12 +150,30 @@ test("parent orchestration is one-shot, event-driven, and explicit about JJ path
     "two",
     "completion notification",
     "rather than polling",
-    "operator approval",
+    "Integration requires explicit operator approval",
+    "automatically clean the parent's own task workspace",
+    "child exits and reviews/tests finish",
+    "named JJ bookmark",
+    "jj workspace forget",
+    "Never delete active, shared, or source workspaces",
+    "Report cleanup failures",
   ])
     assert.ok(instructions.includes(fragment), fragment);
   assert.doesNotMatch(
     instructions,
+    /integration and workspace deletion require explicit operator approval|both require operator approval/i,
+  );
+  assert.doesNotMatch(
+    instructions,
     /spawn_subagent|send_message|handshake|roles\.json|pause_subagents|kill_subagents/,
+  );
+  const worker = read("./subagents/worker.md");
+  assert.match(worker, /Integration requires explicit operator approval/);
+  assert.match(worker, /parent owns automatic cleanup/);
+  assert.match(worker, /parent cleanup policy/);
+  assert.doesNotMatch(
+    worker,
+    /integration and workspace deletion require explicit operator approval|both require operator approval/i,
   );
   const docs = read("./README.md");
   for (const fragment of [
@@ -290,3 +308,275 @@ test(
     }
   },
 );
+
+test("deploys Hunk alone without changing one-shot child roles or Darwin browser scope", () => {
+  const module = read("../pi.nix");
+  assert.match(
+    module,
+    /config\.agents\.pi\.skills =\s*\{\s*feature-tabs = \.\/pi\/skills\/feature-tabs;\s*hunk-review = \.\/pi\/skills\/hunk-review;\s*\}\s*\/\/ lib\.optionalAttrs/,
+  );
+  assert.match(
+    module,
+    /lib\.optionalAttrs pkgs\.stdenv\.isDarwin \{\s*agent-browser/,
+  );
+  const brew = read("../../../hosts/macbook/homebrew.nix");
+  assert.match(brew, /"hunk"/);
+  assert.match(brew, /trustedtaps = names config\.homebrew\.taps/);
+  assert.match(brew, /trustedformulae = qualified config\.homebrew\.brews/);
+  assert.match(read("./AGENTS.md"), /hunk-review/);
+  assert.match(
+    read("./AGENTS.md"),
+    /pending or active review.*user says done/i,
+  );
+  assert.match(read("./AGENTS.md"), /Children execute one-shot tasks/);
+  assert.doesNotMatch(prompt("worker"), /hunk|walkthrough/i);
+});
+
+test("ready child reviews open automatically and retain the integration gate", () => {
+  const skill = read("./skills/hunk-review/SKILL.md");
+  const parent = read("./AGENTS.md");
+  assert.match(skill, /^---\nname: hunk-review\ndescription:/);
+  assert.doesNotMatch(skill, /disable-model-invocation: true/);
+  assert.match(parent, /ready for human review.*hunk-review.*open/i);
+  assert.match(parent, /Integration requires explicit operator approval/);
+  assert.match(skill, /Wait for questions, feedback or `next`/);
+  assert.doesNotMatch(
+    skill,
+    /offer a walkthrough|explicit skip|ask whether.*finished|ask for.*integration approval/i,
+  );
+  assert.match(skill, /existing.*integration approval policy/i);
+});
+
+test("Rex launches the resolved executable rather than relying on login PATH", () => {
+  const skill = read("./skills/hunk-review/SKILL.md");
+  assert.ok(skill.includes("hunk_bin=$(command -v hunk)"));
+  assert.match(skill, /absolute.*executable|executable.*absolute/);
+  const split = skill.split("\n").find((line) => line.startsWith("rex split "));
+  assert.ok(split);
+  assert.ok(split.includes('--split=right --ratio 67 -c "$workspace"'));
+  assert.ok(split.includes('-- "$hunk_bin" diff @'));
+  assert.doesNotMatch(split, /-- hunk(?:\s|$)/);
+  assert.match(
+    skill,
+    /process exited.*close only.*task-created failed pane.*retry/i,
+  );
+  assert.match(skill, /timeout.*inspect.*before.*retry/i);
+});
+
+test("pending reviews survive turns and only task-owned panes close on done", () => {
+  const skill = read("./skills/hunk-review/SKILL.md");
+  assert.match(skill, /from readiness.*across user turns.*user says done/i);
+  assert.match(skill, /user says done.*close only.*task-created split/i);
+  assert.ok(
+    skill.includes('rex block close -s "$REX_SESSION" "$review_block"'),
+  );
+  assert.match(skill, /verify termination.*cleanup/i);
+  assert.match(skill, /preexisting.*pane/i);
+  assert.match(skill, /named JJ bookmark/);
+  assert.match(skill, /UI only.*await user instruction/i);
+});
+
+test("review uses installed docs, exact child target and local feedback", () => {
+  const skill = read("./skills/hunk-review/SKILL.md");
+  for (const command of [
+    "rex skill show",
+    "skills/hunk-review/SKILL.md",
+    "skills/hunk-extensions/SKILL.md",
+    '"$hunk_bin" diff --help',
+    '"$hunk_bin" session get "$review_session" --json',
+    '"$hunk_bin" session review "$review_session" --include-notes --json',
+    '"$hunk_bin" session context "$review_session" --json',
+    '"$hunk_bin" session comment list "$review_session" --type user --json',
+  ])
+    assert.ok(skill.includes(command), command);
+  assert.match(skill, /resolved review revision.*exact file list/);
+  assert.match(skill, /retarget unrelated sessions/i);
+  assert.match(skill, /never impersonate the human/i);
+  assert.match(skill, /publication.*specific operator consent/i);
+  assert.match(skill, /resume.*one-shot.*retest.*fresh review/i);
+  assert.doesNotMatch(skill, /\/private\/tmp\//);
+});
+
+test("feature tabs deploy and route to independent interactive coordinators", () => {
+  const module = read("../pi.nix");
+  assert.match(module, /feature-tabs = \.\/pi\/skills\/feature-tabs/);
+  assert.match(
+    read("./AGENTS.md"),
+    /another feature.*separate tab.*feature-tabs/i,
+  );
+  assert.match(
+    read("./AGENTS.md"),
+    /feature coordinator workspace.*excluded.*user ends the feature/i,
+  );
+  const skill = read("./skills/feature-tabs/SKILL.md");
+  assert.match(skill, /^---\nname: feature-tabs\ndescription:/);
+  assert.doesNotMatch(skill, /disable-model-invocation: true/);
+  assert.match(skill, /actionable.*feature brief/);
+  assert.match(skill, /not an Agent role or background subagent/i);
+  assert.ok(skill.includes("pi_bin=$(command -v pi)"));
+  assert.ok(
+    skill.includes(
+      'rex window new -s "$REX_SESSION" "$feature_label" -c "$feature_cwd" --json -- "$pi_bin" --name "$feature_label" -- "$brief"',
+    ),
+  );
+  const launch = skill
+    .split("\n")
+    .find((line) => line.startsWith("rex window new -s"));
+  assert.doesNotMatch(launch, /sh -c|--print|--resume|--continue|--inherit/);
+  assert.ok(
+    skill.includes(
+      'jj --config git.colocate=false workspace add --name "$workspace_name" -r @ "$feature_workspace"',
+    ),
+  );
+  assert.match(skill, /source-relative subdirectory/);
+  assert.match(skill, /own.*REX_SESSION.*REX_BLOCK.*never.*caller/i);
+  assert.match(skill, /process.*capture|capture.*process/i);
+  assert.match(skill, /timeout.*inspect.*retry/i);
+  assert.match(skill, /keep.*workspace.*alive.*Pi or tab.*active/i);
+});
+
+test("review stays beside its feature Pi and never closes the coordinator", () => {
+  const skill = read("./skills/hunk-review/SKILL.md");
+  assert.match(skill, /owning feature Pi.*same tab/i);
+  assert.match(skill, /never.*app focus.*another feature tab/i);
+  assert.match(skill, /never.*Pi tab or feature coordinator workspace/i);
+  assert.match(read("./AGENTS.md"), /only task-created child workspaces/);
+});
+
+test("feature startup recovery reuses its workspace and reports recovery IDs", () => {
+  const skill = read("./skills/feature-tabs/SKILL.md");
+  assert.match(skill, /retry.*same already-created feature workspace/i);
+  assert.match(
+    skill,
+    /failure report.*workspace path\/name.*session\/tab\/block IDs/i,
+  );
+});
+
+test("feature launch requires an actionable request and executable Pi", () => {
+  const skill = read("./skills/feature-tabs/SKILL.md");
+  assert.match(
+    skill,
+    /Launch only for an actionable user feature request, not a request to configure this workflow/,
+  );
+  assert.ok(skill.includes('test -x "$pi_bin"'));
+});
+
+test("coordinator teardown waits for user exit and verification elsewhere", () => {
+  const skill = read("./skills/feature-tabs/SKILL.md");
+  assert.match(skill, /user explicitly requests ending the feature/);
+  assert.match(skill, /ask.*exit feature Pi first/i);
+  assert.match(
+    skill,
+    /original caller or another session.*verify.*stopped.*teardown/i,
+  );
+  assert.match(skill, /never remove.*live coordinator cwd/i);
+});
+
+test("worker working-copy contract keeps child review target at @", () => {
+  assert.match(prompt("worker"), /Keep changes in the working-copy change/);
+  const skill = read("./skills/hunk-review/SKILL.md");
+  assert.match(skill, /Use `@` for this child-only diff/);
+  assert.ok(
+    skill.includes(
+      '"$hunk_bin" session reload "$review_session" --json -- diff @',
+    ),
+  );
+});
+
+test("parent-only native feedback preserves child guards and watch lifecycle", () => {
+  const module = read("../pi.nix");
+  assert.match(
+    module,
+    /extensions = \[ "\$\{config\.home\.homeDirectory\}\/\.pi\/agent\/extensions\/command-guards\.ts" \]/,
+  );
+  const skill = read("./skills/hunk-review/SKILL.md");
+  assert.match(skill, /hunk_watch/);
+  for (const field of ["workspace", "session", "hunkBin"])
+    assert.ok(skill.includes(field));
+  assert.match(skill, /initial result.*existing human note/i);
+  assert.match(skill, /extension reload/i);
+  assert.match(skill, /Manual reads are not notifications/i);
+  assert.match(skill, /same review context.*concept/i);
+  assert.match(skill, /independent Pi owns its watch/i);
+  assert.match(skill, /child extensions remain command-guards only/i);
+  const done = skill.slice(skill.indexOf("## Done"));
+  assert.match(done, /hunk_watch.*stop/);
+  assert.ok(done.indexOf("hunk_watch") < done.indexOf("rex block close"));
+});
+
+test("parent-only Hunk bridge deploys the whole shared package", () => {
+  const module = read("../pi.nix");
+  assert.ok(
+    module.includes(
+      '".pi/agent/extensions/hunk-review".source = ../hunk/review;',
+    ),
+  );
+  assert.ok(
+    read("../../hunk/default.nix").includes(
+      '"hunk/extensions/pi-review".source = ./review;',
+    ),
+  );
+  assert.ok(
+    read("../../../flake.nix").includes(
+      "node --experimental-strip-types --test ${./home/hunk}/review.test.mjs",
+    ),
+  );
+});
+
+test("Hunk review verifies native identity before starting delivery and stops before close", () => {
+  const skill = read("./skills/hunk-review/SKILL.md");
+  const split = skill.split("\n").find((line) => line.startsWith("rex split "));
+  assert.ok(split.includes('--split=right --ratio 67 -c "$workspace"'));
+  assert.ok(split.endsWith('-- "$hunk_bin" diff @'));
+  for (const field of [
+    "sessionId",
+    "PID",
+    "cwd",
+    "repoRoot",
+    "resolved review revision",
+    "exact file list",
+    "owning feature Pi",
+    "same tab",
+  ])
+    assert.ok(skill.includes(field), field);
+  for (const contract of [
+    "jj diff -r @ --summary",
+    "jj log -r @ --no-graph -T commit_id",
+    "jj diff --git -r @",
+    "provider.*Jujutsu",
+    "kind.*commit",
+    "review\\.revision.*recorded full.*commit",
+    "inputKind.*vcs",
+    "exact file paths.*jj diff -r @ --summary",
+    "current.*jj.*commit",
+    "empty.*report.*stop",
+    "before.*bookmark.*open",
+  ])
+    assert.match(skill, new RegExp(contract, "i"), contract);
+  assert.doesNotMatch(skill, /parent IDs.*target verification/i);
+  assert.doesNotMatch(skill, /actual commit endpoints/i);
+  assert.match(
+    skill,
+    /Only AFTER verified live Hunk and an available `hunk_watch` tool/,
+  );
+  for (const field of [
+    'action: "start"',
+    "workspace: workspace",
+    "session: review_session",
+    "hunkBin: hunk_bin",
+    "Read the initial result",
+    "delivery inactive",
+    "never auto-resume",
+  ])
+    assert.ok(skill.includes(field), field);
+  for (const command of ["get", "review", "context", "navigate", "reload"])
+    assert.ok(skill.includes(`session ${command} "$review_session"`), command);
+  assert.match(skill, /hunk_reply.*exact `replyTo` note ID and `body`/);
+  assert.match(skill, /archive is not native Hunk persistence/);
+  assert.match(skill, /without specific operator consent/);
+  const done = skill.slice(skill.indexOf("## Done"));
+  assert.ok(done.indexOf('action: "stop"') < done.indexOf("rex block close"));
+  assert.match(done, /never close the Pi tab or feature coordinator workspace/);
+  assert.match(done, /Verify termination before.*cleanup/);
+  assert.match(done, /preexisting\/user-owned panes/);
+});

@@ -4,6 +4,7 @@
     ./agents
     ./fish
     ./go.nix
+    ./hunk
     ./jj.nix
     ./mise.nix
     ./neovim
