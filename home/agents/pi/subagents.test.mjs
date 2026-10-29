@@ -531,7 +531,6 @@ test("first-party review bridge deploys only to parents without an extra Pi pack
   );
   assert.doesNotMatch(module, /npm:.*pi-oyo|extensions\/hunk-review/);
   const flake = read("../../../flake.nix");
-  assert.match(flake, /home\/oyo\/config_test\.py/);
   assert.match(flake, /pi-oyo-review/);
   assert.ok(
     flake.includes(

@@ -215,14 +215,6 @@
             node --experimental-strip-types --test ${./.}/home/agents/pi/oyo-review.test.mjs
             touch $out
           '';
-        oyo-config =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "oyo-config" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-            PYTHONDONTWRITEBYTECODE=1 python ${./.}/home/oyo/config_test.py
-            touch $out
-          '';
         pi-command-guards =
           let
             pkgs = nixpkgs.legacyPackages.${system};

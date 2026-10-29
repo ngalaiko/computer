@@ -2,7 +2,9 @@
 view_mode = "unified"
 watch = true
 topbar = false
-confirm_quit = false
+line_wrap = true
+confirm_quit = true
+overscroll = true
 
 [ui.theme]
 name = "zenwritten"
