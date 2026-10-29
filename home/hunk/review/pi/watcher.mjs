@@ -185,7 +185,6 @@ export function createWatcher({
           "--summary=" + body,
           "--author",
           "Pi",
-          "--focus",
           "--json",
         ],
         signal,

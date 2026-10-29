@@ -318,7 +318,6 @@ test("reply uses exact native session and human parent with argument-array execu
     "--summary=" + reply,
     "--author",
     "Pi",
-    "--focus",
     "--json",
   ]);
   closed = true;
