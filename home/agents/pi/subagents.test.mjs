@@ -309,53 +309,56 @@ test(
   },
 );
 
-test("deploys Hunk alone without changing one-shot child roles or Darwin browser scope", () => {
+test("deploys Oyo alone without changing one-shot child roles or Darwin browser scope", () => {
   const module = read("../pi.nix");
   assert.match(
     module,
-    /config\.agents\.pi\.skills =\s*\{\s*feature-tabs = \.\/pi\/skills\/feature-tabs;\s*hunk-review = \.\/pi\/skills\/hunk-review;\s*\}\s*\/\/ lib\.optionalAttrs/,
+    /config\.agents\.pi\.skills =\s*\{\s*feature-tabs = \.\/pi\/skills\/feature-tabs;\s*oyo-review = \.\/pi\/skills\/oyo-review;\s*\}\s*\/\/ lib\.optionalAttrs/,
   );
   assert.match(
     module,
     /lib\.optionalAttrs pkgs\.stdenv\.isDarwin \{\s*agent-browser/,
   );
   const brew = read("../../../hosts/macbook/homebrew.nix");
-  assert.match(brew, /"hunk"/);
+  assert.match(brew, /"ahkohd\/oyo\/oy"/);
   assert.match(brew, /trustedtaps = names config\.homebrew\.taps/);
   assert.match(brew, /trustedformulae = qualified config\.homebrew\.brews/);
-  assert.match(read("./AGENTS.md"), /hunk-review/);
+  assert.match(read("./AGENTS.md"), /oyo-review/);
   assert.match(
     read("./AGENTS.md"),
     /pending or active review.*user says done/i,
   );
   assert.match(read("./AGENTS.md"), /Children execute one-shot tasks/);
-  assert.doesNotMatch(prompt("worker"), /hunk|walkthrough/i);
+  assert.doesNotMatch(prompt("worker"), /oyo|walkthrough/i);
 });
 
 test("ready child reviews open automatically and retain the integration gate", () => {
-  const skill = read("./skills/hunk-review/SKILL.md");
+  const skill = read("./skills/oyo-review/SKILL.md");
   const parent = read("./AGENTS.md");
-  assert.match(skill, /^---\nname: hunk-review\ndescription:/);
+  assert.match(skill, /^---\nname: oyo-review\ndescription:/);
   assert.doesNotMatch(skill, /disable-model-invocation: true/);
-  assert.match(parent, /ready for human review.*hunk-review.*open/i);
+  assert.match(parent, /ready for human review.*oyo-review.*open/i);
   assert.match(parent, /Integration requires explicit operator approval/);
   assert.match(skill, /Wait for questions, feedback or `next`/);
   assert.doesNotMatch(
     skill,
     /offer a walkthrough|explicit skip|ask whether.*finished|ask for.*integration approval/i,
   );
-  assert.match(skill, /explicit integration approval, verified integration, and user completion/i);
+  assert.match(
+    skill,
+    /explicit integration approval, verified integration, and user completion/i,
+  );
 });
 
 test("Rex launches the resolved executable rather than relying on login PATH", () => {
-  const skill = read("./skills/hunk-review/SKILL.md");
-  assert.ok(skill.includes("hunk_bin=$(command -v hunk)"));
+  const skill = read("./skills/oyo-review/SKILL.md");
+  assert.ok(skill.includes("oy_bin=$(command -v oy)"));
   assert.match(skill, /absolute.*executable|executable.*absolute/);
   const split = skill.split("\n").find((line) => line.startsWith("rex split "));
   assert.ok(split);
   assert.ok(split.includes('--split=right --ratio 67 -c "$workspace"'));
-  assert.ok(split.includes('-- "$hunk_bin" diff @'));
-  assert.doesNotMatch(split, /-- hunk(?:\s|$)/);
+  assert.ok(split.includes('-- "$oy_bin" @ --session "$review_session"'));
+  assert.doesNotMatch(split, /-- oy(?:\s|$)/);
   assert.match(
     skill,
     /process exited.*close only.*task-created failed pane.*retry/i,
@@ -364,7 +367,7 @@ test("Rex launches the resolved executable rather than relying on login PATH", (
 });
 
 test("pending reviews survive turns and only task-owned panes close on done", () => {
-  const skill = read("./skills/hunk-review/SKILL.md");
+  const skill = read("./skills/oyo-review/SKILL.md");
   assert.match(skill, /from readiness.*across user turns.*user says done/i);
   assert.match(skill, /user says done.*close only.*task-created split/i);
   assert.ok(
@@ -376,24 +379,32 @@ test("pending reviews survive turns and only task-owned panes close on done", ()
   assert.match(skill, /UI only.*await user instruction/i);
 });
 
-test("review uses installed docs, exact child target and local feedback", () => {
-  const skill = read("./skills/hunk-review/SKILL.md");
+test("review uses installed docs and separate control/data interfaces", () => {
+  const skill = read("./skills/oyo-review/SKILL.md");
   for (const command of [
     "rex skill show",
-    "skills/hunk-review/SKILL.md",
-    "skills/hunk-extensions/SKILL.md",
-    '"$hunk_bin" diff --help',
-    '"$hunk_bin" session get "$review_session" --json',
-    '"$hunk_bin" session review "$review_session" --include-notes --json',
-    '"$hunk_bin" session context "$review_session" --json',
-    '"$hunk_bin" session comment list "$review_session" --type user --json',
+    '"$oy_bin" skill path',
+    '"$oy_bin" skill path control',
+    '"$oy_bin" skill path walkthrough',
+    '"$oy_bin" --help',
+    '"$oy_bin" control get --session "$review_session" --json',
+    '"$oy_bin" control diff --session "$review_session" --json',
+    '"$oy_bin" control where --session "$review_session" --json',
+    '"$oy_bin" review status -t @ --json',
+    '"$oy_bin" review comment -t @ --json',
   ])
     assert.ok(skill.includes(command), command);
-  assert.match(skill, /resolved review revision.*exact file list/);
   assert.match(skill, /retarget unrelated sessions/i);
   assert.match(skill, /never impersonate the human/i);
   assert.match(skill, /publication.*specific operator consent/i);
-  assert.match(skill, /resume.*one-shot.*retest.*fresh review/i);
+  assert.match(skill, /resume.*one-shot.*retest.*fresh independent review/i);
+  for (const command of [
+    '"$oy_bin" control goto --session "$review_session" --file PATH --new-line N',
+    '"$oy_bin" control target --session "$review_session" @',
+  ])
+    assert.ok(skill.includes(command), command);
+  assert.doesNotMatch(skill, /control goto[^\n]*--json/);
+  assert.doesNotMatch(skill, /control target[^\n]*--json/);
   assert.doesNotMatch(skill, /\/private\/tmp\//);
 });
 
@@ -436,7 +447,7 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
 });
 
 test("review stays beside its feature Pi and never closes the coordinator", () => {
-  const skill = read("./skills/hunk-review/SKILL.md");
+  const skill = read("./skills/oyo-review/SKILL.md");
   assert.match(skill, /owning feature Pi.*same tab/i);
   assert.match(skill, /never.*app focus.*another feature tab/i);
   assert.match(skill, /never.*Pi tab or feature coordinator workspace/i);
@@ -445,7 +456,7 @@ test("review stays beside its feature Pi and never closes the coordinator", () =
 
 test("integrated cleanup removes task-owned refs and revisions; pending work stays recoverable", () => {
   const parent = read("./AGENTS.md");
-  const review = read("./skills/hunk-review/SKILL.md");
+  const review = read("./skills/oyo-review/SKILL.md");
   const feature = read("./skills/feature-tabs/SKILL.md");
   for (const fragment of [
     "explicit integration approval",
@@ -456,7 +467,7 @@ test("integrated cleanup removes task-owned refs and revisions; pending work sta
     "named recoverable bookmark",
     "pending, unintegrated, or failed work",
     "operator explicitly discards",
-    "hunk-review for scoped JJ cleanup",
+    "oyo-review for scoped JJ cleanup",
   ])
     assert.ok(parent.includes(fragment), fragment);
   for (const fragment of [
@@ -477,12 +488,24 @@ test("integrated cleanup removes task-owned refs and revisions; pending work sta
     "permanent backup or review-bookmark clutter",
   ])
     assert.ok(review.includes(fragment), fragment);
-  assert.match(review, /remove integrated refs and revisions only after explicit integration approval, verified integration, and user completion/i);
-  assert.match(review, /pending, unintegrated, or failed work, retain a named recoverable bookmark/i);
-  assert.match(review, /After user completion.*forget only the exact task workspace and remove its exact directory/i);
+  assert.match(
+    review,
+    /remove integrated refs and revisions only after explicit integration approval, verified integration, and user completion/i,
+  );
+  assert.match(
+    review,
+    /pending, unintegrated, or failed work, retain a named recoverable bookmark/i,
+  );
+  assert.match(
+    review,
+    /After user completion.*forget only the exact task workspace and remove its exact directory/i,
+  );
   assert.match(review, /Preserve the pending or failed revision and bookmark/i);
   assert.doesNotMatch(review, /Preserve\/update the named JJ bookmark/);
-  assert.match(feature, /Pi and tab to exit.*independently verify termination/i);
+  assert.match(
+    feature,
+    /Pi and tab to exit.*independently verify termination/i,
+  );
   assert.match(feature, /after verified integration/i);
   assert.match(feature, /preserve.*pending|pending.*preserve/i);
 });
@@ -518,123 +541,90 @@ test("coordinator teardown waits for user exit and verification elsewhere", () =
 
 test("worker working-copy contract keeps child review target at @", () => {
   assert.match(prompt("worker"), /Keep changes in the working-copy change/);
-  const skill = read("./skills/hunk-review/SKILL.md");
+  const skill = read("./skills/oyo-review/SKILL.md");
   assert.match(skill, /Use `@` for this child-only diff/);
   assert.ok(
-    skill.includes(
-      '"$hunk_bin" session reload "$review_session" --json -- diff @',
-    ),
+    skill.includes('"$oy_bin" control target --session "$review_session" @'),
   );
+  assert.doesNotMatch(skill, /control target[^\n]*--json/);
+  assert.match(skill, /sole bookmark.*stack/i);
 });
 
-test("parent-only native feedback preserves child guards and watch lifecycle", () => {
+test("first-party review skill needs no bridge or extra Pi package", () => {
   const module = read("../pi.nix");
   assert.match(
     module,
     /extensions = \[ "\$\{config\.home\.homeDirectory\}\/\.pi\/agent\/extensions\/command-guards\.ts" \]/,
   );
-  const skill = read("./skills/hunk-review/SKILL.md");
-  assert.match(skill, /hunk_watch/);
-  for (const field of ["workspace", "session", "hunkBin"])
-    assert.ok(skill.includes(field));
-  assert.match(skill, /initial result.*existing human note/i);
-  assert.match(skill, /extension reload/i);
-  assert.match(skill, /Manual reads are not notifications/i);
-  assert.match(skill, /same review context.*concept/i);
-  assert.match(skill, /independent Pi owns its watch/i);
-  assert.match(skill, /child extensions remain command-guards only/i);
-  const done = skill.slice(skill.indexOf("## Done"));
-  assert.match(done, /hunk_watch.*stop/);
-  assert.ok(done.indexOf("hunk_watch") < done.indexOf("rex block close"));
+  assert.doesNotMatch(
+    module,
+    /pi-oyo|extensions\/oyo-review|extensions\/hunk-review/,
+  );
+  assert.match(read("../../../flake.nix"), /home\/oyo\/config_test\.py/);
 });
 
-test("parent-only Hunk bridge deploys the whole shared package", () => {
-  const module = read("../pi.nix");
-  assert.ok(
-    module.includes(
-      '".pi/agent/extensions/hunk-review".source = ../hunk/review;',
-    ),
-  );
-  assert.ok(
-    read("../../hunk/default.nix").includes(
-      '"hunk/extensions/pi-review".source = ./review;',
-    ),
-  );
-  assert.ok(
-    read("../../../flake.nix").includes(
-      "node --experimental-strip-types --test ${./home/hunk}/review.test.mjs",
-    ),
-  );
-});
-
-test("saved human Hunk feedback routes to native-thread replies", () => {
+test("on-demand feedback preserves native roots and human resolution", () => {
   const parent = read("./AGENTS.md");
-  const skill = read("./skills/hunk-review/SKILL.md");
-  assert.match(parent, /saved Hunk feedback.*hunk-review/i);
-  assert.match(skill, /respond to saved human feedback/i);
-  assert.match(skill, /hunk_reply/);
-  assert.match(skill, /exact human note ID.*same native thread/i);
+  const skill = read("./skills/oyo-review/SKILL.md");
+  assert.match(parent, /on-demand Oyo.*oyo-review/i);
+  for (const text of [
+    '"$oy_bin" review comment reply -t @ ID --body',
+    "OYO_REVIEW_AUTHOR_TYPE=agent",
+    "OYO_REVIEW_AUTHOR_NAME=Pi",
+    '"$oy_bin" review comment -t @ --unresolved --json',
+    '"$oy_bin" review comment -t @ --unresolved --outdated --json',
+  ])
+    assert.ok(skill.includes(text), text);
+  assert.match(skill, /same thread root/i);
+  assert.match(skill, /replies support only.*non-outdated.*line.*hunk/i);
+  assert.match(skill, /outdated.*file-level.*deleted/i);
+  assert.match(skill, /report.*chat.*thread ID/i);
+  assert.match(skill, /never.*detached comment.*clear.*outdated/i);
+  assert.match(skill, /Only the human.*resolves\/reopens/i);
+  assert.match(skill, /local policy.*not.*API/i);
+  assert.match(skill, /thread roots, not replies/i);
+  assert.match(skill, /missing.*query.*unknown, not zero/i);
+  assert.match(skill, /outdated.*snapshots/i);
+  assert.match(skill, /never.*goto.*outdated/i);
   assert.match(skill, /answer, edit, or test outcome/i);
-  assert.match(skill, /chat-only response.*isn't completion/i);
-  assert.match(skill, /tool delivery fails.*report/i);
-  assert.match(skill, /never claim it posted/i);
-  assert.match(skill, /uncertain write/i);
+  assert.match(skill, /never claim it posted.*uncertain write/i);
+  assert.match(skill, /user request.*checkpoints/i);
+  assert.match(skill, /no automatic delivery/i);
 });
 
-test("Hunk review verifies native identity before starting delivery and stops before close", () => {
-  const skill = read("./skills/hunk-review/SKILL.md");
-  const split = skill.split("\n").find((line) => line.startsWith("rex split "));
-  assert.ok(split.includes('--split=right --ratio 67 -c "$workspace"'));
-  assert.ok(split.endsWith('-- "$hunk_bin" diff @'));
-  for (const field of [
-    "sessionId",
+test("Oyo identity is snapshot guarded without fabricated metadata", () => {
+  const skill = read("./skills/oyo-review/SKILL.md");
+  for (const text of [
+    "jj log -r @ --no-graph -T commit_id",
+    "jj log -r @ --no-graph -T change_id",
+    "jj diff -r @ --summary",
+    "workspaceRoot",
+    "target",
+    "reviewKey",
+    "diffFingerprint",
+    "lastAppliedSeq",
+    "lastError",
     "PID",
     "cwd",
-    "repoRoot",
-    "resolved review revision",
-    "exact file list",
-    "owning feature Pi",
-    "same tab",
   ])
-    assert.ok(skill.includes(field), field);
-  for (const contract of [
-    "jj diff -r @ --summary",
-    "jj log -r @ --no-graph -T commit_id",
-    "jj diff --git -r @",
-    "provider.*Jujutsu",
-    "kind.*commit",
-    "review\\.revision.*recorded full.*commit",
-    "inputKind.*vcs",
-    "exact file paths.*jj diff -r @ --summary",
-    "current.*jj.*commit",
-    "empty.*report.*stop",
-    "before.*bookmark.*open",
-  ])
-    assert.match(skill, new RegExp(contract, "i"), contract);
-  assert.doesNotMatch(skill, /parent IDs.*target verification/i);
-  assert.doesNotMatch(skill, /actual commit endpoints/i);
-  assert.match(
-    skill,
-    /Only AFTER verified live Hunk and an available `hunk_watch` tool/,
-  );
-  for (const field of [
-    'action: "start"',
-    "workspace: workspace",
-    "session: review_session",
-    "hunkBin: hunk_bin",
-    "Read the initial result",
-    "delivery inactive",
-    "never auto-resume",
-  ])
-    assert.ok(skill.includes(field), field);
-  for (const command of ["get", "review", "context", "navigate", "reload"])
-    assert.ok(skill.includes(`session ${command} "$review_session"`), command);
-  assert.match(skill, /hunk_reply.*exact human note ID.*same native thread/i);
-  assert.match(skill, /archive is not native Hunk persistence/);
-  assert.match(skill, /without specific operator consent/);
-  const done = skill.slice(skill.indexOf("## Done"));
-  assert.ok(done.indexOf('action: "stop"') < done.indexOf("rex block close"));
-  assert.match(done, /never close the Pi tab or feature coordinator workspace/);
-  assert.match(done, /terminated before cleanup/);
-  assert.match(done, /preexisting\/user-owned panes/);
+    assert.ok(skill.includes(text), text);
+  assert.match(skill, /before and after.*loading/i);
+  assert.match(skill, /exact file paths.*jj diff -r @ --summary/i);
+  assert.match(skill, /identity.*cannot.*establish.*stop/i);
+  assert.match(skill, /no dedicated.*full commit.*provider/i);
+  assert.match(skill, /empty.*report.*stop/i);
+  assert.match(skill, /before.*bookmark.*open/i);
+  assert.match(skill, /lastError.seq.*>=.*seq/);
+  assert.match(skill, /lastAppliedSeq.*>=.*seq/);
+  assert.match(skill, /human input.*priority/i);
+  assert.match(skill, /recheck.*snapshot.*files/i);
+  assert.match(skill, /\.data\.target == @/);
+  assert.match(skill, /status target.*working tree/i);
+  assert.match(skill, /not by requiring equality with control/i);
+  assert.match(skill, /reviewKey.*short.*change.*prefix/i);
+  assert.match(skill, /mutations.*print text, not JSON/i);
+  assert.match(skill, /printed `seq` if available, otherwise verify/i);
+  assert.match(skill, /intended cursor.*target plus loaded patch/i);
+  assert.match(skill, /inReplyTo/);
+  assert.match(skill, /loaded patch.*jj diff --git -r @/i);
 });

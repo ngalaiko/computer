@@ -104,9 +104,9 @@ test("advertises feature tabs globally, respecting explicit-only", () => {
   }
 });
 
-test("advertises Hunk reviews globally, respecting explicit-only", () => {
+test("advertises Oyo reviews globally, respecting explicit-only", () => {
   for (const cwd of [homedir(), join(homedir(), "Developer/other")]) {
-    assert.deepEqual(apply(["hunk-review"], cwd), ["hunk-review"]);
-    assert.deepEqual(apply(["hunk-review"], cwd, ["hunk-review"]), []);
+    assert.deepEqual(apply(["oyo-review"], cwd), ["oyo-review"]);
+    assert.deepEqual(apply(["oyo-review"], cwd, ["oyo-review"]), []);
   }
 });

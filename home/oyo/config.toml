@@ -1,0 +1,13 @@
+[ui]
+view_mode = "unified"
+watch = true
+topbar = false
+confirm_quit = false
+
+[ui.theme]
+name = "zenwritten"
+mode = "dark"
+
+[ui.syntax]
+mode = "on"
+theme = "zenwritten"

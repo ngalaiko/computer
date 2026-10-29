@@ -207,20 +207,12 @@
               node --test ${./.}/home/agents/pi/subagents.test.mjs
               touch $out
             '';
-        hunk-config =
+        oyo-config =
           let
             pkgs = nixpkgs.legacyPackages.${system};
           in
-          pkgs.runCommand "hunk-config" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-            PYTHONDONTWRITEBYTECODE=1 python ${./.}/home/hunk/config_test.py
-            touch $out
-          '';
-        hunk-review =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "hunk-review" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-            node --experimental-strip-types --test ${./home/hunk}/review.test.mjs
+          pkgs.runCommand "oyo-config" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+            PYTHONDONTWRITEBYTECODE=1 python ${./.}/home/oyo/config_test.py
             touch $out
           '';
         pi-command-guards =

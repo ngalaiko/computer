@@ -9,7 +9,7 @@ const automatic = new Set([
   "writing-for-agents",
   "encore-service",
   "rex",
-  "hunk-review",
+  "oyo-review",
   "feature-tabs",
   "pi-subagents",
 ]);

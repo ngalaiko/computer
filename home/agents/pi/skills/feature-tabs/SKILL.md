@@ -5,7 +5,7 @@ description: Start another feature in a separate Rex tab with an independent int
 
 # Feature tabs
 
-One feature per Rex tab: interactive parent Pi on the left, Hunk on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
+One feature per Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
 
 ## Prepare
 
@@ -29,7 +29,7 @@ Build `brief` as one self-contained argument starting with the requested task, i
 
 - You own this live feature workspace/tab; keep the workspace alive while Pi or tab is active, until the user ends the feature.
 - Work only in this feature workspace; children use separate one-shot JJ workspaces. Child cleanup excludes this coordinator workspace. No automatic integration; explicit operator approval remains required.
-- Use your own `REX_SESSION`/`REX_BLOCK`, never the original caller IDs. You own review UI beside your Pi in this tab; use hunk-review when child changes are ready.
+- Use your own `REX_SESSION`/`REX_BLOCK`, never the original caller IDs. You own review UI beside your Pi in this tab; use oyo-review when child changes are ready.
 
 Start a fresh interactive session using the installed help's `--name` and `--` message syntax:
 
@@ -45,4 +45,4 @@ Save returned `.window_id` and `.block_ids[0]` plus workspace/name and task owne
 
 On timeout, inspect session windows, processes and captures before any retry; avoid duplicate tabs. Retain a possibly live feature workspace. Retry startup in the same already-created feature workspace, not a new one. Every failure report includes evidence, workspace path/name and session/tab/block IDs; mark unknown IDs explicitly. Never close unrelated/current tabs. Report the created tab and workspace, leaving the original untouched.
 
-Exclude this coordinator workspace from child cleanup. Retain it until the user explicitly ends the feature, then require its Pi and tab to exit and another session to independently verify termination before teardown. Never remove a live coordinator cwd. Apply hunk-review cleanup: remove task-created refs/revisions and exact workspace after verified integration; preserve pending or failed work with a named recoverable bookmark unless the operator explicitly discards it.
+Exclude this coordinator workspace from child cleanup. Retain it until the user explicitly ends the feature, then require its Pi and tab to exit and another session to independently verify termination before teardown. Never remove a live coordinator cwd. Apply oyo-review cleanup: remove task-created refs/revisions and exact workspace after verified integration; preserve pending or failed work with a named recoverable bookmark unless the operator explicitly discards it.

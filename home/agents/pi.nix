@@ -74,7 +74,6 @@ in
     ".pi/agent/extensions/command-guards.ts".source = ./pi/command-guards.ts;
     ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
     ".pi/agent/extensions/skill-policy.ts".source = ./pi/skill-policy.ts;
-    ".pi/agent/extensions/hunk-review".source = ../hunk/review;
     ".pi/agent/subagents.json".text = builtins.toJSON subagentSettings;
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };
   }
@@ -85,7 +84,7 @@ in
 
   config.agents.pi.skills = {
     feature-tabs = ./pi/skills/feature-tabs;
-    hunk-review = ./pi/skills/hunk-review;
+    oyo-review = ./pi/skills/oyo-review;
   }
   // lib.optionalAttrs pkgs.stdenv.isDarwin {
     agent-browser = ./pi/skills/agent-browser;

@@ -56,12 +56,13 @@ in
     };
 
     taps = [
+      "ahkohd/oyo"
       "jsattler/tap"
     ];
 
     brews = [
       "agent-browser"
-      "hunk"
+      "ahkohd/oyo/oy"
       "mole"
       "openssl@3"
       "pi-coding-agent" # pi.dev agent CLI; homebrew-core, no nixpkgs equivalent

@@ -1,0 +1,41 @@
+{
+  "$schema": "./schema.json",
+  "defs": {
+    "background": "#191919",
+    "panel": "#222222",
+    "element": "#282828",
+    "text": "#BBBBBB",
+    "muted": "#686868",
+    "red": "#DE6E7C",
+    "green": "#819B69",
+    "yellow": "#B77E64",
+    "blue": "#6099C0",
+    "magenta": "#B279A7",
+    "cyan": "#66A5AD"
+  },
+  "theme": {
+    "text": { "dark": "text" },
+    "textMuted": { "dark": "muted" },
+    "primary": { "dark": "blue" },
+    "secondary": { "dark": "#9E9E9E" },
+    "accent": { "dark": "blue" },
+    "error": { "dark": "red" },
+    "warning": { "dark": "yellow" },
+    "success": { "dark": "green" },
+    "info": { "dark": "cyan" },
+    "background": { "dark": "background" },
+    "backgroundPanel": { "dark": "panel" },
+    "backgroundElement": { "dark": "element" },
+    "border": { "dark": "#404040" },
+    "borderActive": { "dark": "blue" },
+    "borderSubtle": { "dark": "#2A2A2A" },
+    "diffAdded": { "dark": "green" },
+    "diffAddedBg": { "dark": "#232D1A" },
+    "diffRemoved": { "dark": "red" },
+    "diffRemovedBg": { "dark": "#3E2225" },
+    "diffContext": { "dark": "#939393" },
+    "diffLineNumber": { "dark": "#616161" },
+    "diffExtMarker": { "dark": "blue" },
+    "diffModifiedBg": { "dark": "#1D2C36" }
+  }
+}
