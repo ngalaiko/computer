@@ -1,6 +1,8 @@
 <version_control>
 
 - always use jujutsu
+- Commit nonempty work with `jj commit -m "…"`; leave `@` empty and undescribed above the described changes, rather than describing `@` in place.
+- Reuse an existing empty `@` for the next change; avoid committing empty work or stacking redundant empty revisions.
 - never user git
 - never push to remote
 - never disclose agent authorship in commits (no co-authored-by, no generated-by, no tool trailers)
