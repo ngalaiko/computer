@@ -1,26 +1,76 @@
 ---
 name: feature
-description: Opt-in feature workflow with isolated JJ workspaces, delegation, and Oyo review.
+description: Start isolated work, delegate implementation, and coordinate review and approved integration.
 disable-model-invocation: true
 ---
 
 # Feature
 
-Apply this workflow only to the task explicitly activated by the user with `/skill:feature`. A coordinator launched through that activated workflow inherits activation for the same task. Ordinary tasks stay in the current revision without this workflow.
+Apply only to the task explicitly activated with `/skill:feature`. A coordinator launched for that task inherits activation; ordinary tasks stay in the current revision. Requests to configure this workflow do not activate it.
 
-Read [Oyo review](oyo-review.md) for workspace setup, review, feedback, integration and cleanup. Read [Feature tabs](feature-tabs.md) for tab titles or a separate interactive coordinator. These files are workflow references, not independent skills. Resolve relative links against the directory containing this file, including when reading it directly.
+Parent Pi sessions coordinate this workflow. Child agents follow their assigned role.
 
-<delegation>
-Parent Pi sessions only. Child agents follow their assigned role instead.
-- Delegate independent implementation, bounded edits, and substantive review with Agent using subagent_type explorer, worker, small-worker, or reviewer. Supply a unique name, short description, and a self-contained prompt stating goal, scope, constraints, paths, expected evidence, and stop condition. Use explorer for bounded codebase questions and noisy investigation; keep trivial lookups in main. Use small-worker for bounded, low-uncertainty edits and worker for cross-file implementation. Pass worker thinking: "medium" normally or "high" for difficult implementation; its frontmatter leaves effort caller-selectable. Escalate ambiguous small-worker tasks to worker.
-- Before each writer launch, create a unique temporary JJ workspace from the PR task working-copy change (`cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r @ <absolute-path>`). Keep workspaces under ~/.pi/agent/jj-workspaces/. Supply its absolute path; require absolute file paths and `cd <workspace> &&` for shell commands. Children retain the parent's cwd: Agent has no cwd parameter. These are prompt-only workspace restrictions, not runtime isolation. Preserve the source-relative subdirectory when applicable.
-- Children execute one-shot tasks and return their final results; resolve material ambiguity before dispatch. Use background Agent calls, continue independent work, then yield for the completion notification rather than polling. Retrieve full output with get_subagent_result using agent_id. Use steer_subagent for corrections during a run; Agent resume continues a completed conversation. Keep at most two children active across foreground and background runs as parent policy; upstream pools are separate and do not enforce that combined limit.
-- Start a new reviewer for each independent review; provide requirements, the workspace's absolute path, and its jj diff, not the implementation conversation or another agent's history. Explorer and reviewer have read-only built-in tools; the parent runs review test commands.
-- Use one persistent task workspace per pull request, reused across review rounds and revisions; keep the default/source workspace untouched. Temporary writer workspaces stay separate. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. When starting or resuming a task, load oyo-review for task workspace setup before any writer launch; also load it before integration or cleanup. Integration requires explicit operator approval. Child cleanup covers only task-created child workspaces, not the PR coordinator.
-- For local-only tasks without a PR, approved integration into default completes the task. After verifying integration and stopping task-owned processes, remove task-created workspaces, bookmarks, ownership records and redundant revisions; preserve integrated changes and the empty default `@`. PR-lifetime retention rules apply only to actual PRs.
-- Keep your own Rex tab title aligned with concise task + current activity on meaningful phase changes; load feature-tabs for ownership checks and title updates.
-- When starting another feature in a separate tab, load feature-tabs for an independent interactive Pi and long-lived JJ workspace.
-- When a child is ready for human review, load oyo-review and open its diff in Rex; the parent owns UI.
-- For saved Oyo thread feedback, load oyo-review: after verified native UI, explicitly start parent-only oyo_watch with its exact workspace/session/executable and read the initial result before claiming delivery active. Missing tool requires Pi reload; report delivery inactive. No auto-resume. Route received feedback to local native replies with agent identity; status-only events authorize neither replies nor integration. Stop the watcher before UI/workspace cleanup. On-demand reads remain available.
-- Use /agents and FleetView to inspect conversations, progress, and model availability. Model pins can fall back to the parent if unavailable; verify all four models, especially claude-code-cli/opus, before delegating. Child extensions are explicitly limited to command guards; nested delegation and built-in Git worktree isolation are disabled.
-</delegation>
+## 1. Define the task
+
+Establish the goal, scope, constraints and completion evidence. Ask about material ambiguity before dispatch. Distinguish a local-only task from a PR; one PR may span several review rounds.
+
+Keep a concise task + activity tab title on meaningful phase changes. Read [Feature tabs](feature-tabs.md#tab-title) for ownership checks and updates. Read its launch procedure only when starting a separate interactive coordinator; another tab is optional.
+
+## 2. Prepare isolation
+
+Read [Oyo review — Task workspace](oyo-review.md#task-workspace) before repository edits or writer launches. Create or verify one persistent task workspace and its ownership record; reuse it across revisions. Select an explicit base and keep the default/source workspace untouched until approved local-only integration.
+
+Use absolute task-workspace-rooted paths for parent file tools and `cd <task_workspace> &&` for repository commands. Preserve the source-relative subdirectory where applicable.
+
+**Ready:** task identity, intended base, absolute workspace path, persistent bookmark and saved ownership record are verified, including the source root and working-copy identity.
+
+## 3. Delegate
+
+Resolve material ambiguity before assigning one-shot tasks. Delegate independent implementation, bounded edits and substantive review; keep trivial lookups in the parent.
+
+| Role | Use |
+| --- | --- |
+| `explorer` | Bounded codebase questions and noisy investigation; read-only. |
+| `small-worker` | Bounded, low-uncertainty edits; escalate ambiguity to `worker`. |
+| `worker` | Cross-file implementation; set thinking to `medium`, or `high` for difficult work. |
+| `reviewer` | Fresh independent review; read-only. |
+
+Verify availability of the four configured role models, especially `claude-code-cli/opus`, before dispatch: pins can fall back to the parent. Use `/agents` and FleetView to inspect conversations, progress and availability. Child extensions are limited to command guards; nested delegation and built-in Git worktree isolation are disabled.
+
+Before each writer launch, create a unique temporary JJ workspace from task `@`:
+
+```sh
+cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r @ <absolute-child-path>
+```
+
+Keep child workspaces under `~/.pi/agent/jj-workspaces/`. Give each agent a unique name, short description and self-contained brief containing:
+
+- Goal, scope, constraints and completion evidence.
+- Assigned absolute workspace and file paths; shell commands begin with `cd <assigned_workspace> &&`. Agent has no cwd parameter: children retain the parent's cwd. These restrictions are prompt-only, not runtime isolation.
+- Expected result and stop condition. Writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence; report blockers rather than widening scope.
+
+Use background agents and continue independent work. Keep at most two children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
+
+## 4. Verify and review
+
+Inspect actual changes against the brief; a child's summary is not evidence. Run the relevant tests in the assigned workspace. Start a fresh reviewer for each independent review, supplying requirements, absolute workspace path and its JJ diff, without implementation conversations or another agent's review history. The parent runs review test commands.
+
+**Ready for human review:** the diff matches scope, tests have recorded outcomes, and independent findings are addressed or explicitly reported as blockers. Do not claim readiness with missing evidence.
+
+Read [Oyo review](oyo-review.md) before opening the child diff in Rex. The parent owns UI and protects the reviewed workspace from readiness through user completion. Follow its snapshot, session and file-coverage checks before claiming the diff is loaded.
+
+After verifying native UI, explicitly start parent-only `oyo_watch` with the exact workspace, native session and trusted executable. Read its initial result before claiming delivery active. A missing tool requires Pi reload; report delivery inactive and use on-demand reads. Restart only explicitly after fresh verification.
+
+For saved feedback, follow Oyo review's discussion and native-reply procedure. Status-only events authorize neither replies nor integration/publication. Requested edits follow the linked feedback procedure: writer, tests, fresh independent review, bookmark update and verified live-session refresh.
+
+## 5. Integrate and close
+
+Read Oyo review's integration and cleanup procedures before either operation. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
+
+For a PR, consolidate approved changes in the persistent task workspace and retain its identity across review rounds. Child cleanup excludes the PR coordinator; PR-lifetime retention applies only to actual PRs.
+
+For local-only work, follow [Local-only integration and cleanup](oyo-review.md#local-only-integration-and-cleanup), including explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
+
+**Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. Never imply that local consolidation merged a PR or that cleanup published work.
+
+The linked files are workflow references, not independent skills. Resolve their links relative to this file's directory, including when reading it directly.

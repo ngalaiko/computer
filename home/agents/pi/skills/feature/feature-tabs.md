@@ -1,6 +1,6 @@
 # Feature tabs
 
-A feature lifetime is the PR lifetime, not a revision or review round. One PR per persistent task workspace and Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
+For PR-backed tasks, a feature lifetime is the PR lifetime, not a revision or review round. Local-only tasks use the same tab ownership and launch checks, but follow [Local-only integration and cleanup](oyo-review.md#local-only-integration-and-cleanup) for integration, completion and teardown instead of PR-lifetime rules. One PR per persistent task workspace and Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
 
 ## Tab title
 

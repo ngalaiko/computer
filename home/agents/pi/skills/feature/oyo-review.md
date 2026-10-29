@@ -1,6 +1,6 @@
 # Oyo review
 
-Parent owns UI; workers/reviewers remain one-shot. After child exit and tests/reviewer finish, report results and open review automatically. Protect the workspace from readiness across user turns until the user says done, including before pane creation. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.
+Parent owns UI; workers/reviewers remain one-shot. Shared safety checks apply to all tasks. PR integration and retention rules apply only to actual PRs; local-only tasks follow [Local-only integration and cleanup](#local-only-integration-and-cleanup), the sole exception to keeping default/source unchanged. After child exit and tests/reviewer finish, report results and open review automatically. Protect the workspace from readiness across user turns until the user says done, including before pane creation. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.
 
 ## Task workspace
 
@@ -139,9 +139,19 @@ When the user says done, summarize, stop the watcher with `oyo_watch({ action: "
 
 Before rewriting the PR revision (integration or coordinator direct edits), stop or finish other task writers and watchers/reviews using descendants; never mutate under active children. Afterwards reconcile affected disposable child working copies with `jj workspace update-stale` only after exact ownership verification and worker exit. Do not update the default/source workspace. Rerun affected snapshot identity checks, tests and independent review before continuing.
 
+### Local-only integration and cleanup
+
+Keep default/source unchanged during implementation and review. After explicit approval of the exact reviewed changes and destination, stop task writers, watchers and reviews before integration. Verify the recorded source identity against the current default workspace; stop on unrelated work, changed identity or ambiguous destination. Only this approved local-only integration may change default/source.
+
+Integrate only the recorded approved changes, preserving unrelated history. Resolve conflicts and repeat affected tests and independent review before reporting verified integration. Commit nonempty integrated work with `jj commit -m "…"`; leave default `@` empty and undescribed. Verify the integrated changes and record their full identities before cleanup.
+
+Cleanup additionally requires explicit user completion. Apply the Cleanup section's ownership, exact-resource scoping, recoverability and process-termination gates, but not PR-lifetime retention. A dedicated coordinator Pi/tab must exit; another session must independently verify termination before removing its workspace. An external coordinator must verify no process, UI, watcher or child uses the task workspace. Never delete a live cwd.
+
+After verified integration and these gates, remove only task-created redundant revisions, bookmarks, workspaces and ownership records. Preserve integrated changes, unrelated resources and the empty default `@`. Retain named recoverable work if integration is incomplete or fails. Report retained resources and cleanup failures; cleanup never publishes work.
+
 ### Integration
 
-A task means one pull request (PR), not one revision. Retain the persistent PR task workspace across review rounds and revisions; temporary writer workspaces remain separate. Closing a child review does not end the PR.
+For PR-backed tasks, a task means one pull request (PR), not one revision. Retain the persistent PR task workspace across review rounds and revisions; temporary writer workspaces remain separate. Closing a child review does not end the PR.
 
 Integration requires explicit operator approval. Explicitly stop `oyo_watch` and verify it stopped before any integration rebase or consolidation. Resume only explicitly after reverified native UI if still reviewing. A multi-change child violates the one-working-copy contract: stop, report and ask; never silently integrate only `@` or consolidate an unverified stack.
 
