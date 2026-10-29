@@ -1,8 +1,3 @@
----
-name: feature-tabs
-description: Start another PR in a separate Rex tab, reuse its persistent JJ workspace, or update the owning Pi tab title.
----
-
 # Feature tabs
 
 A feature lifetime is the PR lifetime, not a revision or review round. One PR per persistent task workspace and Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
@@ -39,8 +34,11 @@ Reuse the existing PR task workspace across review rounds and revisions. Before 
 
 Load oyo-review's Task workspace procedure before tab launch to create or reuse the PR workspace and its durable identity. Record the source-relative subdirectory; set `feature_workspace` to the verified absolute task workspace and `feature_cwd` to that workspace plus the subdirectory, checking it exists. Choose a short `feature_label`. Do not edit, switch or clean the original workspace.
 
+On the target host, set `feature_skill="$HOME/.pi/agent/skills/feature/SKILL.md"` and require `test -r "$feature_skill"`. Keep this deployed path without resolving symlinks; never substitute a repository copy. Before launch, substitute the absolute `feature_skill` value into the brief below.
+
 Build `brief` as one self-contained argument starting with the requested task, including absolute feature workspace and source repo paths, scope, constraints and completion evidence. Include these coordinator instructions:
 
+- This task carries the user's explicit feature-workflow activation. Read `<feature_skill>` before working; resolve its reference links against its containing directory.
 - You own this persistent PR task workspace/tab; keep the workspace alive while Pi or tab is active and throughout the PR lifetime. Reuse it across review rounds and revisions; closing child review does not end the PR.
 - Work only in this feature workspace; children use separate one-shot JJ workspaces. Child cleanup excludes this coordinator workspace. Keep the default/source workspace untouched. Follow oyo-review for approved consolidation into the PR revision; explicit operator approval remains required.
 - Maintain your tab title with concise task + current activity using the Tab title procedure.

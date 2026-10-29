@@ -47,6 +47,22 @@ function temporary(t) {
   return directory;
 }
 
+test("feature orchestration requires explicit activation", () => {
+  const defaults = read("./AGENTS.md");
+  assert.doesNotMatch(defaults, /<delegation>|workspace add|oyo-review|feature-tabs|oyo_watch/);
+  assert.match(defaults, /explicit.*\/skill:feature/i);
+  const feature = read("./skills/feature/SKILL.md");
+  assert.match(feature, /^---\nname: feature\ndescription:/);
+  assert.match(feature, /disable-model-invocation: true/);
+  for (const text of [defaults, feature])
+    assert.match(text, /coordinator.*inherits activation.*same task/i);
+  assert.match(feature, /Resolve relative links.*directory containing this file/i);
+  assert.match(feature, /\[.*\]\(oyo-review\.md\)/);
+  assert.match(feature, /\[.*\]\(feature-tabs\.md\)/);
+  const module = read("../pi.nix");
+  assert.doesNotMatch(module, /(?:oyo-review|feature-tabs) = \.\/pi\/skills\//);
+});
+
 test("upstream settings disable fallback, nesting, Git isolation, and optional orchestrators", () => {
   assert.deepEqual(settings(), {
     maxConcurrent: 2,
@@ -127,7 +143,7 @@ test("Home Manager deploys stock upstream settings and standalone Markdown agent
 });
 
 test("parent orchestration is one-shot, event-driven, and explicit about JJ paths", () => {
-  const instructions = read("./AGENTS.md");
+  const instructions = read("./skills/feature/SKILL.md");
   assert.doesNotMatch(read("../AGENTS.md"), /<delegation>/);
   for (const fragment of [
     "Parent Pi sessions only",
@@ -309,7 +325,7 @@ test("deploys Oyo alone without changing one-shot child roles or Darwin browser 
   const module = read("../pi.nix");
   assert.match(
     module,
-    /config\.agents\.pi\.skills =\s*\{\s*feature-tabs = \.\/pi\/skills\/feature-tabs;\s*oyo-review = \.\/pi\/skills\/oyo-review;\s*\}\s*\/\/ lib\.optionalAttrs/,
+    /config\.agents\.pi\.skills =\s*\{\s*feature = \.\/pi\/skills\/feature;\s*\}\s*\/\/ lib\.optionalAttrs/,
   );
   assert.match(
     module,
@@ -319,19 +335,19 @@ test("deploys Oyo alone without changing one-shot child roles or Darwin browser 
   assert.match(brew, /"ahkohd\/oyo\/oy"/);
   assert.match(brew, /trustedtaps = names config\.homebrew\.taps/);
   assert.match(brew, /trustedformulae = qualified config\.homebrew\.brews/);
-  assert.match(read("./AGENTS.md"), /oyo-review/);
+  assert.match(read("./skills/feature/SKILL.md"), /oyo-review/);
   assert.match(
-    read("./skills/oyo-review/SKILL.md"),
+    read("./skills/feature/oyo-review.md"),
     /from readiness.*user says done/i,
   );
-  assert.match(read("./AGENTS.md"), /Children execute one-shot tasks/);
+  assert.match(read("./skills/feature/SKILL.md"), /Children execute one-shot tasks/);
   assert.doesNotMatch(prompt("worker"), /oyo|walkthrough/i);
 });
 
 test("ready child reviews open automatically and retain the integration gate", () => {
-  const skill = read("./skills/oyo-review/SKILL.md");
-  const parent = read("./AGENTS.md");
-  assert.match(skill, /^---\nname: oyo-review\ndescription:/);
+  const skill = read("./skills/feature/oyo-review.md");
+  const parent = read("./skills/feature/SKILL.md");
+  assert.match(skill, /^# Oyo review/);
   assert.doesNotMatch(skill, /disable-model-invocation: true/);
   assert.match(parent, /ready for human review.*oyo-review.*open/i);
   assert.match(skill, /Integration requires explicit operator approval/);
@@ -347,7 +363,7 @@ test("ready child reviews open automatically and retain the integration gate", (
 });
 
 test("Rex launches the resolved executable rather than relying on login PATH", () => {
-  const skill = read("./skills/oyo-review/SKILL.md");
+  const skill = read("./skills/feature/oyo-review.md");
   assert.ok(skill.includes("oy_bin=$(command -v oy)"));
   assert.match(skill, /absolute.*executable|executable.*absolute/);
   const split = skill.split("\n").find((line) => line.startsWith("rex split "));
@@ -363,7 +379,7 @@ test("Rex launches the resolved executable rather than relying on login PATH", (
 });
 
 test("pending reviews survive turns and only task-owned panes close on done", () => {
-  const skill = read("./skills/oyo-review/SKILL.md");
+  const skill = read("./skills/feature/oyo-review.md");
   assert.match(skill, /from readiness.*across user turns.*user says done/i);
   assert.match(skill, /user says done.*close only.*task-created split/i);
   assert.ok(
@@ -376,7 +392,7 @@ test("pending reviews survive turns and only task-owned panes close on done", ()
 });
 
 test("review uses installed docs and separate control/data interfaces", () => {
-  const skill = read("./skills/oyo-review/SKILL.md");
+  const skill = read("./skills/feature/oyo-review.md");
   for (const command of [
     "rex skill show",
     '"$oy_bin" skill path',
@@ -406,19 +422,23 @@ test("review uses installed docs and separate control/data interfaces", () => {
 
 test("feature tabs deploy and route to independent interactive coordinators", () => {
   const module = read("../pi.nix");
-  assert.match(module, /feature-tabs = \.\/pi\/skills\/feature-tabs/);
+  assert.match(module, /feature = \.\/pi\/skills\/feature/);
   assert.match(
-    read("./AGENTS.md"),
+    read("./skills/feature/SKILL.md"),
     /another feature.*separate tab.*feature-tabs/i,
   );
   assert.match(
-    read("./AGENTS.md"),
+    read("./skills/feature/SKILL.md"),
     /persistent task workspace.*pull request/i,
   );
-  const skill = read("./skills/feature-tabs/SKILL.md");
-  assert.match(skill, /^---\nname: feature-tabs\ndescription:/);
+  const skill = read("./skills/feature/feature-tabs.md");
+  assert.match(skill, /^# Feature tabs/);
   assert.doesNotMatch(skill, /disable-model-invocation: true/);
   assert.match(skill, /actionable.*feature brief/);
+  assert.match(skill, /explicit feature-workflow activation/);
+  assert.match(skill, /feature_skill="\$HOME\/\.pi\/agent\/skills\/feature\/SKILL\.md"/);
+  assert.match(skill, /test -r "\$feature_skill"/);
+  assert.match(skill, /substitute.*absolute.*feature_skill.*brief/i);
   assert.match(skill, /not an Agent role or background subagent/i);
   assert.ok(skill.includes("pi_bin=$(command -v pi)"));
   assert.ok(
@@ -439,17 +459,17 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
 });
 
 test("review stays beside its feature Pi and never closes the coordinator", () => {
-  const skill = read("./skills/oyo-review/SKILL.md");
+  const skill = read("./skills/feature/oyo-review.md");
   assert.match(skill, /owning feature Pi.*same tab/i);
   assert.match(skill, /never.*app focus.*another feature tab/i);
   assert.match(skill, /never.*Pi tab or feature coordinator workspace/i);
-  assert.match(read("./AGENTS.md"), /only task-created child workspaces/);
+  assert.match(read("./skills/feature/SKILL.md"), /only task-created child workspaces/);
 });
 
 test("integrated cleanup removes task-owned refs and revisions; pending work stays recoverable", () => {
-  const parent = read("./AGENTS.md");
-  const review = read("./skills/oyo-review/SKILL.md");
-  const feature = read("./skills/feature-tabs/SKILL.md");
+  const parent = read("./skills/feature/SKILL.md");
+  const review = read("./skills/feature/oyo-review.md");
+  const feature = read("./skills/feature/feature-tabs.md");
   assert.match(parent, /oyo-review.*integration.*cleanup/i);
   for (const fragment of [
     "explicit integration approval", "verified integration", "user completion",
@@ -480,7 +500,7 @@ test("integrated cleanup removes task-owned refs and revisions; pending work sta
 });
 
 test("feature startup recovery reuses its workspace and reports recovery IDs", () => {
-  const skill = read("./skills/feature-tabs/SKILL.md");
+  const skill = read("./skills/feature/feature-tabs.md");
   assert.match(skill, /retry.*same already-created feature workspace/i);
   assert.match(
     skill,
@@ -489,7 +509,7 @@ test("feature startup recovery reuses its workspace and reports recovery IDs", (
 });
 
 test("feature launch requires an actionable request and executable Pi", () => {
-  const skill = read("./skills/feature-tabs/SKILL.md");
+  const skill = read("./skills/feature/feature-tabs.md");
   assert.match(
     skill,
     /Launch only for an actionable user feature request, not a request to configure this workflow/,
@@ -498,7 +518,7 @@ test("feature launch requires an actionable request and executable Pi", () => {
 });
 
 test("coordinator teardown waits for user exit and verification elsewhere", () => {
-  const skill = read("./skills/feature-tabs/SKILL.md");
+  const skill = read("./skills/feature/feature-tabs.md");
   assert.match(skill, /user explicitly ends the feature/);
   assert.match(skill, /Pi and tab to exit/i);
   assert.match(
@@ -510,7 +530,7 @@ test("coordinator teardown waits for user exit and verification elsewhere", () =
 
 test("worker working-copy contract keeps child review target at @", () => {
   assert.match(prompt("worker"), /Keep changes in the working-copy change/);
-  const skill = read("./skills/oyo-review/SKILL.md");
+  const skill = read("./skills/feature/oyo-review.md");
   assert.match(skill, /Use `@` for this child-only diff/);
   assert.ok(
     skill.includes('"$oy_bin" control target --session "$review_session" @'),
@@ -549,8 +569,8 @@ test("first-party review bridge deploys only to parents without an extra Pi pack
 });
 
 test("automatic feedback preserves native roots and human resolution", () => {
-  const parent = read("./AGENTS.md");
-  const skill = read("./skills/oyo-review/SKILL.md");
+  const parent = read("./skills/feature/SKILL.md");
+  const skill = read("./skills/feature/oyo-review.md");
   assert.match(parent, /saved Oyo.*oyo-review/i);
   for (const text of [
     '"$oy_bin" review comment reply -t @ ID --body',
@@ -595,7 +615,7 @@ test("automatic feedback preserves native roots and human resolution", () => {
 });
 
 test("Oyo identity is snapshot guarded without fabricated metadata", () => {
-  const skill = read("./skills/oyo-review/SKILL.md");
+  const skill = read("./skills/feature/oyo-review.md");
   for (const text of [
     "jj log -r @ --no-graph -T commit_id",
     "jj log -r @ --no-graph -T change_id",
@@ -657,9 +677,9 @@ test("Oyo identity is snapshot guarded without fabricated metadata", () => {
 });
 
 test("PR integration consolidates approved work only in its persistent task workspace", () => {
-  const parent = read("./AGENTS.md");
-  const review = read("./skills/oyo-review/SKILL.md");
-  const feature = read("./skills/feature-tabs/SKILL.md");
+  const parent = read("./skills/feature/SKILL.md");
+  const review = read("./skills/feature/oyo-review.md");
+  const feature = read("./skills/feature/feature-tabs.md");
   assert.match(parent, /persistent task workspace.*pull request/i);
   assert.match(parent, /default\/source workspace.*untouched/i);
   assert.match(parent, /oyo-review.*integration.*cleanup/i);
@@ -681,7 +701,7 @@ test("PR integration consolidates approved work only in its persistent task work
 });
 
 test("integration stops delivery before mutation and rejects multi-change children", () => {
-  const instructions = read("./skills/oyo-review/SKILL.md");
+  const instructions = read("./skills/feature/oyo-review.md");
   assert.match(instructions, /Integration requires explicit operator approval/);
   assert.match(instructions, /stop.*oyo_watch.*verify.*stopped.*before any integration rebase or consolidation/i);
   assert.match(instructions, /multi-change child.*stop.*report.*ask/i);
@@ -698,8 +718,8 @@ test("integration stops delivery before mutation and rejects multi-change childr
 
 
 test("owning parent keeps its Rex tab title aligned with task activity", () => {
-  const parent = read("./AGENTS.md");
-  const feature = read("./skills/feature-tabs/SKILL.md");
+  const parent = read("./skills/feature/SKILL.md");
+  const feature = read("./skills/feature/feature-tabs.md");
   assert.match(parent, /own Rex tab title.*concise task.*current activity/i);
   assert.match(parent, /meaningful phase changes.*feature-tabs/i);
   assert.match(feature, /feature_label.*initial title.*owning Pi.*updates/i);
@@ -720,8 +740,8 @@ test("owning parent keeps its Rex tab title aligned with task activity", () => {
 
 
 test("task setup precedes writers without requiring a new Pi or tab", () => {
-  const parent = read("./AGENTS.md");
-  const review = read("./skills/oyo-review/SKILL.md");
+  const parent = read("./skills/feature/SKILL.md");
+  const review = read("./skills/feature/oyo-review.md");
   const setup = review.split("## Task workspace")[1]?.split("## Prepare")[0];
   assert.ok(setup, "authoritative setup procedure");
   assert.match(parent, /starting or resuming.*oyo-review.*before.*writer/i);
@@ -745,8 +765,8 @@ test("task setup precedes writers without requiring a new Pi or tab", () => {
 });
 
 test("persistent PR identity survives consolidation and coordinator teardown", () => {
-  const review = read("./skills/oyo-review/SKILL.md");
-  const feature = read("./skills/feature-tabs/SKILL.md");
+  const review = read("./skills/feature/oyo-review.md");
+  const feature = read("./skills/feature/feature-tabs.md");
   assert.match(review, /persistent task bookmark.*follow.*consolidated PR revision/i);
   assert.match(review, /ownership record.*survives.*teardown/i);
   assert.match(review, /persistent PR bookmark.*survives coordinator teardown/i);
@@ -762,9 +782,9 @@ test("persistent PR identity survives consolidation and coordinator teardown", (
 
 
 test("task lifecycle uses local ownership and quiescent working copies", () => {
-  const parent = read("./AGENTS.md");
-  const review = read("./skills/oyo-review/SKILL.md");
-  const feature = read("./skills/feature-tabs/SKILL.md");
+  const parent = read("./skills/feature/SKILL.md");
+  const review = read("./skills/feature/oyo-review.md");
+  const feature = read("./skills/feature/feature-tabs.md");
   assert.ok(parent.includes('cd "$task_workspace" && jj --config git.colocate=false workspace add'));
   assert.match(review, /Remove the ownership record only when.*PR bookmark.*safely removed or.*discarded/i);
   assert.match(review, /dedicated feature Pi\/tab.*exit.*independent/i);
@@ -780,9 +800,9 @@ test("task lifecycle uses local ownership and quiescent working copies", () => {
 
 
 test("cleanup scope, review refs, coordinator discovery and parent paths stay explicit", () => {
-  const parent = read("./AGENTS.md");
-  const review = read("./skills/oyo-review/SKILL.md");
-  const feature = read("./skills/feature-tabs/SKILL.md");
+  const parent = read("./skills/feature/SKILL.md");
+  const review = read("./skills/feature/oyo-review.md");
+  const feature = read("./skills/feature/feature-tabs.md");
   assert.match(review, /during child cleanup.*only.*disposable child workspace/i);
   assert.match(review, /PR has ended.*process gates.*jj workspace forget.*exact coordinator.*exact directory/is);
   assert.match(review, /update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated PR revision/i);

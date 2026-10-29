@@ -97,16 +97,10 @@ test("advertises Encore and Rex regardless of directory", () => {
   }
 });
 
-test("advertises feature tabs globally, respecting explicit-only", () => {
+test("keeps the feature workflow explicit-only", () => {
+  const names = ["feature", "feature-tabs", "oyo-review"];
   for (const cwd of [homedir(), join(homedir(), "Developer/other")]) {
-    assert.deepEqual(apply(["feature-tabs"], cwd), ["feature-tabs"]);
-    assert.deepEqual(apply(["feature-tabs"], cwd, ["feature-tabs"]), []);
-  }
-});
-
-test("advertises Oyo reviews globally, respecting explicit-only", () => {
-  for (const cwd of [homedir(), join(homedir(), "Developer/other")]) {
-    assert.deepEqual(apply(["oyo-review"], cwd), ["oyo-review"]);
-    assert.deepEqual(apply(["oyo-review"], cwd, ["oyo-review"]), []);
+    assert.deepEqual(apply(names, cwd), []);
+    assert.deepEqual(apply(names, cwd, names), []);
   }
 });

@@ -1,3 +1,10 @@
+# Feature workflow
+
+Activate `/skill:feature` for a task to use workspace isolation, delegation,
+Rex tabs, and Oyo review. Other tasks use the current revision without this flow.
+The skill owns these rules; its Oyo and tab procedures are plain references,
+not automatically discoverable skills. Apply Home Manager and reload Pi after changes.
+
 # Subagents
 
 `pi.nix` pins stock [`@tintinweb/pi-subagents@0.22.0`](https://github.com/tintinweb/pi-subagents).
@@ -172,7 +179,7 @@ node --experimental-strip-types --test home/agents/pi/oyo-review.test.mjs
 
 # Skill policy
 
-`skill-policy.ts` advertises coding skills, Encore, Rex, and `pi-subagents` guidance
+`feature` is explicit-only. `skill-policy.ts` advertises coding skills, Encore, Rex, and `pi-subagents` guidance
 if discovered. The subagent extension's tools are registered independently of skill
 advertising; this package currently ships no skills. Other user skills require
 explicit invocation. Project-local, command-line, and upstream explicit-only flags

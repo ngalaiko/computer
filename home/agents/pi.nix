@@ -84,8 +84,7 @@ in
   ) cfg.skills;
 
   config.agents.pi.skills = {
-    feature-tabs = ./pi/skills/feature-tabs;
-    oyo-review = ./pi/skills/oyo-review;
+    feature = ./pi/skills/feature;
   }
   // lib.optionalAttrs pkgs.stdenv.isDarwin {
     agent-browser = ./pi/skills/agent-browser;

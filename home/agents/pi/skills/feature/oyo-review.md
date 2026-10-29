@@ -1,8 +1,3 @@
----
-name: oyo-review
-description: Set up or resume a persistent PR task workspace, integrate or clean task work, open Oyo review in Rex, or handle saved feedback and native replies.
----
-
 # Oyo review
 
 Parent owns UI; workers/reviewers remain one-shot. After child exit and tests/reviewer finish, report results and open review automatically. Protect the workspace from readiness across user turns until the user says done, including before pane creation. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.

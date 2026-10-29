@@ -9,8 +9,6 @@ const automatic = new Set([
   "writing-for-agents",
   "encore-service",
   "rex",
-  "oyo-review",
-  "feature-tabs",
   "pi-subagents",
 ]);
 
