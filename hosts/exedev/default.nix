@@ -41,10 +41,17 @@
   # Provision the root-readable file outside Nix; restore it with the homes.
   nix.settings = {
     netrc-file = "/etc/nix/rex.netrc";
+    auto-optimise-store = true;
     experimental-features = [
       "nix-command"
       "flakes"
     ];
+  };
+
+  # Reclaim unreferenced builds daily without deleting rollback generations.
+  nix.gc = {
+    automatic = true;
+    dates = "daily";
   };
 
   programs.nix-ld = {

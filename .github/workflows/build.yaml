@@ -151,7 +151,7 @@ jobs:
             --image="ghcr.io/ngalaiko/computer.exe:$tag" \
             --name "$VM_NAME-$tag" \
             --tag "$VM_TAG" \
-            --disk 50 \
+            --disk 100 \
             --env RESTIC_REPOSITORY=b2:ngalaiko-backups:exedev \
             --env RESTIC_PASSWORD="$RESTIC_PASSWORD" \
             --env B2_ACCOUNT_ID=0036cfed748e70c0000000002 \
