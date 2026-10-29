@@ -100,7 +100,7 @@ class OyoConfig(unittest.TestCase):
         for file in ["home/default.nix", "home/agents/pi.nix", "flake.nix"]:
             text = (ROOT / file).read_text()
             self.assertNotIn("hunk", text)
-            self.assertNotIn("pi-oyo", text)
+            self.assertNotRegex(text, r"npm:[^\s\"]*pi-oyo")
 
 
 if __name__ == "__main__":

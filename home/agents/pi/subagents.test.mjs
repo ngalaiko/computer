@@ -472,7 +472,7 @@ test("integrated cleanup removes task-owned refs and revisions; pending work sta
     assert.ok(parent.includes(fragment), fragment);
   for (const fragment of [
     "remove task-created local temporary review bookmarks",
-    "even when squash moved their targets onto source",
+    "superseded implementation copies",
     "redundant task-owned revisions",
     "empty successors",
     "superseded trials",
@@ -550,23 +550,40 @@ test("worker working-copy contract keeps child review target at @", () => {
   assert.match(skill, /sole bookmark.*stack/i);
 });
 
-test("first-party review skill needs no bridge or extra Pi package", () => {
+test("first-party review bridge deploys only to parents without an extra Pi package", () => {
   const module = read("../pi.nix");
   assert.match(
     module,
     /extensions = \[ "\$\{config\.home\.homeDirectory\}\/\.pi\/agent\/extensions\/command-guards\.ts" \]/,
   );
-  assert.doesNotMatch(
+  assert.match(
     module,
-    /pi-oyo|extensions\/oyo-review|extensions\/hunk-review/,
+    /"\.pi\/agent\/extensions\/oyo-review"\.source = \.\/pi\/oyo-review/,
   );
-  assert.match(read("../../../flake.nix"), /home\/oyo\/config_test\.py/);
+  assert.doesNotMatch(module, /npm:.*pi-oyo|extensions\/hunk-review/);
+  const flake = read("../../../flake.nix");
+  assert.match(flake, /home\/oyo\/config_test\.py/);
+  assert.match(flake, /pi-oyo-review/);
+  assert.ok(
+    flake.includes(
+      "node --experimental-strip-types --test ${./.}/home/agents/pi/oyo-review.test.mjs",
+    ),
+  );
+  const entry = read("./oyo-review/index.ts");
+  assert.match(entry, /import \{ Type \} from "@earendil-works\/pi-ai"/);
+  assert.match(
+    entry,
+    /import type \{ ExtensionAPI \} from "@earendil-works\/pi-coding-agent"/,
+  );
+  assert.match(entry, /registerOyoWatch\(pi, Type\)/);
+  for (const role of Object.keys(expectedProfiles))
+    assert.deepEqual(fields(role, profiles()[role]).extensions, [guard]);
 });
 
-test("on-demand feedback preserves native roots and human resolution", () => {
+test("automatic feedback preserves native roots and human resolution", () => {
   const parent = read("./AGENTS.md");
   const skill = read("./skills/oyo-review/SKILL.md");
-  assert.match(parent, /on-demand Oyo.*oyo-review/i);
+  assert.match(parent, /saved Oyo.*oyo-review/i);
   for (const text of [
     '"$oy_bin" review comment reply -t @ ID --body',
     "OYO_REVIEW_AUTHOR_TYPE=agent",
@@ -589,7 +606,24 @@ test("on-demand feedback preserves native roots and human resolution", () => {
   assert.match(skill, /answer, edit, or test outcome/i);
   assert.match(skill, /never claim it posted.*uncertain write/i);
   assert.match(skill, /user request.*checkpoints/i);
-  assert.match(skill, /no automatic delivery/i);
+  for (const fragment of [
+    "oyo_watch",
+    'action: "start"',
+    'action: "stop"',
+    "oyBin",
+    "exact native session",
+    "initial result",
+    "delivery inactive",
+    "Pi reload",
+    "no auto-resume",
+    "Status-only",
+    "coalesce",
+    "created and deleted",
+    "not an exact hook/event journal",
+  ])
+    assert.ok(skill.includes(fragment), fragment);
+  assert.match(skill, /stop.*watcher.*before.*clos/i);
+  assert.match(read("./README.md"), /deployed.*reload|reload.*deployed/is);
 });
 
 test("Oyo identity is snapshot guarded without fabricated metadata", () => {
@@ -652,4 +686,49 @@ test("Oyo identity is snapshot guarded without fabricated metadata", () => {
     /printed `seq` if available|no `lastError` before dependent commands/,
   );
   assert.doesNotMatch(skill, /loaded patch.*jj diff --git -r @/i);
+});
+
+test("approved workspaces retain separate commits rather than squash into parent", () => {
+  for (const instructions of [
+    read("./AGENTS.md"),
+    read("./skills/oyo-review/SKILL.md"),
+  ]) {
+    for (const fragment of [
+      "each approved child workspace",
+      "distinct JJ commit/change",
+      "source working-copy commit",
+      "never squash",
+      "combine different workspaces",
+      "jj new <integrated-change>",
+      "conflicts",
+      "superseded implementation copies",
+    ])
+      assert.ok(instructions.includes(fragment), fragment);
+  }
+  assert.match(
+    prompt("worker"),
+    /Integration requires explicit operator approval/,
+  );
+});
+
+test("integration stops delivery before movement and rejects multi-change children", () => {
+  for (const instructions of [
+    read("./AGENTS.md"),
+    read("./skills/oyo-review/SKILL.md"),
+  ]) {
+    assert.match(
+      instructions,
+      /stop.*oyo_watch.*verify.*stopped.*before any integration rebase or source movement/i,
+    );
+    assert.match(instructions, /multi-change child.*stop.*report.*ask/i);
+    assert.match(instructions, /never silently integrate only `@`/i);
+    assert.match(instructions, /resume.*explicitly.*reverified.*UI/i);
+  }
+  const readme = read("./README.md");
+  assert.match(readme, /provider-backed.*bodies.*filter/is);
+  assert.match(readme, /stoppedReason/);
+  assert.match(
+    readme,
+    /read commands.*reconcile persisted anchors\/author metadata/is,
+  );
 });

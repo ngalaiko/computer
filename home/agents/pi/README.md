@@ -119,6 +119,54 @@ Schema references: upstream [agent fields and tools](https://github.com/tintinwe
 [persistent settings](https://github.com/tintinweb/pi-subagents#persistent-settings),
 and [RPC cwd](https://github.com/tintinweb/pi-subagents/blob/master/docs/rpc.md).
 
+# Oyo feedback
+
+Home Manager deploys the first-party `oyo-review/` extension directory to parents;
+children retain command guards only. Delivery is inactive until deployed, Pi
+reloaded, and `oyo_watch` explicitly started after verifying the native Oyo UI.
+Supply its exact native session name, absolute workspace and trusted absolute
+`oyBin` (optional absolute `jjBin`). Read the initial tool result before claiming
+it active. It returns saved human-or-untyped comments and active/outdated root
+counts without also sending an initial notification.
+
+Saved additions, body edits, deletions and root resolve/reopen changes wake the
+owning Pi via visible follow-up messages. No agent-to-human notification UI,
+publication, reply writes or automatic resolution. Replies use the native CLI
+with explicit agent identity per `oyo-review`. Only local feedback qualifies:
+provider-backed comment bodies are filtered even without authorType; roots/status
+still count with unknown actors. Agent/bot bodies and metadata-only
+changes do not echo. Missing authorType is not authenticated human provenance;
+status/deletion actors are unknown. Status-only events authorize no reply or
+integration.
+
+Polling runs about one second after the previous poll completes, plus CLI latency.
+Snapshots coalesce intermediate edits/toggles; comments created and deleted
+entirely between polls are unobservable. This is not an exact hook/event journal.
+No-loss retry covers validated observed snapshots only. Delivery failures retain
+that batch until acceptance; three consecutive CLI/delivery failures stop the
+watcher. Identity replacement stops immediately. Each CLI call has a five-second
+limit and 4 MiB output bound; snapshots allow 2,000 comments, 64 KiB bodies and
+128 KiB delivery batches. Oversized or malformed data fails explicitly, without
+truncation or false deletion. Whole-file anchor blobs are discarded.
+
+Use `oyo_watch` actions `status` and `stop` to inspect or end delivery. Unavailable
+counts are unknown, not zero. `stoppedReason` distinguishes explicit/lifecycle
+stops from errors. Stop and verify stopped before integration rebase/source
+movement, closing Oyo or workspace cleanup. Actual session_tree and session_shutdown
+(including reload) abort pending work and fence late callbacks; canceled before-tree
+navigation does not stop delivery. Shutdown emits no automatic notification/turn. Nothing auto-resumes; explicit restart returns native durable comments
+as a fresh baseline. See the first-party skill for identity checks, native reply
+limitations and cleanup gates. Invalid basic start input preserves an existing
+watch; snapshot/native-identity failure after deliberate replacement leaves the
+previous watch unavailable.
+
+The bridge uses only read commands, but Oyo may reconcile persisted anchors/author metadata
+during reads. The bridge performs no comment/post/resolve writes.
+
+```sh
+node --experimental-strip-types --test home/agents/pi/oyo-review.test.mjs
+```
+
 # Skill policy
 
 `skill-policy.ts` advertises coding skills, Encore, Rex, and `pi-subagents` guidance

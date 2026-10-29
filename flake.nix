@@ -207,6 +207,14 @@
               node --test ${./.}/home/agents/pi/subagents.test.mjs
               touch $out
             '';
+        pi-oyo-review =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "pi-oyo-review" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+            node --experimental-strip-types --test ${./.}/home/agents/pi/oyo-review.test.mjs
+            touch $out
+          '';
         oyo-config =
           let
             pkgs = nixpkgs.legacyPackages.${system};
