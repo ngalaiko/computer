@@ -144,7 +144,10 @@ Snapshots coalesce intermediate edits/toggles; comments created and deleted
 entirely between polls are unobservable. This is not an exact hook/event journal.
 No-loss retry covers validated observed snapshots only. Delivery failures retain
 that batch until acceptance; three consecutive CLI/delivery failures stop the
-watcher. Identity replacement stops immediately. Each CLI call has a five-second
+watcher. The pinned identity is workspace, session, PID, socket, JJ change ID and
+review key; native name, workspace and target are validated on every snapshot.
+Oyo's `createdAt` is validated but not pinned because it changes on target reload.
+Identity replacement stops immediately. Each CLI call has a five-second
 limit and 4 MiB output bound; snapshots allow 2,000 comments, 64 KiB bodies and
 128 KiB delivery batches. Oversized or malformed data fails explicitly, without
 truncation or false deletion. Whole-file anchor blobs are discarded.

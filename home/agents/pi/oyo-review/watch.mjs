@@ -259,12 +259,12 @@ export function registerOyoWatch(
       !String(data.createdAt)
     )
       throw identityError();
+    // Oyo refreshes createdAt when a target reloads within the same process.
     return {
       workspace,
       session,
       pid: data.pid,
       socket: data.socket,
-      createdAt: data.createdAt,
     };
   }
   async function snapshot(state) {

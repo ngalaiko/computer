@@ -290,15 +290,27 @@ for (const [name, alter] of [
     },
   ],
   [
-    "name reuse",
-    (f) => {
-      f.control.createdAt = "replacement";
-    },
-  ],
-  [
     "socket replacement",
     (f) => {
       f.control.socket += "new";
+    },
+  ],
+  [
+    "empty createdAt",
+    (f) => {
+      f.control.createdAt = "";
+    },
+  ],
+  [
+    "missing createdAt",
+    (f) => {
+      delete f.control.createdAt;
+    },
+  ],
+  [
+    "object createdAt",
+    (f) => {
+      f.control.createdAt = {};
     },
   ],
   [
@@ -347,6 +359,54 @@ for (const [name, alter] of [
     assert.equal(f.timers.size, 0);
   });
 }
+
+test("createdAt refresh between polls preserves feedback delivery", async (t) => {
+  const f = fixture(t);
+  f.control.createdAt = 100;
+  await f.start();
+  f.control.createdAt = 101;
+  f.comments = [human(1, "Please retest")];
+  await f.tick();
+  assert.equal(f.messages.length, 1);
+  assert.equal(f.messages[0].details.event.kind, "feedback");
+  assert.ok(f.messages[0].content.includes("Please retest"));
+  let status = await f.statusResult();
+  assert.equal(status.running, true);
+  assert.equal(status.available, true);
+  assert.equal(status.error, null);
+  await f.tick();
+  assert.equal(f.messages.length, 1);
+  status = await f.statusResult();
+  assert.equal(status.running, true);
+  assert.equal(status.available, true);
+  assert.equal(status.error, null);
+});
+
+test("createdAt refresh within a snapshot preserves feedback delivery", async (t) => {
+  const f = fixture(t);
+  f.control.createdAt = 100;
+  await f.start();
+  let reads = 0;
+  f.intercept = async (_bin, args) => {
+    if (args[0] === "control" && ++reads === 2) f.control.createdAt = 101;
+  };
+  f.comments = [human(1, "Please retest")];
+  await f.tick();
+  assert.equal(reads, 2);
+  assert.equal(f.messages.length, 1);
+  assert.equal(f.messages[0].details.event.kind, "feedback");
+  assert.ok(f.messages[0].content.includes("Please retest"));
+  let status = await f.statusResult();
+  assert.equal(status.running, true);
+  assert.equal(status.available, true);
+  assert.equal(status.error, null);
+  await f.tick();
+  assert.equal(f.messages.length, 1);
+  status = await f.statusResult();
+  assert.equal(status.running, true);
+  assert.equal(status.available, true);
+  assert.equal(status.error, null);
+});
 
 test("identity bounds a snapshot; ordinary edits preserve the pinned stable change", async (t) => {
   const f = fixture(t);
