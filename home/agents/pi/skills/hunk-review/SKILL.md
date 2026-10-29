@@ -87,6 +87,14 @@ Reverify PID/workspace/target/files and watch status before continuing. Do not r
 
 Report the unresolved issue count in the review summary; report unknown/unavailable rather than claiming all resolved. Resolution is not integration approval.
 
-When the user says done, call `hunk_watch` with `action: "stop"` before closing the split. Verify stopped state or report tool failure/unavailability. Summarize and close only the task-created split with `rex block close -s "$REX_SESSION" "$review_block"`; never close the Pi tab or feature coordinator workspace. Verify termination before existing bookmarked cleanup. Never close preexisting/user-owned panes; defer workspace deletion while a reused pane uses it.
+When the user says done, call `hunk_watch` with `action: "stop"` before closing the split. Verify stopped state or report tool failure/unavailability. Summarize and close only the task-created split with `rex block close -s "$REX_SESSION" "$review_block"`; never close the Pi tab or feature coordinator workspace. Verify all task-owned UI, watches, and processes terminated before cleanup. Never close preexisting/user-owned panes; defer workspace deletion while a reused pane uses it.
 
-Preserve/update the named JJ bookmark and follow the parent's existing cleanup and explicit integration approval policy. Closing review does not integrate or authorize integration; add no walkthrough approval prompt. Protect the coordinator until user exit and independent termination verification. Report cleanup failures.
+### Cleanup
+
+Remove integrated refs and revisions only after explicit integration approval, verified integration, and user completion. Before teardown, record task ownership, exact bookmark/workspace names, full change IDs, and exact workspace directory. Scope every JJ ref/revision operation to those recorded task resources; avoid broad patterns and revsets.
+
+For integrated work, remove task-created local temporary review bookmarks, even when squash moved their targets onto source. Remove redundant task-owned revisions, empty successors, and superseded trials, then forget the exact workspace and remove its exact directory. Preserve the integrated source commit and ancestors, main refs, unrelated bookmarks/remotes, and active/shared/source workspaces or refs used by other active workspaces. Leave no permanent backup or review-bookmark clutter.
+
+For pending, unintegrated, or failed work, retain a named recoverable bookmark unless the operator explicitly discards it. Preserve the pending or failed revision and bookmark. After user completion and termination of task-owned UI, watches, and processes, forget only the exact task workspace and remove its exact directory. Report retained work and cleanup failures. Cleanup never integrates or pushes.
+
+Keep the feature coordinator until the user explicitly ends the feature, its Pi and tab have exited, and another session independently verifies termination. Then apply this same integrated-versus-pending cleanup rule. Closing review does not integrate or authorize integration; add no walkthrough approval prompt.

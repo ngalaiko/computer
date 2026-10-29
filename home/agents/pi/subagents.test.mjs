@@ -151,11 +151,11 @@ test("parent orchestration is one-shot, event-driven, and explicit about JJ path
     "completion notification",
     "rather than polling",
     "Integration requires explicit operator approval",
-    "automatically clean the parent's own task workspace",
-    "child exits and reviews/tests finish",
-    "named JJ bookmark",
+    "automatically cleaning the parent's own task workspace",
+    "After child exit and reviews/tests finish",
+    "named recoverable bookmark",
     "jj workspace forget",
-    "Never delete active, shared, or source workspaces",
+    "active/shared/source workspaces",
     "Report cleanup failures",
   ])
     assert.ok(instructions.includes(fragment), fragment);
@@ -344,7 +344,7 @@ test("ready child reviews open automatically and retain the integration gate", (
     skill,
     /offer a walkthrough|explicit skip|ask whether.*finished|ask for.*integration approval/i,
   );
-  assert.match(skill, /existing.*integration approval policy/i);
+  assert.match(skill, /explicit integration approval, verified integration, and user completion/i);
 });
 
 test("Rex launches the resolved executable rather than relying on login PATH", () => {
@@ -370,7 +370,7 @@ test("pending reviews survive turns and only task-owned panes close on done", ()
   assert.ok(
     skill.includes('rex block close -s "$REX_SESSION" "$review_block"'),
   );
-  assert.match(skill, /verify termination.*cleanup/i);
+  assert.match(skill, /terminated before cleanup/i);
   assert.match(skill, /preexisting.*pane/i);
   assert.match(skill, /named JJ bookmark/);
   assert.match(skill, /UI only.*await user instruction/i);
@@ -443,6 +443,50 @@ test("review stays beside its feature Pi and never closes the coordinator", () =
   assert.match(read("./AGENTS.md"), /only task-created child workspaces/);
 });
 
+test("integrated cleanup removes task-owned refs and revisions; pending work stays recoverable", () => {
+  const parent = read("./AGENTS.md");
+  const review = read("./skills/hunk-review/SKILL.md");
+  const feature = read("./skills/feature-tabs/SKILL.md");
+  for (const fragment of [
+    "explicit integration approval",
+    "verified integration",
+    "user says done",
+    "task-owned UI, watches, and processes",
+    "exact workspace",
+    "named recoverable bookmark",
+    "pending, unintegrated, or failed work",
+    "operator explicitly discards",
+    "hunk-review for scoped JJ cleanup",
+  ])
+    assert.ok(parent.includes(fragment), fragment);
+  for (const fragment of [
+    "remove task-created local temporary review bookmarks",
+    "even when squash moved their targets onto source",
+    "redundant task-owned revisions",
+    "empty successors",
+    "superseded trials",
+    "exact workspace directory",
+    "record task ownership, exact bookmark/workspace names, full change IDs",
+    "Scope every JJ ref/revision operation to those recorded task resources",
+    "Preserve the integrated source commit and ancestors",
+    "unrelated bookmarks/remotes",
+    "active/shared/source workspaces",
+    "pending, unintegrated, or failed work",
+    "named recoverable bookmark",
+    "operator explicitly discards",
+    "permanent backup or review-bookmark clutter",
+  ])
+    assert.ok(review.includes(fragment), fragment);
+  assert.match(review, /remove integrated refs and revisions only after explicit integration approval, verified integration, and user completion/i);
+  assert.match(review, /pending, unintegrated, or failed work, retain a named recoverable bookmark/i);
+  assert.match(review, /After user completion.*forget only the exact task workspace and remove its exact directory/i);
+  assert.match(review, /Preserve the pending or failed revision and bookmark/i);
+  assert.doesNotMatch(review, /Preserve\/update the named JJ bookmark/);
+  assert.match(feature, /Pi and tab to exit.*independently verify termination/i);
+  assert.match(feature, /after verified integration/i);
+  assert.match(feature, /preserve.*pending|pending.*preserve/i);
+});
+
 test("feature startup recovery reuses its workspace and reports recovery IDs", () => {
   const skill = read("./skills/feature-tabs/SKILL.md");
   assert.match(skill, /retry.*same already-created feature workspace/i);
@@ -463,11 +507,11 @@ test("feature launch requires an actionable request and executable Pi", () => {
 
 test("coordinator teardown waits for user exit and verification elsewhere", () => {
   const skill = read("./skills/feature-tabs/SKILL.md");
-  assert.match(skill, /user explicitly requests ending the feature/);
-  assert.match(skill, /ask.*exit feature Pi first/i);
+  assert.match(skill, /user explicitly ends the feature/);
+  assert.match(skill, /Pi and tab to exit/i);
   assert.match(
     skill,
-    /original caller or another session.*verify.*stopped.*teardown/i,
+    /another session to independently verify termination before teardown/i,
   );
   assert.match(skill, /never remove.*live coordinator cwd/i);
 });
@@ -591,6 +635,6 @@ test("Hunk review verifies native identity before starting delivery and stops be
   const done = skill.slice(skill.indexOf("## Done"));
   assert.ok(done.indexOf('action: "stop"') < done.indexOf("rex block close"));
   assert.match(done, /never close the Pi tab or feature coordinator workspace/);
-  assert.match(done, /Verify termination before.*cleanup/);
+  assert.match(done, /terminated before cleanup/);
   assert.match(done, /preexisting\/user-owned panes/);
 });
