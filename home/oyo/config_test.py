@@ -36,14 +36,14 @@ class OyoConfig(unittest.TestCase):
             "textMuted": "#686868",
             "primary": "#6099C0",
             "secondary": "#9E9E9E",
-            "accent": "#6099C0",
+            "accent": "#B8D8E0",
             "error": "#DE6E7C",
             "warning": "#B77E64",
             "success": "#819B69",
             "info": "#66A5AD",
             "background": "#191919",
             "backgroundPanel": "#222222",
-            "backgroundElement": "#282828",
+            "backgroundElement": "#304654",
             "border": "#404040",
             "borderActive": "#6099C0",
             "borderSubtle": "#2A2A2A",
@@ -57,6 +57,39 @@ class OyoConfig(unittest.TestCase):
             "diffModifiedBg": "#1D2C36",
         }
         self.assertEqual(theme, {k: {"dark": v} for k, v in expected.items()})
+
+    def test_file_tree_focus_contrast(self):
+        document = json.loads((OYO / "zenwritten.json").read_text())
+        theme = {
+            k: document["defs"].get(v["dark"], v["dark"])
+            for k, v in document["theme"].items()
+        }
+
+        def luminance(color):
+            channels = [int(color[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+            linear = [
+                c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                for c in channels
+            ]
+            return sum(
+                c * weight for c, weight in zip(linear, (0.2126, 0.7152, 0.0722))
+            )
+
+        def contrast(first, second):
+            light, dark = sorted((luminance(first), luminance(second)), reverse=True)
+            return (light + 0.05) / (dark + 0.05)
+
+        self.assertGreaterEqual(
+            contrast(theme["backgroundElement"], theme["backgroundPanel"]), 1.6
+        )
+        for foreground in ("accent", "text"):
+            self.assertGreaterEqual(
+                contrast(theme[foreground], theme["backgroundElement"]), 4.5
+            )
+        for indicator in ("diffAdded", "diffRemoved"):
+            self.assertGreaterEqual(
+                contrast(theme[indicator], theme["backgroundElement"]), 3.0
+            )
 
     def test_textmate_syntax(self):
         theme = plistlib.loads((OYO / "zenwritten.tmTheme").read_bytes())

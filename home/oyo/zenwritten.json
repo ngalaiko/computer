@@ -3,7 +3,7 @@
   "defs": {
     "background": "#191919",
     "panel": "#222222",
-    "element": "#282828",
+    "element": "#304654",
     "text": "#BBBBBB",
     "muted": "#686868",
     "red": "#DE6E7C",
@@ -18,7 +18,7 @@
     "textMuted": { "dark": "muted" },
     "primary": { "dark": "blue" },
     "secondary": { "dark": "#9E9E9E" },
-    "accent": { "dark": "blue" },
+    "accent": { "dark": "#B8D8E0" },
     "error": { "dark": "red" },
     "warning": { "dark": "yellow" },
     "success": { "dark": "green" },
