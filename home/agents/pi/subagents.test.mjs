@@ -523,6 +523,20 @@ test("parent-only Hunk bridge deploys the whole shared package", () => {
   );
 });
 
+test("saved human Hunk feedback routes to native-thread replies", () => {
+  const parent = read("./AGENTS.md");
+  const skill = read("./skills/hunk-review/SKILL.md");
+  assert.match(parent, /saved Hunk feedback.*hunk-review/i);
+  assert.match(skill, /respond to saved human feedback/i);
+  assert.match(skill, /hunk_reply/);
+  assert.match(skill, /exact human note ID.*same native thread/i);
+  assert.match(skill, /answer, edit, or test outcome/i);
+  assert.match(skill, /chat-only response.*isn't completion/i);
+  assert.match(skill, /tool delivery fails.*report/i);
+  assert.match(skill, /never claim it posted/i);
+  assert.match(skill, /uncertain write/i);
+});
+
 test("Hunk review verifies native identity before starting delivery and stops before close", () => {
   const skill = read("./skills/hunk-review/SKILL.md");
   const split = skill.split("\n").find((line) => line.startsWith("rex split "));
@@ -571,7 +585,7 @@ test("Hunk review verifies native identity before starting delivery and stops be
     assert.ok(skill.includes(field), field);
   for (const command of ["get", "review", "context", "navigate", "reload"])
     assert.ok(skill.includes(`session ${command} "$review_session"`), command);
-  assert.match(skill, /hunk_reply.*exact `replyTo` note ID and `body`/);
+  assert.match(skill, /hunk_reply.*exact human note ID.*same native thread/i);
   assert.match(skill, /archive is not native Hunk persistence/);
   assert.match(skill, /without specific operator consent/);
   const done = skill.slice(skill.indexOf("## Done"));
