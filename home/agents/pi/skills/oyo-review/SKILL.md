@@ -1,15 +1,37 @@
 ---
 name: oyo-review
-description: Open completed child changes for human review in Rex, guide Oyo walkthroughs, or handle saved local review feedback and native replies.
+description: Set up or resume a persistent PR task workspace, integrate or clean task work, open Oyo review in Rex, or handle saved feedback and native replies.
 ---
 
 # Oyo review
 
 Parent owns UI; workers/reviewers remain one-shot. After child exit and tests/reviewer finish, report results and open review automatically. Protect the workspace from readiness across user turns until the user says done, including before pane creation. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.
 
+## Task workspace
+
+Set up or resume the persistent PR workspace before launching writers or editing repository files. A parent in the default workspace can coordinate it without launching another Pi or tab. Creating an empty workspace and its identity does not require integration approval; incorporating reviewed changes still does.
+
+Choose a stable unique task key before a PR exists; associate repository identity and PR URL when available. Use one persistent task bookmark named `task/<key>`, distinct from temporary child review bookmarks. Store a local ownership record at `~/.pi/agent/jj-workspaces/<key>.json`, outside the repository: task key, repository root/identity, optional PR URL, workspace name and absolute path, and persistent task bookmark. Include optional dedicated coordinator runtime fields: Rex session/window/block IDs and PID. No task metadata in commit messages; keep them human-facing.
+
+To resume across sessions, read the ownership record and inspect its bookmark with `jj bookmark list`, `jj log -r <task-bookmark>` and `jj workspace list`. Verify the recorded absolute paths and repository/task/PR identity against the actual workspace root, working-copy revision and bookmark; ask on ambiguity, missing paths, conflicting bookmarks or ownership. Reuse the matching PR workspace, not a workspace per revision. Add the PR URL to the record when available, keeping the task key and bookmark name stable.
+
+Only if no matching task exists, choose a unique workspace name and absolute `task_workspace` under `~/.pi/agent/jj-workspaces/`. Record the default/source root and working-copy identity. Select a stable intended base, not mutable default/source `@` containing unrelated work; ask if ambiguous. From the source root, create an empty task working copy at that base:
+
+```sh
+jj --config git.colocate=false workspace add --name "$workspace_name" -r "$task_base" "$task_workspace"
+```
+
+Verify `jj root`, `jj workspace list` and `jj log -r @` in the new workspace, then create its bookmark there and save the verified local ownership record:
+
+```sh
+cd "$task_workspace" && jj bookmark create "$task_bookmark" -r @
+```
+
+Use the actual verified absolute path and identity values. Run all subsequent repository commands with `cd "$task_workspace" &&` (or the assigned absolute child workspace for child work); the process's original cwd need not change. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. Keep the default/source workspace unchanged. Create temporary writer workspaces from task `@` only after setup. A separate interactive Pi/tab is optional and follows feature-tabs launch conditions, not a prerequisite for task setup.
+
 ## Prepare
 
-Set `workspace` to the absolute child workspace, not source. There verify `jj root`, `jj workspace list`, `jj log -r @ --no-graph -T commit_id`, `jj log -r @ --no-graph -T change_id` and `jj diff -r @ --summary` against the child result. Require a nonempty summary consistent with the child result before preserving a named JJ bookmark at `@` or opening Oyo. An empty summary means a violated work-at-`@` contract: report it and stop; never silently retarget `@-`. Use `@` for this child-only diff. An implicit target with a sole bookmark can select a stack. Record the full commit ID, stable change_id and exact paths before bookmark creation or opening UI.
+Set `workspace` to the absolute child workspace, not source. There verify `jj root`, `jj workspace list`, `jj log -r @ --no-graph -T commit_id`, `jj log -r @ --no-graph -T change_id` and `jj diff -r @ --summary` against the child result. Require a nonempty summary consistent with the child result before preserving a named JJ bookmark at `@` for temporary child review or opening Oyo. An empty summary means a violated work-at-`@` contract: report it and stop; never silently retarget `@-`. Use `@` for this child-only diff. An implicit target with a sole bookmark can select a stack. Record the full commit ID, stable change_id and exact paths before bookmark creation or opening UI.
 
 On the pane host resolve `oy_bin=$(command -v oy)`; require an absolute executable path (`test -x "$oy_bin"`). Keep Rex's environment unchanged. Read `rex skill show`, `rex split --help`, `"$oy_bin" --help` and relevant native `control`/`review` help. Locate installed docs with these commands and read each returned path completely:
 
@@ -104,7 +126,7 @@ OYO_REVIEW_AUTHOR_TYPE=agent OYO_REVIEW_AUTHOR_NAME=Pi "$oy_bin" review comment 
 
 Verify returned identity and root with a fresh comment read. If posting fails, report it; never claim it posted or blindly retry an uncertain write. No remote pull/push/publication without specific operator consent for that operation/message.
 
-For requested edits, resume the worker one-shot, retest, obtain fresh independent review and update the bookmark. Verify the existing live session before refreshing the same child target:
+For requested edits, resume the worker one-shot, retest, obtain fresh independent review and update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated PR revision. Verify the existing live session before refreshing the same child target:
 
 ```sh
 "$oy_bin" control target --session "$review_session" @
@@ -118,18 +140,26 @@ Report complete unresolved thread counts, or unknown/unavailable, in the review 
 
 When the user says done, summarize, stop the watcher with `oyo_watch({ action: "stop" })` and verify it stopped before closing UI, then close only the task-created split with `rex block close -s "$REX_SESSION" "$review_block"`; never close the Pi tab or feature coordinator workspace. Verify all task-owned UI and processes terminated before cleanup. Never close preexisting/user-owned panes; defer workspace deletion while a reused pane uses it. Stop delivery before workspace cleanup; never auto-resume it.
 
+### Revision safety
+
+Before rewriting the PR revision (integration or coordinator direct edits), stop or finish other task writers and watchers/reviews using descendants; never mutate under active children. Afterwards reconcile affected disposable child working copies with `jj workspace update-stale` only after exact ownership verification and worker exit. Do not update the default/source workspace. Rerun affected snapshot identity checks, tests and independent review before continuing.
+
 ### Integration
 
-Integration requires explicit operator approval. Explicitly stop `oyo_watch` and verify it stopped before any integration rebase or source movement. Resume only explicitly after reverified native UI if still reviewing. A multi-change child violates the one-working-copy contract: stop, report and ask; never silently integrate only `@` or squash into parent.
+A task means one pull request (PR), not one revision. Retain the persistent PR task workspace across review rounds and revisions; temporary writer workspaces remain separate. Closing a child review does not end the PR.
 
-Integrate each approved child workspace as one distinct JJ commit/change on the intended target history. Preserve the source working-copy commit and other workspace commit boundaries; never squash a child into parent `@` or combine different workspaces. After approved identity/review/tests, rebase the child's single working-copy change onto the intended target. Resolve conflicts and repeat affected tests/independent review before proceeding; reverify identity if the snapshot changed. Move source to a new empty descendant with `jj new <integrated-change>`, retaining the approved workspace's separate commit. Record the integrated full change/commit IDs and verify history/tree before cleanup. Completion or resolution alone never approves this operation.
+Integration requires explicit operator approval. Explicitly stop `oyo_watch` and verify it stopped before any integration rebase or consolidation. Resume only explicitly after reverified native UI if still reviewing. A multi-change child violates the one-working-copy contract: stop, report and ask; never silently integrate only `@` or consolidate an unverified stack.
+
+After approved identity/review/tests, consolidate all approved work into one JJ revision for that PR in its task workspace unless the operator specifies otherwise. Include previously approved PR work and approved changes from different child workspaces for the same PR; child commit boundaries are disposable. Never combine different PRs. Verify the PR identity, exact approved child changes, existing PR revision and intended base before mutation; stop and ask if ownership or scope is ambiguous. Reuse the existing PR task workspace and update its PR revision rather than creating a workspace or commit per review round. Never integrate into or move the default/source workspace; preserve its working-copy commit and history.
+
+Rebase approved inputs onto the intended PR base as needed, then consolidate only the recorded approved PR changes in the task workspace. Resolve conflicts and repeat affected tests/independent review before proceeding; reverify identity if the snapshot changed. Verify the complete consolidated PR diff with tests and independent review before declaring integration verified. The persistent task bookmark must follow the consolidated PR revision; use `jj bookmark set "$task_bookmark" -r @` in the verified task workspace and verify its target. Record the integrated full change/commit IDs and verify history/tree before cleanup. Local child consolidation is not actual PR integration in target history. Completion or resolution alone never approves this operation.
 
 ### Cleanup
 
-Remove integrated refs and revisions only after explicit integration approval, verified integration, and user completion. Before teardown, record task ownership, exact bookmark/workspace names, full change IDs, and exact workspace directory. Scope every JJ ref/revision operation to those recorded task resources; avoid broad patterns and revsets.
+Remove integrated refs and revisions only after explicit integration approval, verified integration, and user completion. Before teardown, record task ownership, exact bookmark/workspace names, full change IDs, and exact workspace directory. Distinguish disposable child workspaces from the persistent PR coordinator. Scope every JJ ref/revision operation to those recorded task resources; avoid broad patterns and revsets.
 
-For integrated work, remove task-created local temporary review bookmarks after recording the integrated identity. Remove only redundant task-owned revisions: superseded implementation copies, empty successors, and superseded trials or failed trials, then forget the exact workspace and remove its exact directory. Cleanup never combines approved workspace commits. Preserve the integrated source commit and ancestors, every approved workspace commit boundary, main refs, unrelated bookmarks/remotes, and active/shared/source workspaces or refs used by other active workspaces. Leave no permanent backup or review-bookmark clutter.
+Temporary review bookmarks are distinct from the persistent PR bookmark. For integrated child work, remove task-created local temporary review bookmarks after recording the consolidated identity. Remove only redundant task-owned revisions: superseded implementation copies, empty successors, and superseded trials or failed trials. During child cleanup, use `jj workspace forget` for only the exact disposable child workspace and remove its exact directory after user completion and verified termination of task-owned UI, watches, and processes. Preserve the consolidated PR revision and its ancestors, default/source history, main refs, unrelated bookmarks/remotes, and active/shared/source workspaces or refs used by other active workspaces. Leave no permanent backup or review-bookmark clutter; the persistent PR identity bookmark is not disposable backup clutter.
 
-For pending, unintegrated, or failed work, retain a named recoverable bookmark unless the operator explicitly discards it. Preserve the pending or failed revision and bookmark. After user completion and termination of task-owned UI, watches, and processes, forget only the exact task workspace and remove its exact directory. Report retained work and cleanup failures. Cleanup never integrates or pushes.
+For pending, unintegrated, or failed work, retain a named recoverable bookmark unless the operator explicitly discards it. Use the persistent PR bookmark for consolidated or coordinator work; retain only necessary temporary bookmarks for unintegrated child work, not per-child backups after consolidation. Preserve the pending or failed revision and bookmark. During child cleanup, only disposable child workspaces are eligible for removal after user completion and verified process termination; retain the PR coordinator. Report retained work and cleanup failures. Cleanup never integrates or pushes.
 
-Keep the feature coordinator until the user explicitly ends the feature, its Pi and tab have exited, and another session independently verifies termination. Then apply this same integrated-versus-pending cleanup rule. Closing review does not integrate or authorize integration; add no walkthrough approval prompt.
+Retain the persistent PR task workspace across review rounds and revisions, including after child review closure or approved consolidation. Teardown requires the operator to explicitly confirm the PR has ended. A dedicated feature Pi/tab must exit, with another session that independently verifies termination. For an external parent coordinating without a dedicated Pi/tab, verify no process cwd, UI, watch or active child uses the exact task workspace before teardown. Do not close the external parent's main Pi or tab. After the PR has ended and these process gates pass, use `jj workspace forget` for the exact coordinator workspace and remove its exact directory, preserving the consolidated PR revision and any pending recoverable work. The local ownership record also survives coordinator teardown while the PR ref is needed. The persistent PR bookmark survives coordinator teardown; never delete the sole PR ref merely because local consolidation or review is complete. Delete the persistent PR bookmark only after actual PR integration in target history is verified, or the operator explicitly discards the PR work. Verify the recorded PR revision is included in the intended target history (or its reviewed equivalent if rewritten), not merely in the local coordinator. Remove the ownership record only when the PR bookmark is safely removed or the work explicitly discarded. Remote operations still require specific consent. Closing review does not integrate or authorize integration; add no walkthrough approval prompt.

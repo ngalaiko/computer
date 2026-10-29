@@ -150,13 +150,9 @@ test("parent orchestration is one-shot, event-driven, and explicit about JJ path
     "two",
     "completion notification",
     "rather than polling",
-    "Integration requires explicit operator approval",
-    "automatically cleaning the parent's own task workspace",
-    "After child exit and reviews/tests finish",
-    "named recoverable bookmark",
-    "jj workspace forget",
-    "active/shared/source workspaces",
-    "Report cleanup failures",
+    "persistent task workspace",
+    "default/source workspace untouched",
+    "load oyo-review for task workspace setup before any writer launch",
   ])
     assert.ok(instructions.includes(fragment), fragment);
   assert.doesNotMatch(
@@ -325,8 +321,8 @@ test("deploys Oyo alone without changing one-shot child roles or Darwin browser 
   assert.match(brew, /trustedformulae = qualified config\.homebrew\.brews/);
   assert.match(read("./AGENTS.md"), /oyo-review/);
   assert.match(
-    read("./AGENTS.md"),
-    /pending or active review.*user says done/i,
+    read("./skills/oyo-review/SKILL.md"),
+    /from readiness.*user says done/i,
   );
   assert.match(read("./AGENTS.md"), /Children execute one-shot tasks/);
   assert.doesNotMatch(prompt("worker"), /oyo|walkthrough/i);
@@ -338,7 +334,7 @@ test("ready child reviews open automatically and retain the integration gate", (
   assert.match(skill, /^---\nname: oyo-review\ndescription:/);
   assert.doesNotMatch(skill, /disable-model-invocation: true/);
   assert.match(parent, /ready for human review.*oyo-review.*open/i);
-  assert.match(parent, /Integration requires explicit operator approval/);
+  assert.match(skill, /Integration requires explicit operator approval/);
   assert.match(skill, /Wait for questions, feedback or `next`/);
   assert.doesNotMatch(
     skill,
@@ -417,7 +413,7 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
   );
   assert.match(
     read("./AGENTS.md"),
-    /feature coordinator workspace.*excluded.*user ends the feature/i,
+    /persistent task workspace.*pull request/i,
   );
   const skill = read("./skills/feature-tabs/SKILL.md");
   assert.match(skill, /^---\nname: feature-tabs\ndescription:/);
@@ -434,11 +430,7 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
     .split("\n")
     .find((line) => line.startsWith("rex window new -s"));
   assert.doesNotMatch(launch, /sh -c|--print|--resume|--continue|--inherit/);
-  assert.ok(
-    skill.includes(
-      'jj --config git.colocate=false workspace add --name "$workspace_name" -r @ "$feature_workspace"',
-    ),
-  );
+  assert.match(skill, /oyo-review.*Task workspace.*before tab launch/);
   assert.match(skill, /source-relative subdirectory/);
   assert.match(skill, /own.*REX_SESSION.*REX_BLOCK.*never.*caller/i);
   assert.match(skill, /process.*capture|capture.*process/i);
@@ -458,50 +450,27 @@ test("integrated cleanup removes task-owned refs and revisions; pending work sta
   const parent = read("./AGENTS.md");
   const review = read("./skills/oyo-review/SKILL.md");
   const feature = read("./skills/feature-tabs/SKILL.md");
+  assert.match(parent, /oyo-review.*integration.*cleanup/i);
   for (const fragment of [
-    "explicit integration approval",
-    "verified integration",
-    "user says done",
-    "task-owned UI, watches, and processes",
-    "exact workspace",
-    "named recoverable bookmark",
-    "pending, unintegrated, or failed work",
-    "operator explicitly discards",
-    "oyo-review for scoped JJ cleanup",
-  ])
-    assert.ok(parent.includes(fragment), fragment);
-  for (const fragment of [
-    "remove task-created local temporary review bookmarks",
-    "superseded implementation copies",
-    "redundant task-owned revisions",
-    "empty successors",
-    "superseded trials",
-    "exact workspace directory",
+    "explicit integration approval", "verified integration", "user completion",
     "record task ownership, exact bookmark/workspace names, full change IDs",
     "Scope every JJ ref/revision operation to those recorded task resources",
-    "Preserve the integrated source commit and ancestors",
-    "unrelated bookmarks/remotes",
-    "active/shared/source workspaces",
-    "pending, unintegrated, or failed work",
-    "named recoverable bookmark",
-    "operator explicitly discards",
-    "permanent backup or review-bookmark clutter",
-  ])
-    assert.ok(review.includes(fragment), fragment);
-  assert.match(
-    review,
-    /remove integrated refs and revisions only after explicit integration approval, verified integration, and user completion/i,
-  );
-  assert.match(
-    review,
-    /pending, unintegrated, or failed work, retain a named recoverable bookmark/i,
-  );
-  assert.match(
-    review,
-    /After user completion.*forget only the exact task workspace and remove its exact directory/i,
-  );
+    "redundant task-owned revisions", "superseded implementation copies",
+    "empty successors", "superseded trials", "exact workspace directory", "jj workspace forget",
+    "unrelated bookmarks/remotes", "active/shared/source workspaces",
+    "pending, unintegrated, or failed work", "named recoverable bookmark",
+    "operator explicitly discards", "permanent backup or review-bookmark clutter",
+  ]) assert.ok(review.includes(fragment), fragment);
+  assert.match(review, /disposable child workspaces/i);
+  assert.match(review, /Preserve the consolidated PR revision and its ancestors/i);
+  assert.match(review, /Retain the persistent PR task workspace across review rounds and revisions/i);
+  assert.match(review, /Closing a child review does not end the PR/i);
+  assert.match(review, /including after child review closure or approved consolidation/i);
+  assert.match(review, /verified termination of task-owned UI, watches, and processes/i);
+  assert.match(review, /Cleanup never integrates or pushes/i);
+  assert.match(review, /PR.*ended.*dedicated feature Pi\/tab.*exit.*independently verifies termination/i);
   assert.match(review, /Preserve the pending or failed revision and bookmark/i);
-  assert.doesNotMatch(review, /Preserve\/update the named JJ bookmark/);
+  assert.doesNotMatch(review, /every approved workspace commit boundary|Cleanup never combines approved workspace commits|forget only the exact task workspace/);
   assert.match(
     feature,
     /Pi and tab to exit.*independently verify termination/i,
@@ -688,42 +657,37 @@ test("Oyo identity is snapshot guarded without fabricated metadata", () => {
   assert.doesNotMatch(skill, /loaded patch.*jj diff --git -r @/i);
 });
 
-test("approved workspaces retain separate commits rather than squash into parent", () => {
-  for (const instructions of [
-    read("./AGENTS.md"),
-    read("./skills/oyo-review/SKILL.md"),
-  ]) {
-    for (const fragment of [
-      "each approved child workspace",
-      "distinct JJ commit/change",
-      "source working-copy commit",
-      "never squash",
-      "combine different workspaces",
-      "jj new <integrated-change>",
-      "conflicts",
-      "superseded implementation copies",
-    ])
-      assert.ok(instructions.includes(fragment), fragment);
+test("PR integration consolidates approved work only in its persistent task workspace", () => {
+  const parent = read("./AGENTS.md");
+  const review = read("./skills/oyo-review/SKILL.md");
+  const feature = read("./skills/feature-tabs/SKILL.md");
+  assert.match(parent, /persistent task workspace.*pull request/i);
+  assert.match(parent, /default\/source workspace.*untouched/i);
+  assert.match(parent, /oyo-review.*integration.*cleanup/i);
+  assert.match(review, /one JJ revision.*PR.*task workspace.*unless the operator specifies otherwise/i);
+  assert.match(review, /different child workspaces for the same PR/i);
+  assert.match(review, /Never combine different PRs/i);
+  assert.match(review, /Never integrate into or move the default\/source workspace/i);
+  assert.match(review, /approved identity\/review\/tests/i);
+  assert.match(review, /conflicts.*tests\/independent review/i);
+  assert.match(review, /Record the integrated full change\/commit IDs and verify history\/tree/i);
+  assert.match(feature, /feature lifetime is the PR lifetime/i);
+  assert.match(feature, /Reuse the existing PR task workspace across review rounds and revisions/i);
+  assert.match(feature, /new tab only under the launch conditions above/i);
+  assert.match(feature, /temporary writer workspaces remain separate/i);
+  for (const instructions of [parent, review]) {
+    assert.doesNotMatch(instructions, /distinct JJ commit\/change|jj new <integrated-change>|never squash a child|combine different workspaces|every approved workspace commit boundary|Move source to a new empty descendant|automatically cleaning the parent's own task workspace/);
   }
-  assert.match(
-    prompt("worker"),
-    /Integration requires explicit operator approval/,
-  );
+  assert.match(prompt("worker"), /Integration requires explicit operator approval/);
 });
 
-test("integration stops delivery before movement and rejects multi-change children", () => {
-  for (const instructions of [
-    read("./AGENTS.md"),
-    read("./skills/oyo-review/SKILL.md"),
-  ]) {
-    assert.match(
-      instructions,
-      /stop.*oyo_watch.*verify.*stopped.*before any integration rebase or source movement/i,
-    );
-    assert.match(instructions, /multi-change child.*stop.*report.*ask/i);
-    assert.match(instructions, /never silently integrate only `@`/i);
-    assert.match(instructions, /resume.*explicitly.*reverified.*UI/i);
-  }
+test("integration stops delivery before mutation and rejects multi-change children", () => {
+  const instructions = read("./skills/oyo-review/SKILL.md");
+  assert.match(instructions, /Integration requires explicit operator approval/);
+  assert.match(instructions, /stop.*oyo_watch.*verify.*stopped.*before any integration rebase or consolidation/i);
+  assert.match(instructions, /multi-change child.*stop.*report.*ask/i);
+  assert.match(instructions, /never silently integrate only `@`/i);
+  assert.match(instructions, /resume.*explicitly.*reverified.*UI/i);
   const readme = read("./README.md");
   assert.match(readme, /provider-backed.*bodies.*filter/is);
   assert.match(readme, /stoppedReason/);
@@ -731,4 +695,103 @@ test("integration stops delivery before movement and rejects multi-change childr
     readme,
     /read commands.*reconcile persisted anchors\/author metadata/is,
   );
+});
+
+
+test("owning parent keeps its Rex tab title aligned with task activity", () => {
+  const parent = read("./AGENTS.md");
+  const feature = read("./skills/feature-tabs/SKILL.md");
+  assert.match(parent, /own Rex tab title.*concise task.*current activity/i);
+  assert.match(parent, /meaningful phase changes.*feature-tabs/i);
+  assert.match(feature, /feature_label.*initial title.*owning Pi.*updates/i);
+  for (const fragment of [
+    'rex block inspect -s "$REX_SESSION" "$REX_BLOCK" --json',
+    '.block.window_id',
+    'rex window rename -s "$REX_SESSION" "$window_id" "$title"',
+    'implementing', 'testing', 'review', 'blocked', 'done',
+    'rex skill show', 'rex window rename --help',
+  ]) assert.ok(feature.includes(fragment), fragment);
+  assert.match(feature, /verify.*own.*REX_SESSION.*REX_BLOCK/i);
+  assert.match(feature, /Never rename.*session.*unrelated.*focused tab/i);
+  assert.match(feature, /meaningful phase changes.*not per command/i);
+  assert.match(feature, /No Rex.*nonblocking.*report failures/i);
+  assert.match(feature, /without creating UI or guessing IDs/i);
+  assert.match(feature, /`review-flow: implementing`, `testing`, `review`, `blocked`, or `done`/);
+});
+
+
+test("task setup precedes writers without requiring a new Pi or tab", () => {
+  const parent = read("./AGENTS.md");
+  const review = read("./skills/oyo-review/SKILL.md");
+  const setup = review.split("## Task workspace")[1]?.split("## Prepare")[0];
+  assert.ok(setup, "authoritative setup procedure");
+  assert.match(parent, /starting or resuming.*oyo-review.*before.*writer/i);
+  assert.match(parent, /Integration requires explicit operator approval/);
+  assert.match(setup, /without launching another Pi or tab/i);
+  assert.match(setup, /empty workspace.*does not require integration approval/i);
+  assert.match(setup, /stable unique task key before.*PR exists/i);
+  assert.match(setup, /repository identity.*PR URL when available/i);
+  for (const command of ["jj workspace list", "jj bookmark list", "jj log", "jj bookmark create", "jj --config git.colocate=false workspace add"])
+    assert.ok(setup.includes(command), command);
+  assert.match(setup, /persistent task bookmark.*task\//i);
+  assert.match(setup, /~\/.pi\/agent\/jj-workspaces\/<key>\.json/);
+  assert.match(setup, /record.*task key.*repository.*PR URL.*workspace name.*path.*bookmark/i);
+  assert.match(setup, /No task metadata.*commit messages/i);
+  assert.doesNotMatch(setup, /jj describe|identity.*JJ change description/);
+  assert.match(setup, /across sessions.*record.*bookmark.*jj workspace list/i);
+  assert.match(setup, /verify.*recorded.*paths.*identity.*ask on ambiguity/i);
+  assert.match(setup, /cd "\$task_workspace" &&/);
+  assert.match(setup, /default\/source.*unchanged/i);
+  assert.match(setup, /before launching writers/i);
+});
+
+test("persistent PR identity survives consolidation and coordinator teardown", () => {
+  const review = read("./skills/oyo-review/SKILL.md");
+  const feature = read("./skills/feature-tabs/SKILL.md");
+  assert.match(review, /persistent task bookmark.*follow.*consolidated PR revision/i);
+  assert.match(review, /ownership record.*survives.*teardown/i);
+  assert.match(review, /persistent PR bookmark.*survives coordinator teardown/i);
+  assert.match(review, /local child consolidation.*not.*integration.*target history/i);
+  assert.match(review, /delete.*persistent.*bookmark.*only after.*actual PR integration.*target history.*verified/i);
+  assert.match(review, /temporary review bookmarks.*distinct from.*persistent PR bookmark/i);
+  assert.match(review, /sole PR ref/i);
+  assert.match(feature, /oyo-review.*Task workspace.*before.*launch/i);
+  assert.match(feature, /Continue in its existing tab when live/i);
+  assert.match(feature, /Ambiguous ownership blocks launch/i);
+  assert.match(feature, /Child cleanup excludes this coordinator workspace/i);
+});
+
+
+test("task lifecycle uses local ownership and quiescent working copies", () => {
+  const parent = read("./AGENTS.md");
+  const review = read("./skills/oyo-review/SKILL.md");
+  const feature = read("./skills/feature-tabs/SKILL.md");
+  assert.ok(parent.includes('cd "$task_workspace" && jj --config git.colocate=false workspace add'));
+  assert.match(review, /Remove the ownership record only when.*PR bookmark.*safely removed or.*discarded/i);
+  assert.match(review, /dedicated feature Pi\/tab.*exit.*independent/i);
+  assert.match(review, /external parent.*no process cwd, UI, watch or active child.*exact task workspace/i);
+  assert.match(review, /Do not close the external parent.*Pi or tab/i);
+  assert.match(review, /Before rewriting.*integration or coordinator direct edits.*stop or finish.*writers.*watchers.*reviews.*descendants/i);
+  assert.match(review, /jj workspace update-stale.*only after.*ownership verification and worker exit/i);
+  assert.match(review, /rerun.*snapshot identity.*tests.*review/i);
+  assert.match(review, /stable intended base.*mutable default\/source.*unrelated.*ask if ambiguous/i);
+  assert.match(feature, /own pane.*ownership evidence.*current task context.*title/i);
+  assert.match(feature, /No separate task-tab registry/i);
+});
+
+
+test("cleanup scope, review refs, coordinator discovery and parent paths stay explicit", () => {
+  const parent = read("./AGENTS.md");
+  const review = read("./skills/oyo-review/SKILL.md");
+  const feature = read("./skills/feature-tabs/SKILL.md");
+  assert.match(review, /during child cleanup.*only.*disposable child workspace/i);
+  assert.match(review, /PR has ended.*process gates.*jj workspace forget.*exact coordinator.*exact directory/is);
+  assert.match(review, /update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated PR revision/i);
+  assert.match(review, /optional dedicated coordinator runtime fields.*Rex session\/window\/block.*PID/i);
+  assert.match(feature, /save.*runtime fields.*after verified launch/i);
+  assert.match(feature, /recorded Rex IDs.*process cwd.*identity.*PID reuse/i);
+  assert.match(feature, /missing or stale.*process cwds.*Rex listing.*ambiguity blocks launch/i);
+  assert.match(feature, /never launch a duplicate live coordinator/i);
+  for (const text of [parent, review])
+    assert.match(text, /parent file tools.*absolute task-workspace-rooted paths.*relative read\/edit\/write.*default/i);
 });
