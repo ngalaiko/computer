@@ -617,14 +617,39 @@ test("Oyo identity is snapshot guarded without fabricated metadata", () => {
   assert.match(skill, /lastError.seq.*>=.*seq/);
   assert.match(skill, /lastAppliedSeq.*>=.*seq/);
   assert.match(skill, /human input.*priority/i);
-  assert.match(skill, /recheck.*snapshot.*files/i);
+  assert.match(
+    skill,
+    /recheck the unchanged JJ commit, change_id and summary/i,
+  );
   assert.match(skill, /\.data\.target == @/);
   assert.match(skill, /status target.*working tree/i);
   assert.match(skill, /not by requiring equality with control/i);
   assert.match(skill, /reviewKey.*short.*change.*prefix/i);
   assert.match(skill, /mutations.*print text, not JSON/i);
-  assert.match(skill, /printed `seq` if available, otherwise verify/i);
-  assert.match(skill, /intended cursor.*target plus loaded patch/i);
+  assert.match(skill, /save its printed `seq`/i);
+  assert.match(skill, /intended cursor.*target and matching control metadata/i);
   assert.match(skill, /inReplyTo/);
-  assert.match(skill, /loaded patch.*jj diff --git -r @/i);
+  assert.match(
+    skill,
+    /Oyo 0\.1\.61.*includePatch.*no raw patch|includePatch.*no raw patch.*Oyo 0\.1\.61/i,
+  );
+  assert.match(
+    skill,
+    /control target.*@.*sequence-application guard.*metadata.*exact file coverage/i,
+  );
+  assert.match(skill, /JJ snapshot.*before and after/i);
+  assert.match(skill, /optional.*Rex capture/i);
+  assert.match(skill, /file counters do not prove patch content/i);
+  assert.doesNotMatch(skill, /include.*--include-patch.*raw diff is needed/i);
+  assert.match(skill, /For each queued command.*printed `seq`.*absent.*stop/i);
+  assert.match(
+    skill,
+    /Require `lastAppliedSeq >= seq` before dependent commands/i,
+  );
+  assert.match(skill, /Ignore older `lastError` values/i);
+  assert.doesNotMatch(
+    skill,
+    /printed `seq` if available|no `lastError` before dependent commands/,
+  );
+  assert.doesNotMatch(skill, /loaded patch.*jj diff --git -r @/i);
 });
