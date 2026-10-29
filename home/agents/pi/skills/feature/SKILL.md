@@ -1,6 +1,6 @@
 ---
 name: feature
-description: Start isolated work, delegate implementation, and coordinate review and approved integration.
+description: Start isolated work, coordinate review and integration, and optionally follow a GitHub PR through merge.
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ Parent Pi sessions coordinate this workflow. Child agents follow their assigned 
 
 ## 1. Define the task
 
-Establish the goal, scope, constraints and completion evidence. Ask about material ambiguity before dispatch. Distinguish a local-only task from a PR; one PR may span several review rounds.
+Establish the goal, scope, constraints and completion evidence. Ask about material ambiguity before dispatch. Distinguish a local-only task from a PR; one PR may span several review rounds. Ask whether GitHub publication and follow-through are wanted; publishing is optional.
 
 Keep a concise task + activity tab title on meaningful phase changes. Read [Feature tabs](feature-tabs.md#tab-title) for ownership checks and updates. Read its launch procedure only when starting a separate interactive coordinator; another tab is optional.
 
@@ -63,7 +63,7 @@ After verifying native UI, explicitly start parent-only `oyo_watch` with the exa
 
 For saved feedback, follow Oyo review's discussion and native-reply procedure. Status-only events authorize neither replies nor integration/publication. Requested edits follow the linked feedback procedure: writer, tests, fresh independent review, bookmark update and verified live-session refresh.
 
-## 5. Integrate and close
+## 5. Integrate
 
 Read Oyo review's integration and cleanup procedures before either operation. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
 
@@ -71,6 +71,14 @@ For a PR, consolidate approved changes in the persistent task workspace and reta
 
 For local-only work, follow [Local-only integration and cleanup](oyo-review.md#local-only-integration-and-cleanup), including explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
 
-**Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. Never imply that local consolidation merged a PR or that cleanup published work.
+## 6. Publish and follow through (optional)
+
+When GitHub publication or an existing PR is explicitly requested, read [GitHub PR lifecycle](github-pr.md). Publish only with specific consent, integrate reviewed fixes into the same task revision, verify each published head, and retain the task while awaiting merge. Pushes remain manual; never push to remote.
+
+A published PR is not completion. Follow the fix/review loop until merge is verified or the operator explicitly chooses another ending. Merge and outbound GitHub messages require their own consent; the workflow does not authorize either. Report when merge monitoring is inactive rather than implying unattended follow-through.
+
+## 7. Close
+
+**Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. For the optional GitHub branch, include the PR URL and verified merge state; an open PR remains awaiting merge. Never imply that local consolidation merged a PR or that cleanup published work.
 
 The linked files are workflow references, not independent skills. Resolve their links relative to this file's directory, including when reading it directly.
