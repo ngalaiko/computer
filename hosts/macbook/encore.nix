@@ -38,6 +38,7 @@ _: {
       imports = [ inputs.encore.homeModules.default ];
 
       home.packages = with pkgs; [
+        ansible
         inputs.encore.packages.${pkgs.stdenv.hostPlatform.system}.encore
         cmake
         protobuf
