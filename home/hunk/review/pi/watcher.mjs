@@ -9,6 +9,8 @@ import {
   openJournal,
 } from "../shared/journal.mjs";
 
+import { readIssueSnapshot } from "../shared/issues.mjs";
+
 export function createWatcher({
   exec,
   notify,
@@ -26,10 +28,66 @@ export function createWatcher({
     active = undefined;
     return { running: false };
   }
+  function observeHumans(scope, batch) {
+    for (const note of batch.feedback)
+      scope.maxHumanSequence = Math.max(scope.maxHumanSequence ?? 0, note.seq);
+  }
+  function readIssues(scope, batch) {
+    try {
+      observeHumans(scope, batch ?? scope.reader.read());
+      return readValidatedIssues(scope);
+    } catch (error) {
+      return { available: false, error: String(error.message) };
+    }
+  }
+  function readValidatedIssues(scope) {
+    const { issues, coveredHumanSequence } = readIssueSnapshot(
+      stateDir,
+      scope.identity,
+    );
+    const encoded = JSON.stringify(issues);
+    if (
+      scope.issueRevision !== undefined &&
+      (issues.revision === undefined ||
+        issues.revision < scope.issueRevision ||
+        (issues.revision === scope.issueRevision &&
+          encoded !== scope.issueSeen))
+    )
+      throw new Error("Issue index revision changed or regressed");
+    if (
+      scope.issueCoverage !== undefined &&
+      (coveredHumanSequence === undefined ||
+        coveredHumanSequence < scope.issueCoverage)
+    )
+      throw new Error("Issue index human sequence regressed");
+    // Raw monotonicity is independent of the derived freshness status.
+    scope.issueRevision = issues.revision;
+    scope.issueSeen = encoded;
+    scope.issueCoverage = coveredHumanSequence;
+    if (
+      coveredHumanSequence !== undefined &&
+      coveredHumanSequence < (scope.maxHumanSequence ?? 0)
+    )
+      return {
+        available: false,
+        error: "Issue index is older than saved human feedback",
+      };
+    return issues;
+  }
   function status() {
-    return active
-      ? { running: true, session: active.session, identity: active.identity }
-      : { running: false };
+    if (!active) return { running: false };
+    let issues;
+    try {
+      issues = readIssues(active);
+    } catch (error) {
+      issues = { available: false, error: String(error.message) };
+    }
+    return {
+      running: true,
+      session: active.session,
+      identity: active.identity,
+      issues,
+    };
   }
   function check(token, signal) {
     signal?.throwIfAborted();
@@ -70,19 +128,24 @@ export function createWatcher({
       scope.inflight = true;
       try {
         const batch = scope.reader.read();
-        if (batch.feedback.length) {
+        const issues = readIssues(scope, batch);
+        const encoded = JSON.stringify(issues);
+        const issuesChanged = encoded !== scope.issueDelivered;
+        if (batch.feedback.length || issuesChanged) {
           try {
             await notify({
-              kind: "feedback",
+              kind: batch.feedback.length ? "feedback" : "issues",
               session: scope.session,
               identity: scope.identity,
-              feedback: batch.feedback,
+              issues,
+              ...(batch.feedback.length ? { feedback: batch.feedback } : {}),
             });
           } catch {
             return;
           }
           if (token !== epoch) return;
           for (const note of batch.feedback) scope.humans.add(note.id);
+          scope.issueDelivered = encoded;
         }
         batch.accept();
         scope.closed ||= batch.closed;
@@ -258,6 +321,8 @@ export function createWatcher({
       scope.identity = identity;
       scope.reader = openJournal(stateDir, identity);
       const batch = scope.reader.read();
+      const issues = readIssues(scope, batch);
+      if (!issues.error) scope.issueDelivered = JSON.stringify(issues);
       check(token, signal);
       for (const note of batch.feedback) scope.humans.add(note.id);
       batch.accept();
@@ -265,7 +330,12 @@ export function createWatcher({
       scope.closed = batch.closed;
       if (batch.closed && batch.eof && !isAlive(identity.pid)) stop();
       else queue(scope, token);
-      return { ...status(), feedback: batch.feedback, more: !batch.eof };
+      return {
+        ...status(),
+        issues,
+        feedback: batch.feedback,
+        more: !batch.eof,
+      };
     },
   };
 }

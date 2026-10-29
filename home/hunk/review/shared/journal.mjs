@@ -118,6 +118,9 @@ export function createJournal({
   return {
     identity,
     path,
+    get humanSequence() {
+      return seq;
+    },
     save(note) {
       if (closed) fail("Bridge journal closed");
       if (note.draft) return;

@@ -17,7 +17,7 @@ export default function (
       pi.sendMessage(
         {
           customType: "hunk-watch",
-          content: `Local Hunk review feedback:\n${JSON.stringify(notice)}`,
+          content: `Local Hunk ${(notice as { kind?: string }).kind === "issues" ? "issue status" : "review feedback"}:\n${JSON.stringify(notice)}`,
           display: true,
           details: notice,
         },
@@ -42,7 +42,7 @@ export default function (
     label: "Hunk watch",
     executionMode: "sequential",
     description:
-      "Parent Pi only: explicitly start/stop/status this session’s local Hunk human-feedback watch. Verify the exact live native session first. Read initial feedback in the start result; subsequent saved feedback arrives automatically. No auto-resume, remote publishing, or native-note restoration.",
+      "Parent Pi only: explicitly start/stop/status this session’s local Hunk human-feedback watch. Verify the exact live native session first. Read initial feedback and optional extension issue state in the start result; subsequent saved feedback and issue-status changes arrive automatically. No auto-resume, remote publishing, or native-note restoration.",
     parameters: Type.Object({
       action: Type.Union([
         Type.Literal("start"),
