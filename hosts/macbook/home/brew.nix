@@ -1,4 +1,6 @@
 _: {
+  home.sessionVariables.OPENSSL = "/opt/homebrew/opt/openssl@3/bin/openssl";
+
   # brew shellenv: keeps brew-installed tools on PATH.
   programs.fish.shellInit = ''
     set --global --export HOMEBREW_PREFIX "/opt/homebrew"

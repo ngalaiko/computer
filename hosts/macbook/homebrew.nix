@@ -1,5 +1,5 @@
-# casks and mas apps stay brew (nixpkgs darwin GUI coverage is poor); the
-# remaining brews are unfree, tap-only, or missing/broken in nixpkgs. Anything
+# casks and mas apps stay brew (nixpkgs darwin GUI coverage is poor); other
+# brews are unfree, tap-only, missing/broken in nixpkgs, or OpenSSL 3. Anything
 # not listed here is uninstalled on rebuild (onActivation.cleanup).
 {
   config,
@@ -63,6 +63,7 @@ in
       "agent-browser"
       "hunk"
       "mole"
+      "openssl@3"
       "pi-coding-agent" # pi.dev agent CLI; homebrew-core, no nixpkgs equivalent
       "podman" # nixpkgs podman lacks the machine/vm helpers on darwin
     ];
