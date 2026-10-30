@@ -207,6 +207,24 @@
               node --test ${./.}/home/agents/pi/subagents.test.mjs
               touch $out
             '';
+        pi-finishing =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "pi-finishing"
+            {
+              nativeBuildInputs = [
+                pkgs.nodejs
+                pkgs.jujutsu
+                pkgs.git
+              ];
+            }
+            ''
+              export HOME="$TMPDIR/home"
+              mkdir -p "$HOME"
+              node --test ${./.}/home/agents/pi/finishing-{check,workflow}.test.mjs
+              touch $out
+            '';
         pi-oyo-review =
           let
             pkgs = nixpkgs.legacyPackages.${system};

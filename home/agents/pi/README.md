@@ -75,10 +75,12 @@ inspect live conversations; persisted upstream sessions can be resumed.
 
 ## JJ workspaces
 
-Before each writer, the parent creates a unique workspace based on its working copy:
+For explicitly activated feature tasks, create each implementation writer's
+workspace from `writer_base`, the recorded full approved commit ID verified against
+the persistent task bookmark (or the initial intended task base), not mutable `@`:
 
 ```sh
-jj --config git.colocate=false workspace add --name <unique-name> -r @ <absolute-path>
+cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r "$writer_base" <absolute-path>
 ```
 
 Keep workspaces under `~/.pi/agent/jj-workspaces/` and preserve package-relative
@@ -91,8 +93,10 @@ scoping also does not restrict which paths can be read.
 Upstream cross-extension RPC supports a real `options.cwd` for tools, while still
 loading the parent's project configuration. That API is not exposed by the standard
 `Agent` tool and is not wired here. Built-in Git worktrees are disabled to avoid
-Git commands and automatic commits. Integration and workspace deletion require
-explicit operator approval; completion never authorizes either.
+Git commands and automatic commits. Integration requires explicit operator
+approval. Disposable child cleanup follows verified approved integration and
+ownership/process gates; task and coordinator teardown also require explicit
+completion. See `skills/feature/finishing.md`.
 
 ## Apply and test
 
@@ -175,6 +179,24 @@ during reads. The bridge performs no comment/post/resolve writes.
 
 ```sh
 node --experimental-strip-types --test home/agents/pi/oyo-review.test.mjs
+```
+
+# Feature finishing
+
+`skills/feature/finishing.md` owns integration, history and cleanup gates;
+`oyo-review.md` owns isolation and human review. `/skill:feature` stays the entry
+point. Finishing executors receive exact approved resources, current identity
+pins, allowed commands and expected results. The parent retains approval,
+ownership decisions, process checks and final verification.
+
+Use `worker` for integration judgment. Trial `small-worker` only for resolved,
+conflict-free mechanics. Run the read-only `scripts/finishing-check.mjs` preflight
+before mutations; it neither authorizes nor performs cleanup. Record total cost,
+time, retries and parent corrections in `~/.pi/agent/finishing-trials/`; retain
+trial records across task cleanup.
+
+```sh
+node --test home/agents/pi/finishing-{check,workflow}.test.mjs
 ```
 
 # Skill policy

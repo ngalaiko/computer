@@ -191,8 +191,11 @@ test("parent orchestration is one-shot, event-driven, and explicit about JJ path
   );
   const worker = read("./subagents/worker.md");
   assert.match(worker, /Integration requires explicit operator approval/);
-  assert.match(worker, /parent owns automatic cleanup/);
-  assert.match(worker, /parent cleanup policy/);
+  assert.match(
+    worker,
+    /parent owns cleanup authorization and final verification/,
+  );
+  assert.match(worker, /supplied finishing contract/);
   assert.doesNotMatch(
     worker,
     /integration and workspace deletion require explicit operator approval|both require operator approval/i,
@@ -367,14 +370,18 @@ test("ready child reviews open automatically and retain the integration gate", (
     skill,
     /After child exit and tests\/reviewer finish.*open review automatically/i,
   );
-  assert.match(skill, /Integration requires explicit operator approval/);
+  assert.match(
+    read("./skills/feature/finishing.md"),
+    /Integration requires explicit operator approval/,
+  );
+  assert.match(skill, /\[Finishing\]\(finishing\.md\) before integration/);
   assert.match(skill, /Wait for questions, feedback or `next`/);
   assert.doesNotMatch(
     skill,
     /offer a walkthrough|explicit skip|ask whether.*finished|ask for.*integration approval/i,
   );
   assert.match(
-    skill,
+    read("./skills/feature/finishing.md"),
     /explicit integration approval and verified integration.*remove redundant task resources/i,
   );
 });
@@ -491,9 +498,9 @@ test("review stays beside its feature Pi and never closes the coordinator", () =
 
 test("integrated cleanup removes task-owned refs and revisions; pending work stays recoverable", () => {
   const parent = read("./skills/feature/SKILL.md");
-  const review = read("./skills/feature/oyo-review.md");
+  const review = read("./skills/feature/finishing.md");
   const feature = read("./skills/feature/feature-tabs.md");
-  assert.match(parent, /oyo-review.*integration.*cleanup/i);
+  assert.match(parent, /Finishing.*before integration or cleanup/i);
   for (const fragment of [
     "explicit integration approval",
     "verified integration",
@@ -580,7 +587,10 @@ test("coordinator teardown waits for user exit and verification elsewhere", () =
 });
 
 test("worker working-copy contract keeps child review target at @", () => {
-  assert.match(prompt("worker"), /Keep changes in the working-copy change/);
+  assert.match(
+    prompt("worker"),
+    /Implementation tasks keep changes in the working-copy change/,
+  );
   const skill = read("./skills/feature/oyo-review.md");
   assert.match(skill, /Use `@` for this child-only diff/);
   assert.ok(
@@ -732,14 +742,14 @@ test("Oyo identity is snapshot guarded without fabricated metadata", () => {
 
 test("PR integration consolidates approved work only in its persistent task workspace", () => {
   const parent = read("./skills/feature/SKILL.md");
-  const review = read("./skills/feature/oyo-review.md");
+  const review = read("./skills/feature/finishing.md");
   const feature = read("./skills/feature/feature-tabs.md");
   assert.match(
     parent,
     /For a PR, consolidate approved changes in the persistent task workspace/i,
   );
   assert.match(parent, /default\/source workspace.*untouched/i);
-  assert.match(parent, /oyo-review.*integration.*cleanup/i);
+  assert.match(parent, /Finishing.*before integration or cleanup/i);
   assert.match(
     review,
     /one JJ revision.*PR.*task workspace.*unless the operator specifies otherwise/i,
@@ -776,7 +786,7 @@ test("PR integration consolidates approved work only in its persistent task work
 });
 
 test("integration stops delivery before mutation and rejects multi-change children", () => {
-  const instructions = read("./skills/feature/oyo-review.md");
+  const instructions = read("./skills/feature/finishing.md");
   assert.match(instructions, /Integration requires explicit operator approval/);
   assert.match(
     instructions,
@@ -873,7 +883,7 @@ test("task setup precedes writers without requiring a new Pi or tab", () => {
 });
 
 test("persistent PR identity survives consolidation and coordinator teardown", () => {
-  const review = read("./skills/feature/oyo-review.md");
+  const review = read("./skills/feature/finishing.md");
   const feature = read("./skills/feature/feature-tabs.md");
   assert.match(
     review,
@@ -905,7 +915,10 @@ test("persistent PR identity survives consolidation and coordinator teardown", (
 
 test("task lifecycle uses local ownership and quiescent working copies", () => {
   const parent = read("./skills/feature/SKILL.md");
-  const review = read("./skills/feature/oyo-review.md");
+  const review = [
+    read("./skills/feature/oyo-review.md"),
+    read("./skills/feature/finishing.md"),
+  ].join("\n");
   const feature = read("./skills/feature/feature-tabs.md");
   assert.ok(
     parent.includes(
@@ -944,7 +957,10 @@ test("task lifecycle uses local ownership and quiescent working copies", () => {
 
 test("cleanup scope, review refs, coordinator discovery and parent paths stay explicit", () => {
   const parent = read("./skills/feature/SKILL.md");
-  const review = read("./skills/feature/oyo-review.md");
+  const review = [
+    read("./skills/feature/oyo-review.md"),
+    read("./skills/feature/finishing.md"),
+  ].join("\n");
   const feature = read("./skills/feature/feature-tabs.md");
   assert.match(
     review,

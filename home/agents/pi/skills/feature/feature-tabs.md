@@ -1,6 +1,6 @@
 # Feature tabs
 
-For PR-backed tasks, a feature lifetime is the PR lifetime, not a revision or review round. Local-only tasks use the same tab ownership and launch checks, but follow [Local-only integration and cleanup](oyo-review.md#local-only-integration-and-cleanup) for integration, completion and teardown instead of PR-lifetime rules. One PR per persistent task workspace and Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
+For PR-backed tasks, a feature lifetime is the PR lifetime, not a revision or review round. Local-only tasks use the same tab ownership and launch checks, but follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup) for integration, completion and teardown instead of PR-lifetime rules. One PR per persistent task workspace and Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
 
 ## Tab title
 
@@ -40,7 +40,7 @@ Build `brief` as one self-contained argument starting with the requested task, i
 
 - This task carries the user's explicit feature-workflow activation. Read `<feature_skill>` before working; resolve its reference links against its containing directory.
 - You own this persistent PR task workspace/tab; keep the workspace alive while Pi or tab is active and throughout the PR lifetime. Reuse it across review rounds and revisions; closing child review does not end the PR.
-- Work only in this feature workspace; children use separate one-shot JJ workspaces. Child cleanup excludes this coordinator workspace. Keep the default/source workspace untouched. Follow oyo-review for approved consolidation into the PR revision; explicit operator approval remains required.
+- Work only in this feature workspace; children use separate one-shot JJ workspaces. Child cleanup excludes this coordinator workspace. Keep the default/source workspace untouched. Follow finishing.md for approved consolidation into the PR revision; explicit operator approval remains required.
 - Maintain your tab title with concise task + current activity using the Tab title procedure.
 - Use your own `REX_SESSION`/`REX_BLOCK`, never the original caller IDs. You own review UI beside your Pi in this tab; use oyo-review when child changes are ready.
 
@@ -58,4 +58,4 @@ Save returned `.window_id` and `.block_ids[0]` plus workspace/name and task owne
 
 On timeout, inspect session windows, processes and captures before any retry; avoid duplicate tabs. Retain a possibly live feature workspace. Retry startup in the same already-created feature workspace, not a new one. Every failure report includes evidence, workspace path/name and session/tab/block IDs; mark unknown IDs explicitly. Never close unrelated/current tabs. Report the created tab and workspace, leaving the original untouched.
 
-Exclude this coordinator workspace from child cleanup. Retain it until the user explicitly ends the feature by confirming the PR has ended, then require its Pi and tab to exit and another session to independently verify termination before teardown. Never remove a live coordinator cwd. Apply oyo-review cleanup gates for integrated or pending work; after verified integration, preserve the consolidated PR revision, persistent PR bookmark and unrelated history; coordinator teardown alone never authorizes deleting that bookmark. Preserve pending or failed work with a named recoverable bookmark unless the operator explicitly discards it.
+Exclude this coordinator workspace from child cleanup. Retain it until the user explicitly ends the feature by confirming the PR has ended, then require its Pi and tab to exit and another session to independently verify termination before teardown. Never remove a live coordinator cwd. Apply finishing.md cleanup gates for integrated or pending work; after verified integration, preserve the consolidated PR revision, persistent PR bookmark and unrelated history; coordinator teardown alone never authorizes deleting that bookmark. Preserve pending or failed work with a named recoverable bookmark unless the operator explicitly discards it.

@@ -35,19 +35,21 @@ Resolve material ambiguity before assigning one-shot tasks. Delegate independent
 | `worker`       | Cross-file implementation; set thinking to `medium`, or `high` for difficult work. |
 | `reviewer`     | Fresh independent review; read-only.                                               |
 
+Choose the role and model explicitly for each dispatch. Use `small-worker` for mechanical edits with complete acceptance criteria, `worker` for integration or debugging judgment, and the strongest available reviewer for broad or high-risk review. A smaller reviewer may handle a narrowly scoped mechanical diff; preserve independent review. Return ambiguity to the coordinator and escalate a failed bounded attempt once rather than repeating the same cheap dispatch.
+
 Verify availability of the four configured role models, especially `claude-code-cli/opus`, before dispatch: pins can fall back to the parent. Use `/agents` and FleetView to inspect conversations, progress and availability. Child extensions are limited to command guards; nested delegation and built-in Git worktree isolation are disabled.
 
-Before each writer launch, create a unique temporary JJ workspace from task `@`:
+Before each implementation writer launch, resolve the verified persistent task bookmark to its full commit ID as `writer_base`; require it matches the recorded approved revision or initial intended task base. Create a unique temporary JJ workspace from that pinned revision, not mutable task `@`. Finishing executors instead operate only on the exact approved resources in their [Finishing contract](finishing.md#executor-contract):
 
 ```sh
-cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r @ <absolute-child-path>
+cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r "$writer_base" <absolute-child-path>
 ```
 
 Keep child workspaces under `~/.pi/agent/jj-workspaces/`. Give each agent a unique name, short description and self-contained brief containing:
 
 - Goal, scope, constraints and completion evidence.
 - Assigned absolute workspace and file paths; shell commands begin with `cd <assigned_workspace> &&`. Agent has no cwd parameter: children retain the parent's cwd. These restrictions are prompt-only, not runtime isolation.
-- Expected result and stop condition. Writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence; report blockers rather than widening scope.
+- Expected result and stop condition. Implementation writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence; finishing executors return the contract's exact identities and resource outcomes. Report blockers rather than widening scope.
 
 Use background agents and continue independent work. Keep at most two children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
 
@@ -65,15 +67,15 @@ For saved feedback, follow Oyo review's discussion and native-reply procedure. S
 
 ## 5. Integrate
 
-Read Oyo review's integration and cleanup procedures before either operation. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
+Read [Finishing](finishing.md) before integration or cleanup. Follow its executor contract and scripted preflight; keep approval, ownership decisions and final verification in the parent. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
 
-For a PR, consolidate approved changes in the persistent task workspace and retain its identity across review rounds. After verified integration, remove redundant task workspaces, bookmarks and revisions outside the feature branch under Oyo review's cleanup gates. Child cleanup excludes the PR coordinator; PR-lifetime retention applies only to actual PRs.
+For a PR, consolidate approved changes in the persistent task workspace and retain its identity across review rounds. After verified integration, remove redundant task workspaces, bookmarks and revisions outside the feature branch under Finishing's cleanup gates. Child cleanup excludes the PR coordinator; PR-lifetime retention applies only to actual PRs.
 
-For local-only work, follow [Local-only integration and cleanup](oyo-review.md#local-only-integration-and-cleanup), including explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
+For local-only work, follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup), including explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
 
 ## 6. Refactor history (optional)
 
-When useful or requested, follow [History refactoring](oyo-review.md#history-refactoring) to squash, reorder or reword the feature branch before publication. Preserve the approved result and verify the rewritten history before continuing.
+When useful or requested, follow [History refactoring](finishing.md#history-refactoring) to squash, reorder or reword the feature branch before publication. For local-only work, perform this step in the task workspace before step 5's approved source integration. Preserve the approved result and verify the rewritten history before continuing.
 
 ## 7. Publish and follow through (optional)
 
