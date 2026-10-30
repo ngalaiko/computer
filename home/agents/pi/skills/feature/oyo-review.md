@@ -137,4 +137,4 @@ When the user says done, summarize, stop the watcher with `oyo_watch({ action: "
 
 ## Finishing handoff
 
-Read [Finishing](finishing.md) before integration, history rewriting or cleanup, and its [Revision safety](finishing.md#revision-safety) before coordinator edits to an existing PR revision. Review completion and resolved threads do not approve integration. The parent retains approval and final verification; finishing executors receive only exact approved resources.
+Read [Finishing](finishing.md) before integration, history rewriting or cleanup, and its [Revision safety](finishing.md#revision-safety) before coordinator edits to an existing PR revision. Review completion and resolved threads do not approve integration. The parent performs finishing directly and retains Rex/Oyo ownership, approval and final verification.

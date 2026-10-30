@@ -46,31 +46,39 @@ test("finishing gates have one authoritative phase reference", () => {
   assert.match(read("github-pr.md"), /\[Finishing\]\(finishing\.md\)/);
 });
 
-test("smaller-model finishing is bounded and independently verified", () => {
+test("coordinator finishes bounded operations without executor handoffs", () => {
   const finishing = read("finishing.md");
   for (const contract of [
-    "## Executor contract",
+    "## Operation",
     "## Scripted preflight",
-    "## Trial evidence",
-    "small-worker",
-    "worker",
-    "conflict-free",
-    "before each mutating command",
-    "at most one model-tier escalation",
-    "parent inspects actual history/tree",
-    "parent corrections",
+    "## Operation record",
+    "coordinator performs integration, history rewriting and cleanup directly",
+    "once before each bounded operation",
+    "preconditions",
+    "postconditions",
+    "unrecorded cleanup conflicts",
+    "Rex",
+    "Oyo",
+    "model",
     "elapsed time",
-    "retries/escalation",
-    "total token/cost",
-    "not token price alone",
+    "retries",
+    "corrections",
+    "automatically available",
   ]) {
     assert.ok(finishing.includes(contract), contract);
   }
   assert.match(
     finishing,
-    /approval, ownership, recoverability and process termination before dispatch/,
+    /approval, ownership, recoverability and process termination before mutation/,
+  );
+  assert.doesNotMatch(
+    finishing,
+    /executor|before each mutating command|return intermediate identities/i,
   );
   assert.match(finishing, /Never regenerate expected pins/);
+  assert.match(finishing, /Stop writers and the Oyo watcher/);
+  assert.match(finishing, /all units.*single preflight/i);
+  assert.doesNotMatch(read("SKILL.md"), /\.:/);
   assert.match(finishing, /scripts\/finishing-check\.mjs/);
   assert.match(
     finishing,
@@ -83,12 +91,21 @@ test("smaller-model finishing is bounded and independently verified", () => {
   assert.doesNotMatch(finishing, /^name:|^description:/m);
 });
 
-test("finishing checks post-mutation conflicts and returns resolution to implementation", () => {
+test("finishing checks conflicts and reuses only matching verification evidence", () => {
   const finishing = read("finishing.md");
-  assert.match(finishing, /After each mutation.*conflicts\(\).*exit status/is);
+  assert.match(finishing, /conflicts\(\).*exit status/is);
+  assert.match(finishing, /worker.*conflict resolution/i);
   assert.match(
     finishing,
-    /separate.*worker.*implementation brief.*conflict resolution/is,
+    /Reuse.*tests and independent review.*content.*base.*environment/is,
+  );
+  assert.match(finishing, /phase change alone.*rerun/i);
+  const integration = finishing
+    .split("## Integration\n")[1]
+    .split("## History refactoring\n")[0];
+  assert.match(
+    integration,
+    /\[Verification evidence\]\(#verification-evidence\)/,
   );
 });
 
@@ -99,7 +116,7 @@ test("local history rewriting precedes source integration; trials survive teardo
     /Local-only history rewriting.*task workspace.*before.*integration/i,
   );
   assert.match(finishing, /finishing-trials\/<task-key>\.jsonl/);
-  assert.match(finishing, /Trial records survive task cleanup/i);
+  assert.match(finishing, /Records survive task cleanup/i);
   assert.match(
     finishing,
     /Commit nonempty consolidated work.*empty.*undescribed.*@/i,

@@ -122,6 +122,11 @@ test("integration rechecks full snapshot pins and reports coordinator limitation
   assert.equal(output.operation, "integration");
   assert.deepEqual(output.snapshots, f.manifest.snapshots);
   assert.equal(Object.hasOwn(output, "cleanup"), false);
+  assert.ok(
+    output.limitations.some((line) =>
+      line.includes("once before each bounded operation"),
+    ),
+  );
 });
 
 test("cleanup validates exact workspace, bookmark and revision lists without acting", (t) => {

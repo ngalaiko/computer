@@ -35,11 +35,11 @@ Resolve material ambiguity before assigning one-shot tasks. Delegate independent
 | `worker`       | Cross-file implementation; set thinking to `medium`, or `high` for difficult work. |
 | `reviewer`     | Fresh independent review; read-only.                                               |
 
-Choose the role and model explicitly for each dispatch. Use `small-worker` for mechanical edits with complete acceptance criteria, `worker` for integration or debugging judgment, and the strongest available reviewer for broad or high-risk review. A smaller reviewer may handle a narrowly scoped mechanical diff; preserve independent review. Return ambiguity to the coordinator and escalate a failed bounded attempt once rather than repeating the same cheap dispatch.
+Choose the role and model explicitly for each dispatch. Use `small-worker` for mechanical edits with complete acceptance criteria, `worker` for implementation or debugging judgment, and the strongest available reviewer for broad or high-risk review. A smaller reviewer may handle a narrowly scoped mechanical diff; preserve independent review. Return ambiguity to the coordinator and escalate a failed bounded attempt once rather than repeating the same cheap dispatch.
 
 Verify availability of the four configured role models, especially `claude-code-cli/opus`, before dispatch: pins can fall back to the parent. Use `/agents` and FleetView to inspect conversations, progress and availability. Child extensions are limited to command guards; nested delegation and built-in Git worktree isolation are disabled.
 
-Before each implementation writer launch, resolve the verified persistent task bookmark to its full commit ID as `writer_base`; require it matches the recorded approved revision or initial intended task base. Create a unique temporary JJ workspace from that pinned revision, not mutable task `@`. Finishing executors instead operate only on the exact approved resources in their [Finishing contract](finishing.md#executor-contract):
+Before each implementation writer launch, resolve the verified persistent task bookmark to its full commit ID as `writer_base`; require it matches the recorded approved revision or initial intended task base. Create a unique temporary JJ workspace from that pinned revision, not mutable task `@`:
 
 ```sh
 cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r "$writer_base" <absolute-child-path>
@@ -49,13 +49,13 @@ Keep child workspaces under `~/.pi/agent/jj-workspaces/`. Give each agent a uniq
 
 - Goal, scope, constraints and completion evidence.
 - Assigned absolute workspace and file paths; shell commands begin with `cd <assigned_workspace> &&`. Agent has no cwd parameter: children retain the parent's cwd. These restrictions are prompt-only, not runtime isolation.
-- Expected result and stop condition. Implementation writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence; finishing executors return the contract's exact identities and resource outcomes. Report blockers rather than widening scope.
+- Expected result and stop condition. Implementation writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence. Report blockers rather than widening scope.
 
 Use background agents and continue independent work. Keep at most two children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
 
 ## 4. Verify and review
 
-Inspect actual changes against the brief; a child's summary is not evidence. Run the relevant tests in the assigned workspace. Start a fresh reviewer for each independent review, supplying requirements, absolute workspace path and its JJ diff, without implementation conversations or another agent's review history. The parent runs review test commands.
+Inspect actual changes against the brief; a child's summary is not evidence. Record relevant test outcomes against the snapshot and environment. Reuse verified evidence only for matching content, scope/base and environment; rerun affected checks after changes, not merely phase transitions. Start a fresh reviewer for each independent review, supplying requirements, absolute workspace path and its JJ diff, without implementation conversations or another agent's review history. The parent runs review test commands.
 
 **Ready for human review:** the diff matches scope, tests have recorded outcomes, and independent findings are addressed or explicitly reported as blockers. Do not claim readiness with missing evidence.
 
@@ -67,7 +67,7 @@ For saved feedback, follow Oyo review's discussion and native-reply procedure. S
 
 ## 5. Integrate
 
-Read [Finishing](finishing.md) before integration or cleanup. Follow its executor contract and scripted preflight; keep approval, ownership decisions and final verification in the parent. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
+Read [Finishing](finishing.md) before integration or cleanup. The coordinator performs finishing directly: one scripted preflight per bounded operation, fixed commands and verified postconditions. Keep Rex/Oyo ownership, approval and final verification in the parent. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
 
 For a PR, consolidate approved changes in the persistent task workspace and retain its identity across review rounds. After verified integration, remove redundant task workspaces, bookmarks and revisions outside the feature branch under Finishing's cleanup gates. Child cleanup excludes the PR coordinator; PR-lifetime retention applies only to actual PRs.
 

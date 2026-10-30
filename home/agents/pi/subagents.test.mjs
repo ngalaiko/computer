@@ -195,7 +195,7 @@ test("parent orchestration is one-shot, event-driven, and explicit about JJ path
     worker,
     /parent owns cleanup authorization and final verification/,
   );
-  assert.match(worker, /supplied finishing contract/);
+  assert.match(worker, /parent performs integration and cleanup directly/);
   assert.doesNotMatch(
     worker,
     /integration and workspace deletion require explicit operator approval|both require operator approval/i,
@@ -589,7 +589,7 @@ test("coordinator teardown waits for user exit and verification elsewhere", () =
 test("worker working-copy contract keeps child review target at @", () => {
   assert.match(
     prompt("worker"),
-    /Implementation tasks keep changes in the working-copy change/,
+    /Keep implementation changes in the working-copy change/,
   );
   const skill = read("./skills/feature/oyo-review.md");
   assert.match(skill, /Use `@` for this child-only diff/);

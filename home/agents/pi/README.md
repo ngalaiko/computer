@@ -185,15 +185,16 @@ node --experimental-strip-types --test home/agents/pi/oyo-review.test.mjs
 
 `skills/feature/finishing.md` owns integration, history and cleanup gates;
 `oyo-review.md` owns isolation and human review. `/skill:feature` stays the entry
-point. Finishing executors receive exact approved resources, current identity
-pins, allowed commands and expected results. The parent retains approval,
-ownership decisions, process checks and final verification.
+point. The coordinator performs finishing directly and owns Rex/Oyo, approval,
+process checks and final verification. Run the read-only
+`scripts/finishing-check.mjs` once per bounded operation, execute its fixed commands
+and verify postconditions. The checker neither authorizes nor performs cleanup.
 
-Use `worker` for integration judgment. Trial `small-worker` only for resolved,
-conflict-free mechanics. Run the read-only `scripts/finishing-check.mjs` preflight
-before mutations; it neither authorizes nor performs cleanup. Record total cost,
-time, retries and parent corrections in `~/.pi/agent/finishing-trials/`; retain
-trial records across task cleanup.
+Delegate substantial implementation to `worker`, mechanical edits to
+`small-worker`. Reuse tests/review only for matching content, scope/base and
+environment. Record delegated model, duration, retries and corrections in
+`~/.pi/agent/finishing-trials/`; include detailed costs only when automatically
+available. Retain records across task cleanup.
 
 ```sh
 node --test home/agents/pi/finishing-{check,workflow}.test.mjs

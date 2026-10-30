@@ -10,7 +10,7 @@ const limitations = [
   "Operator approval, ownership, process termination, redundancy and content equivalence still require coordinator verification.",
   "Read-only preflight is not authorization for integration, deletion or abandonment.",
   "--ignore-working-copy ignores unsnapshotted disk edits; the coordinator must snapshot/check each working tree immediately before pinning. Disk drift is not detected.",
-  "Recheck before each mutating command; expected mutations require fresh coordinator-verified pins. Concurrent changes are not locked out.",
+  "Run once before each bounded operation; verify command outcomes and final postconditions. Unexpected changes require replanning with fresh verified pins. Concurrent changes are not locked out.",
   "Source/coordinator inclusion in protected roots, indirect revision effects and recoverability require coordinator verification.",
 ];
 
