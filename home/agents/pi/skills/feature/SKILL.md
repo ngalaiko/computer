@@ -28,12 +28,12 @@ Use absolute task-workspace-rooted paths for parent file tools and `cd <task_wor
 
 Resolve material ambiguity before assigning one-shot tasks. Delegate independent implementation, bounded edits and substantive review; keep trivial lookups in the parent.
 
-| Role | Use |
-| --- | --- |
-| `explorer` | Bounded codebase questions and noisy investigation; read-only. |
-| `small-worker` | Bounded, low-uncertainty edits; escalate ambiguity to `worker`. |
-| `worker` | Cross-file implementation; set thinking to `medium`, or `high` for difficult work. |
-| `reviewer` | Fresh independent review; read-only. |
+| Role           | Use                                                                                |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `explorer`     | Bounded codebase questions and noisy investigation; read-only.                     |
+| `small-worker` | Bounded, low-uncertainty edits; escalate ambiguity to `worker`.                    |
+| `worker`       | Cross-file implementation; set thinking to `medium`, or `high` for difficult work. |
+| `reviewer`     | Fresh independent review; read-only.                                               |
 
 Verify availability of the four configured role models, especially `claude-code-cli/opus`, before dispatch: pins can fall back to the parent. Use `/agents` and FleetView to inspect conversations, progress and availability. Child extensions are limited to command guards; nested delegation and built-in Git worktree isolation are disabled.
 

@@ -1,8 +1,5 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(tailscale version *)",
-      "Bash(tailscale status *)"
-    ]
+    "allow": ["Bash(tailscale version *)", "Bash(tailscale status *)"]
   }
 }
