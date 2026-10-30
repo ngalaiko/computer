@@ -67,17 +67,21 @@ For saved feedback, follow Oyo review's discussion and native-reply procedure. S
 
 Read Oyo review's integration and cleanup procedures before either operation. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
 
-For a PR, consolidate approved changes in the persistent task workspace and retain its identity across review rounds. Child cleanup excludes the PR coordinator; PR-lifetime retention applies only to actual PRs.
+For a PR, consolidate approved changes in the persistent task workspace and retain its identity across review rounds. After verified integration, remove redundant task workspaces, bookmarks and revisions outside the feature branch under Oyo review's cleanup gates. Child cleanup excludes the PR coordinator; PR-lifetime retention applies only to actual PRs.
 
 For local-only work, follow [Local-only integration and cleanup](oyo-review.md#local-only-integration-and-cleanup), including explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
 
-## 6. Publish and follow through (optional)
+## 6. Refactor history (optional)
+
+When useful or requested, follow [History refactoring](oyo-review.md#history-refactoring) to squash, reorder or reword the feature branch before publication. Preserve the approved result and verify the rewritten history before continuing.
+
+## 7. Publish and follow through (optional)
 
 When GitHub publication or an existing PR is explicitly requested, read [GitHub PR lifecycle](github-pr.md). Publish only with specific consent, integrate reviewed fixes into the same task revision, verify each published head, and retain the task while awaiting merge. Pushes remain manual; never push to remote.
 
 A published PR is not completion. Follow the fix/review loop until merge is verified or the operator explicitly chooses another ending. Merge and outbound GitHub messages require their own consent; the workflow does not authorize either. Report when merge monitoring is inactive rather than implying unattended follow-through.
 
-## 7. Close
+## 8. Close
 
 **Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. For the optional GitHub branch, include the PR URL and verified merge state; an open PR remains awaiting merge. Never imply that local consolidation merged a PR or that cleanup published work.
 
