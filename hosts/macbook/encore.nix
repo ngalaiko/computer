@@ -40,6 +40,7 @@ _: {
       home.packages = with pkgs; [
         ansible
         inputs.encore.packages.${pkgs.stdenv.hostPlatform.system}.encore
+        inputs.encore.packages.${pkgs.stdenv.hostPlatform.system}.encore-beta
         cmake
         protobuf
         pulumi

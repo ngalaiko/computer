@@ -17,6 +17,30 @@
         "type": "github"
       }
     },
+    "computer": {
+      "inputs": {
+        "dash0-cli": "dash0-cli",
+        "encore": "encore",
+        "home-manager": "home-manager",
+        "mattpocock-skills": "mattpocock-skills",
+        "nix-darwin": "nix-darwin",
+        "nix-homebrew": "nix-homebrew",
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-unstable": "nixpkgs-unstable",
+        "nixvim": "nixvim",
+        "stinkpot": "stinkpot",
+        "treefmt-nix": "treefmt-nix"
+      },
+      "locked": {
+        "path": "../..",
+        "type": "path"
+      },
+      "original": {
+        "path": "../..",
+        "type": "path"
+      },
+      "parent": []
+    },
     "dash0-cli": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -47,17 +71,33 @@
         ]
       },
       "locked": {
-        "lastModified": 1792689055,
-        "narHash": "sha256-oqxMQgsaRBnb2qOVcFsChvL8kGjM97sKi5+uaaAqmuk=",
+        "lastModified": 1793200262,
+        "narHash": "sha256-BMF0lYAhVGfypHrHUbS0nGy9y9mS6c0IOoPP1+JZGE4=",
         "owner": "encoredev",
         "repo": "encore-flake",
-        "rev": "de50ec359b2bd231f17f6a845217838283c1c242",
+        "rev": "ef5c7a14c50066fc7e141cad6e136fdc1e5fcbd8",
         "type": "github"
       },
       "original": {
         "owner": "encoredev",
         "repo": "encore-flake",
         "type": "github"
+      }
+    },
+    "encore-agents-setup": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789666306,
+        "narHash": "sha256-EPZPgWtBtOlhvNpzdm1svU3B2Bju07IN3HZKdxOee4s=",
+        "ref": "refs/heads/main",
+        "rev": "c2da5f4301cec18151b4613fc81ca7846dc78feb",
+        "revCount": 3,
+        "type": "git",
+        "url": "ssh://git@github.com/encoredev/agents-setup"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/encoredev/agents-setup"
       }
     },
     "flake-parts": {
@@ -235,6 +275,12 @@
         "type": "github"
       }
     },
+    "root": {
+      "inputs": {
+        "computer": "computer",
+        "encore-agents-setup": "encore-agents-setup"
+      }
+    },
     "stinkpot": {
       "inputs": {
         "nixpkgs": [
@@ -305,52 +351,6 @@
         "owner": "numtide",
         "repo": "treefmt-nix",
         "type": "github"
-      }
-    },
-    "computer": {
-      "inputs": {
-        "dash0-cli": "dash0-cli",
-        "encore": "encore",
-        "home-manager": "home-manager",
-        "mattpocock-skills": "mattpocock-skills",
-        "nix-darwin": "nix-darwin",
-        "nix-homebrew": "nix-homebrew",
-        "nixpkgs": "nixpkgs",
-        "nixpkgs-unstable": "nixpkgs-unstable",
-        "nixvim": "nixvim",
-        "stinkpot": "stinkpot",
-        "treefmt-nix": "treefmt-nix"
-      },
-      "locked": {
-        "path": "../..",
-        "type": "path"
-      },
-      "original": {
-        "path": "../..",
-        "type": "path"
-      },
-      "parent": []
-    },
-    "encore-agents-setup": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1789666306,
-        "narHash": "sha256-EPZPgWtBtOlhvNpzdm1svU3B2Bju07IN3HZKdxOee4s=",
-        "ref": "refs/heads/main",
-        "rev": "c2da5f4301cec18151b4613fc81ca7846dc78feb",
-        "revCount": 3,
-        "type": "git",
-        "url": "ssh://git@github.com/encoredev/agents-setup"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/encoredev/agents-setup"
-      }
-    },
-    "root": {
-      "inputs": {
-        "computer": "computer",
-        "encore-agents-setup": "encore-agents-setup"
       }
     }
   },
