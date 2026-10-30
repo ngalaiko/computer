@@ -39,7 +39,11 @@ Choose the role and model explicitly for each dispatch. Use `small-worker` for m
 
 Verify availability of the four configured role models, especially `claude-code-cli/opus`, before dispatch: pins can fall back to the parent. Use `/agents` and FleetView to inspect conversations, progress and availability. Child extensions are limited to command guards; nested delegation and built-in Git worktree isolation are disabled.
 
-Before each implementation writer launch, resolve the verified persistent task bookmark to its full commit ID as `writer_base`; require it matches the recorded approved revision or initial intended task base. Create a unique temporary JJ workspace from that pinned revision, not mutable task `@`:
+### Workspace assignment
+
+One persistent workspace per feature. Serial writers reuse the task workspace across implementation, retries and feedback rounds; only one writer may use the task workspace at a time, including the parent. Read-only agents use the workspace being inspected; hold its snapshot stable during review.
+
+Additional workspaces are only for concurrent implementation writers whose changes need isolation. Reuse an idle task-owned parallel workspace only after its previous delta is integrated and recoverability verified; reset its empty working copy to the new `writer_base` before assignment. Otherwise create only the extra workspaces needed for that concurrency. Before branching, pause task writes and record the verified full commit ID of the current task snapshot as `writer_base`, including pending feature work. Record each parallel writer's base and assigned scope. Keep task `@` frozen until all parallel writers exit and their deltas are verified; concurrent writes use child workspaces. Preserve the base through reconciliation. Create from the pinned ID, not mutable task `@`:
 
 ```sh
 cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r "$writer_base" <absolute-child-path>
@@ -49,7 +53,7 @@ Keep child workspaces under `~/.pi/agent/jj-workspaces/`. Give each agent a uniq
 
 - Goal, scope, constraints and completion evidence.
 - Assigned absolute workspace and file paths; shell commands begin with `cd <assigned_workspace> &&`. Agent has no cwd parameter: children retain the parent's cwd. These restrictions are prompt-only, not runtime isolation.
-- Expected result and stop condition. Implementation writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence. Report blockers rather than widening scope.
+- Expected result and stop condition. Implementation writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence; the coordinator owns committing after approval. Before replacing a failed attempt, duplicate its snapshot into a separate recovery revision with a task-owned recovery bookmark; a bookmark on mutable `@` follows rewrites and does not preserve the attempt. Incremental corrections can continue in the same `@`. Report blockers rather than widening scope.
 
 Use background agents and continue independent work. Keep at most two children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
 
@@ -59,7 +63,7 @@ Inspect actual changes against the brief; a child's summary is not evidence. Rec
 
 **Ready for human review:** the diff matches scope, tests have recorded outcomes, and independent findings are addressed or explicitly reported as blockers. Do not claim readiness with missing evidence.
 
-Read [Oyo review](oyo-review.md) before opening the child diff in Rex. The parent owns UI and protects the reviewed workspace from readiness through user completion. Follow its snapshot, session and file-coverage checks before claiming the diff is loaded.
+Read [Oyo review](oyo-review.md) before opening the implementation diff in Rex. The parent owns UI and protects the reviewed workspace from readiness through user completion. Follow its snapshot, session and file-coverage checks before claiming the diff is loaded.
 
 After verifying native UI, explicitly start parent-only `oyo_watch` with the exact workspace, native session and trusted executable. Read its initial result before claiming delivery active. A missing tool requires Pi reload; report delivery inactive and use on-demand reads. Restart only explicitly after fresh verification.
 

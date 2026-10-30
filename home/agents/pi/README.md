@@ -75,9 +75,11 @@ inspect live conversations; persisted upstream sessions can be resumed.
 
 ## JJ workspaces
 
-For explicitly activated feature tasks, create each implementation writer's
-workspace from `writer_base`, the recorded full approved commit ID verified against
-the persistent task bookmark (or the initial intended task base), not mutable `@`:
+For explicitly activated feature tasks, use one persistent workspace per feature.
+Serial writers, retries and feedback reuse it; read-only agents inspect it directly.
+Follow [Workspace assignment](skills/feature/SKILL.md#workspace-assignment).
+Only concurrent implementation writers need extra isolation; pin the verified task
+snapshot as `writer_base` before creating an additional workspace:
 
 ```sh
 cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r "$writer_base" <absolute-path>

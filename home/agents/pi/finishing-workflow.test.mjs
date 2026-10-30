@@ -124,11 +124,42 @@ test("local history rewriting precedes source integration; trials survive teardo
   assert.match(finishing, /persistent task bookmark.*described.*revision/i);
 });
 
-test("writers start from an explicitly pinned task revision", () => {
+test("serial work reuses the feature workspace; only parallel writers get extras", () => {
+  const skill = read("SKILL.md");
+  assert.match(skill, /One persistent workspace per feature/);
+  assert.match(skill, /Serial writers reuse the task workspace/);
+  assert.match(
+    skill,
+    /Additional workspaces are only for concurrent implementation writers/,
+  );
+  assert.match(skill, /Read-only agents use the workspace being inspected/);
+  assert.match(skill, /verified full commit ID.*task snapshot.*`writer_base`/);
+  assert.match(skill, /Record each parallel writer's base/);
+  assert.match(skill, /Keep task `@` frozen until all parallel writers exit/);
+  assert.match(skill, /Reuse.*only after its previous delta is integrated/);
+  assert.match(skill, /reset.*empty working copy.*new `writer_base`/);
+  assert.match(skill, /Before replacing a failed attempt.*recovery bookmark/);
+  assert.match(skill, /only one writer.*task workspace/);
   for (const name of ["SKILL.md", "oyo-review.md", "github-pr.md"]) {
-    assert.match(read(name), /writer_base/);
     assert.doesNotMatch(read(name), /workspace add[^\n]*-r @/);
   }
+  const review = read("oyo-review.md");
+  assert.match(
+    review,
+    /task workspace for serial work.*parallel child workspace/,
+  );
+  assert.match(review, /Serial feedback edits reuse the same task workspace/);
+  assert.match(review, /preserve the approved revision/);
+  assert.match(review, /task\/<key>\/pending/);
+  assert.match(
+    review,
+    /pending bookmark.*before session end, teardown or blocked integration/,
+  );
+  assert.match(read("github-pr.md"), /same task workspace.*parallel/i);
+  assert.match(
+    read("finishing.md"),
+    /Serial work already resides in the task workspace/,
+  );
   const readme = readFileSync(new URL("./README.md", import.meta.url), "utf8");
   assert.match(readme, /workspace add[^\n]*-r "\$writer_base"/);
 });

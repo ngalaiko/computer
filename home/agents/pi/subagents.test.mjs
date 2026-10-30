@@ -364,7 +364,7 @@ test("ready child reviews open automatically and retain the integration gate", (
   assert.doesNotMatch(skill, /disable-model-invocation: true/);
   assert.match(
     parent,
-    /Read \[Oyo review\]\(oyo-review\.md\) before opening the child diff/i,
+    /Read \[Oyo review\]\(oyo-review\.md\) before opening the implementation diff/i,
   );
   assert.match(
     skill,
@@ -592,7 +592,7 @@ test("worker working-copy contract keeps child review target at @", () => {
     /Keep implementation changes in the working-copy change/,
   );
   const skill = read("./skills/feature/oyo-review.md");
-  assert.match(skill, /Use `@` for this child-only diff/);
+  assert.match(skill, /Use `@` for this implementation diff/);
   assert.ok(
     skill.includes('"$oy_bin" control target --session "$review_session" @'),
   );
@@ -772,7 +772,10 @@ test("PR integration consolidates approved work only in its persistent task work
     /Reuse the existing PR task workspace across review rounds and revisions/i,
   );
   assert.match(feature, /new tab only under the launch conditions above/i);
-  assert.match(feature, /temporary writer workspaces remain separate/i);
+  assert.match(
+    feature,
+    /additional writer workspaces follow.*Workspace assignment/i,
+  );
   for (const instructions of [parent, review]) {
     assert.doesNotMatch(
       instructions,

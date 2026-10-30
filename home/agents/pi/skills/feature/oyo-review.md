@@ -4,7 +4,7 @@ Parent owns UI; workers/reviewers remain one-shot. Shared safety checks apply to
 
 ## Task workspace
 
-Set up or resume the persistent PR workspace before launching writers or editing repository files. A parent in the default workspace can coordinate it without launching another Pi or tab. Creating an empty workspace and its identity does not require integration approval; incorporating reviewed changes still does.
+Set up or resume the persistent feature workspace before launching writers or editing repository files. A parent in the default workspace can coordinate it without launching another Pi or tab. Creating an empty workspace and its identity does not require integration approval; incorporating reviewed changes still does.
 
 Choose a stable unique task key before a PR exists; associate repository identity and PR URL when available. Use one persistent task bookmark named `task/<key>`, distinct from temporary child review bookmarks. Store a local ownership record at `~/.pi/agent/jj-workspaces/<key>.json`, outside the repository: task key, repository root/identity, optional PR URL, workspace name and absolute path, and persistent task bookmark. Include optional dedicated coordinator runtime fields: Rex session/window/block IDs and PID. No task metadata in commit messages; keep them human-facing.
 
@@ -22,11 +22,11 @@ Verify `jj root`, `jj workspace list` and `jj log -r @` in the new workspace, th
 cd "$task_workspace" && jj bookmark create "$task_bookmark" -r "$task_base"
 ```
 
-Use the actual verified absolute path and identity values. Run all subsequent repository commands with `cd "$task_workspace" &&` (or the assigned absolute child workspace for child work); the process's original cwd need not change. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. Keep the default/source workspace unchanged. Create temporary writer workspaces only after setup; resolve the verified persistent task bookmark to the recorded full commit ID `writer_base`, never mutable task `@`. Before any approved task revision exists, pin the intended task base and point the persistent task bookmark there. A separate interactive Pi/tab is optional and follows feature-tabs launch conditions, not a prerequisite for task setup.
+Use the actual verified absolute path and identity values. Run all subsequent repository commands with `cd "$task_workspace" &&` (or the assigned absolute child workspace for child work); the process's original cwd need not change. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. Keep the default/source workspace unchanged. Assign serial and parallel work under [Workspace assignment](SKILL.md#workspace-assignment). Before any approved task revision exists, pin the intended task base and point the persistent task bookmark there. Record approved and pending snapshot identities separately in the ownership record; preserve the approved revision while serial work accumulates in task `@` or its empty successor after a checkpoint. Move the persistent task bookmark only after approved integration. Keep one task-owned pending bookmark, `task/<key>/pending`, on the latest pending serial snapshot; verify this pending bookmark and record its full identity before session end, teardown or blocked integration. Keep it distinct from the approved task bookmark. Use temporary review bookmarks for parallel child work; preserve failed attempts under recovery bookmarks before replacing them. Remove pending and recovery bookmarks only under Finishing's redundancy/discard gates. A separate interactive Pi/tab is optional and follows feature-tabs launch conditions, not a prerequisite for task setup.
 
 ## Prepare
 
-Set `workspace` to the absolute child workspace, not source. There verify `jj root`, `jj workspace list`, `jj log -r @ --no-graph -T commit_id`, `jj log -r @ --no-graph -T change_id` and `jj diff -r @ --summary` against the child result. Require a nonempty summary consistent with the child result before preserving a named JJ bookmark at `@` for temporary child review or opening Oyo. An empty summary means a violated work-at-`@` contract: report it and stop; never silently retarget `@-`. Use `@` for this child-only diff. An implicit target with a sole bookmark can select a stack. Record the full commit ID, stable change_id and exact paths before bookmark creation or opening UI.
+Set `workspace` to the absolute task workspace for serial work or the parallel child workspace, not source. There verify `jj root`, `jj workspace list`, `jj log -r @ --no-graph -T commit_id`, `jj log -r @ --no-graph -T change_id` and `jj diff -r @ --summary` against the child result. Require a nonempty summary consistent with the child result before opening Oyo; preserve a named JJ bookmark at `@` for temporary parallel child review. An empty summary means a violated work-at-`@` contract: report it and stop; never silently retarget `@-`. Use `@` for this implementation diff. An implicit target with a sole bookmark can select a stack. Record the full commit ID, stable change_id and exact paths before bookmark creation or opening UI.
 
 On the pane host resolve `oy_bin=$(command -v oy)`; require an absolute executable path (`test -x "$oy_bin"`). Keep Rex's environment unchanged. Read `rex skill show`, `rex split --help`, `"$oy_bin" --help` and relevant native `control`/`review` help. Locate installed docs with these commands and read each returned path completely:
 
@@ -73,7 +73,7 @@ After verified native Oyo UI, explicitly start the parent-only tool using the ab
 ```js
 oyo_watch({
   action: "start",
-  workspace: "/absolute/child/workspace",
+  workspace: "/absolute/assigned/workspace",
   session: "exact-native-session",
   oyBin: "/absolute/trusted/oy",
 });
@@ -121,7 +121,7 @@ OYO_REVIEW_AUTHOR_TYPE=agent OYO_REVIEW_AUTHOR_NAME=Pi "$oy_bin" review comment 
 
 Verify returned identity and root with a fresh comment read. If posting fails, report it; never claim it posted or blindly retry an uncertain write. No remote pull/push/publication without specific operator consent for that operation/message.
 
-For requested edits, resume the worker one-shot, retest, obtain fresh independent review and update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated PR revision. Verify the existing live session before refreshing the same child target:
+Serial feedback edits reuse the same task workspace and pending `@`. Before requested edits, record the reviewed snapshot, stop the watcher and pause review; keep other writers out of that workspace. Resume the worker one-shot, retest and obtain fresh independent review. Record the pending task snapshot for serial work, or update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated PR revision. Verify the existing live session before refreshing the same implementation target; restart delivery only explicitly after fresh UI verification:
 
 ```sh
 "$oy_bin" control target --session "$review_session" @

@@ -1,6 +1,6 @@
 # Feature tabs
 
-For PR-backed tasks, a feature lifetime is the PR lifetime, not a revision or review round. Local-only tasks use the same tab ownership and launch checks, but follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup) for integration, completion and teardown instead of PR-lifetime rules. One PR per persistent task workspace and Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent. Existing one-shot worker workspace policy stays unchanged.
+For PR-backed tasks, a feature lifetime is the PR lifetime, not a revision or review round. Local-only tasks use the same tab ownership and launch checks, but follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup) for integration, completion and teardown instead of PR-lifetime rules. One PR per persistent task workspace and Rex tab: interactive parent Pi on the left, Oyo on the right only during review. A new feature is a separate interactive Pi process, not an Agent role or background subagent.
 
 ## Tab title
 
@@ -30,7 +30,7 @@ Use the caller's valid `REX_SESSION` to select the same Rex session, not app foc
 
 ## Create or reuse
 
-Reuse the existing PR task workspace across review rounds and revisions. Before creating anything, inspect recorded PR ownership and JJ workspaces; verify the PR identity, absolute workspace path and live coordinator/tab. Inspect recorded Rex IDs and process cwd; verify process identity against PID reuse. With missing or stale runtime metadata, inspect process cwds and Rex listings; ambiguity blocks launch. Continue in its existing tab when live; never launch a duplicate live coordinator. Launch a new tab only under the launch conditions above, when no live coordinator exists; reuse the same PR workspace. Ambiguous ownership blocks launch. Create a task workspace only for a PR without one; temporary writer workspaces remain separate.
+Reuse the existing PR task workspace across review rounds and revisions. Before creating anything, inspect recorded PR ownership and JJ workspaces; verify the PR identity, absolute workspace path and live coordinator/tab. Inspect recorded Rex IDs and process cwd; verify process identity against PID reuse. With missing or stale runtime metadata, inspect process cwds and Rex listings; ambiguity blocks launch. Continue in its existing tab when live; never launch a duplicate live coordinator. Launch a new tab only under the launch conditions above, when no live coordinator exists; reuse the same PR workspace. Ambiguous ownership blocks launch. Create a task workspace only for a feature without one; additional writer workspaces follow [Workspace assignment](SKILL.md#workspace-assignment).
 
 Load oyo-review's Task workspace procedure before tab launch to create or reuse the PR workspace and its durable identity. Record the source-relative subdirectory; set `feature_workspace` to the verified absolute task workspace and `feature_cwd` to that workspace plus the subdirectory, checking it exists. Choose a short `feature_label`. Do not edit, switch or clean the original workspace.
 
@@ -40,7 +40,7 @@ Build `brief` as one self-contained argument starting with the requested task, i
 
 - This task carries the user's explicit feature-workflow activation. Read `<feature_skill>` before working; resolve its reference links against its containing directory.
 - You own this persistent PR task workspace/tab; keep the workspace alive while Pi or tab is active and throughout the PR lifetime. Reuse it across review rounds and revisions; closing child review does not end the PR.
-- Work only in this feature workspace; children use separate one-shot JJ workspaces. Child cleanup excludes this coordinator workspace. Keep the default/source workspace untouched. Follow finishing.md for approved consolidation into the PR revision; explicit operator approval remains required.
+- Work only in this feature workspace; assign children under SKILL.md's Workspace assignment policy. Child cleanup excludes this coordinator workspace. Keep the default/source workspace untouched. Follow finishing.md for approved consolidation into the PR revision; explicit operator approval remains required.
 - Maintain your tab title with concise task + current activity using the Tab title procedure.
 - Use your own `REX_SESSION`/`REX_BLOCK`, never the original caller IDs. You own review UI beside your Pi in this tab; use oyo-review when child changes are ready.
 
