@@ -453,7 +453,7 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
   );
   assert.match(
     read("./skills/feature/SKILL.md"),
-    /persistent task workspace.*retain its identity across review rounds/i,
+    /persistent task workspace.*retaining its identity across review rounds regardless of destination/is,
   );
   const skill = read("./skills/feature/feature-tabs.md");
   assert.match(skill, /^# Feature tabs/);
@@ -482,7 +482,10 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
   assert.match(skill, /own.*REX_SESSION.*REX_BLOCK.*never.*caller/i);
   assert.match(skill, /process.*capture|capture.*process/i);
   assert.match(skill, /timeout.*inspect.*retry/i);
-  assert.match(skill, /keep.*workspace.*alive.*Pi or tab.*active/i);
+  assert.match(
+    skill,
+    /own this persistent task workspace\/tab; keep it alive while Pi or tab is active/i,
+  );
 });
 
 test("review stays beside its feature Pi and never closes the coordinator", () => {
@@ -491,8 +494,8 @@ test("review stays beside its feature Pi and never closes the coordinator", () =
   assert.match(skill, /never.*app focus.*another feature tab/i);
   assert.match(skill, /never.*Pi tab or feature coordinator workspace/i);
   assert.match(
-    read("./skills/feature/SKILL.md"),
-    /Child cleanup excludes the PR coordinator/,
+    read("./skills/feature/feature-tabs.md"),
+    /Child cleanup excludes this coordinator workspace/,
   );
 });
 
@@ -524,13 +527,13 @@ test("integrated cleanup removes task-owned refs and revisions; pending work sta
   assert.match(review, /disposable child workspaces/i);
   assert.match(
     review,
-    /Preserve the consolidated PR revision and its ancestors/i,
+    /Preserve the consolidated task revisions and their ancestors/i,
   );
   assert.match(
     review,
     /Retain the persistent PR task workspace across review rounds and revisions/i,
   );
-  assert.match(review, /Closing a child review does not end the PR/i);
+  assert.match(review, /Closing a child review does not end the task/i);
   assert.match(
     review,
     /including after child review closure or approved consolidation/i,
@@ -553,7 +556,10 @@ test("integrated cleanup removes task-owned refs and revisions; pending work sta
     feature,
     /Pi and tab to exit.*independently verify termination/i,
   );
-  assert.match(feature, /after verified integration/i);
+  assert.match(
+    feature,
+    /completion and cleanup gates after final integration/i,
+  );
   assert.match(feature, /preserve.*pending|pending.*preserve/i);
 });
 
@@ -577,7 +583,10 @@ test("feature launch requires an actionable request and executable Pi", () => {
 
 test("coordinator teardown waits for user exit and verification elsewhere", () => {
   const skill = read("./skills/feature/feature-tabs.md");
-  assert.match(skill, /user explicitly ends the feature/);
+  assert.match(
+    skill,
+    /destination-specific completion and cleanup gates after final integration: local completion for local work, PR end for GitHub work/,
+  );
   assert.match(skill, /Pi and tab to exit/i);
   assert.match(
     skill,
@@ -740,36 +749,42 @@ test("Oyo identity is snapshot guarded without fabricated metadata", () => {
   assert.doesNotMatch(skill, /loaded patch.*jj diff --git -r @/i);
 });
 
-test("PR integration consolidates approved work only in its persistent task workspace", () => {
+test("both destinations consolidate approved work in the persistent task workspace", () => {
   const parent = read("./skills/feature/SKILL.md");
   const review = read("./skills/feature/finishing.md");
   const feature = read("./skills/feature/feature-tabs.md");
   assert.match(
     parent,
-    /For a PR, consolidate approved changes in the persistent task workspace/i,
+    /Consolidate approved changes in the persistent task workspace.*regardless of destination/i,
   );
   assert.match(parent, /default\/source workspace.*untouched/i);
   assert.match(parent, /Finishing.*before integration or cleanup/i);
   assert.match(
     review,
-    /one JJ revision.*PR.*task workspace.*unless the operator specifies otherwise/i,
+    /consolidate approved work into atomic, bisectable commits in the task workspace/i,
   );
-  assert.match(review, /different child workspaces for the same PR/i);
-  assert.match(review, /Never combine different PRs/i);
   assert.match(
     review,
-    /Never integrate into or move the default\/source workspace/i,
+    /approved changes from child workspaces for the same task/i,
+  );
+  assert.match(review, /Never combine different tasks/i);
+  assert.match(
+    review,
+    /Keep default\/source unchanged during consolidation; only approved final local integration may change it/i,
   );
   assert.match(review, /approved identity\/review\/tests/i);
   assert.match(review, /conflicts.*tests\/independent review/i);
   assert.match(
     review,
-    /Record the integrated full change\/commit IDs and verify history\/tree/i,
+    /Record the consolidated full change\/commit IDs and verify history\/tree/i,
   );
-  assert.match(feature, /feature lifetime is the PR lifetime/i);
   assert.match(
     feature,
-    /Reuse the existing PR task workspace across review rounds and revisions/i,
+    /Retain the coordinator through verified local integration or the associated PR's lifetime/i,
+  );
+  assert.match(
+    feature,
+    /Reuse the existing task workspace across review rounds and revisions/i,
   );
   assert.match(feature, /new tab only under the launch conditions above/i);
   assert.match(
@@ -890,7 +905,7 @@ test("persistent PR identity survives consolidation and coordinator teardown", (
   const feature = read("./skills/feature/feature-tabs.md");
   assert.match(
     review,
-    /persistent task bookmark.*follow.*consolidated PR revision/i,
+    /persistent task bookmark.*follow.*described consolidated tip/i,
   );
   assert.match(review, /ownership record.*survives.*teardown/i);
   assert.match(
@@ -899,7 +914,7 @@ test("persistent PR identity survives consolidation and coordinator teardown", (
   );
   assert.match(
     review,
-    /local child consolidation.*not.*integration.*target history/i,
+    /Consolidation is not final integration in local or GitHub target history/i,
   );
   assert.match(
     review,
@@ -907,7 +922,7 @@ test("persistent PR identity survives consolidation and coordinator teardown", (
   );
   assert.match(
     review,
-    /temporary review bookmarks.*distinct from.*persistent PR bookmark/i,
+    /Temporary review bookmarks are distinct from the persistent task bookmark/i,
   );
   assert.match(review, /sole PR ref/i);
   assert.match(feature, /oyo-review.*Task workspace.*before.*launch/i);
@@ -975,7 +990,7 @@ test("cleanup scope, review refs, coordinator discovery and parent paths stay ex
   );
   assert.match(
     review,
-    /update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated PR revision/i,
+    /Record the pending task snapshot for serial work, or update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated task tip/i,
   );
   assert.match(
     review,

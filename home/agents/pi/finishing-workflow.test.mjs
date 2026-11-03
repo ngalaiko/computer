@@ -109,11 +109,22 @@ test("finishing checks conflicts and reuses only matching verification evidence"
   );
 });
 
-test("local history rewriting precedes source integration; trials survive teardown", () => {
+test("shared consolidation precedes final integration; trials survive teardown", () => {
   const finishing = read("finishing.md");
+  const integration = finishing
+    .split("## Integration\n")[1]
+    .split("## History refactoring\n")[0];
   assert.match(
-    finishing,
-    /Local-only history rewriting.*task workspace.*before.*integration/i,
+    integration,
+    /Consolidation is shared by both destinations and precedes the final local-versus-GitHub choice/,
+  );
+  assert.match(
+    integration,
+    /consolidate approved work into atomic, bisectable commits in the task workspace/,
+  );
+  assert.match(
+    integration,
+    /Keep default\/source unchanged during consolidation; only approved final local integration may change it/,
   );
   assert.match(finishing, /finishing-trials\/<task-key>\.jsonl/);
   assert.match(finishing, /Records survive task cleanup/i);
