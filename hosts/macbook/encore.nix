@@ -63,7 +63,10 @@ _: {
       agents.skills = agentSkills;
 
       agents.pi = {
-        mcpServers.plain.url = "https://mcp.plain.com/mcp";
+        mcpServers = {
+          plain.url = "https://mcp.plain.com/mcp";
+          paper.url = "http://127.0.0.1:29979/mcp";
+        };
       };
 
       programs.claude-code = {
