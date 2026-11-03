@@ -8,7 +8,7 @@ Set up or resume the persistent feature workspace before launching writers or ed
 
 Choose a stable unique task key before a PR exists; associate repository identity and PR URL when available. Use one persistent task bookmark named `task/<key>`, distinct from temporary child review bookmarks. Store a local ownership record at `~/.pi/agent/jj-workspaces/<key>.json`, outside the repository: task key, repository root/identity, optional PR URL, workspace name and absolute path, and persistent task bookmark. Include optional dedicated coordinator runtime fields: Rex session/window/block IDs and PID. No task metadata in commit messages; keep them human-facing.
 
-To resume across sessions, read the ownership record and inspect its bookmark with `jj bookmark list`, `jj log -r <task-bookmark>` and `jj workspace list`. Verify the recorded absolute paths and repository/task/PR identity against the actual workspace root, working-copy revision and bookmark; ask on ambiguity, missing paths, conflicting bookmarks or ownership. Reuse the matching PR workspace, not a workspace per revision. Add the PR URL to the record when available, keeping the task key and bookmark name stable.
+To resume across sessions, read the ownership record and inspect its bookmark with `jj bookmark list`, `jj log -r <task-bookmark>` and `jj workspace list`. Verify the recorded absolute paths and repository/task/PR identity against the actual workspace root, working-copy revision and bookmark; ask on ambiguity, missing paths, conflicting bookmarks or ownership. Reuse the matching task workspace, not a workspace per revision. Add the PR URL to the record when available, keeping the task key and bookmark name stable.
 
 Only if no matching task exists, choose a unique workspace name and absolute `task_workspace` under `~/.pi/agent/jj-workspaces/`. Record the default/source root and working-copy identity. Select a stable intended base, not mutable default/source `@` containing unrelated work; ask if ambiguous. From the source root, create an empty task working copy at that base:
 
@@ -121,7 +121,7 @@ OYO_REVIEW_AUTHOR_TYPE=agent OYO_REVIEW_AUTHOR_NAME=Pi "$oy_bin" review comment 
 
 Verify returned identity and root with a fresh comment read. If posting fails, report it; never claim it posted or blindly retry an uncertain write. No remote pull/push/publication without specific operator consent for that operation/message.
 
-Serial feedback edits reuse the same task workspace and pending `@`. Before requested edits, record the reviewed snapshot, stop the watcher and pause review; keep other writers out of that workspace. Resume the worker one-shot, retest and obtain fresh independent review. Record the pending task snapshot for serial work, or update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated PR revision. Verify the existing live session before refreshing the same implementation target; restart delivery only explicitly after fresh UI verification:
+Serial feedback edits reuse the same task workspace and pending `@`. Before requested edits, record the reviewed snapshot, stop the watcher and pause review; keep other writers out of that workspace. Resume the worker one-shot, retest and obtain fresh independent review. Record the pending task snapshot for serial work, or update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated task tip. Verify the existing live session before refreshing the same implementation target; restart delivery only explicitly after fresh UI verification:
 
 ```sh
 "$oy_bin" control target --session "$review_session" @
@@ -137,4 +137,4 @@ When the user says done, summarize, stop the watcher with `oyo_watch({ action: "
 
 ## Finishing handoff
 
-Read [Finishing](finishing.md) before integration, history rewriting or cleanup, and its [Revision safety](finishing.md#revision-safety) before coordinator edits to an existing PR revision. Review completion and resolved threads do not approve integration. The parent performs finishing directly and retains Rex/Oyo ownership, approval and final verification.
+Read [Finishing](finishing.md) before integration, history rewriting or cleanup, and its [Revision safety](finishing.md#revision-safety) before coordinator edits to an existing task revision. Review completion and resolved threads do not approve integration. The parent performs finishing directly and retains Rex/Oyo ownership, approval and final verification.

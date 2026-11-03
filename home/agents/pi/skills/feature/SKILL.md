@@ -1,6 +1,6 @@
 ---
 name: feature
-description: Start isolated work, coordinate review and integration, and optionally follow a GitHub PR through merge.
+description: Develop and review isolated work, then merge locally or through GitHub.
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ Parent Pi sessions coordinate this workflow. Child agents follow their assigned 
 
 ## 1. Define the task
 
-Establish the goal, scope, constraints and completion evidence. Ask about material ambiguity before dispatch. Distinguish a local-only task from a PR; one PR may span several review rounds. Ask whether GitHub publication and follow-through are wanted; publishing is optional.
+Establish the goal, scope, constraints and completion evidence. Ask about material ambiguity before dispatch. Use the same isolation, implementation and review flow for every feature. Defer the local-versus-GitHub choice to final integration; do not ask at task setup.
 
 Keep a concise task + activity tab title on meaningful phase changes. Read [Feature tabs](feature-tabs.md#tab-title) for ownership checks and updates. Read its launch procedure only when starting a separate interactive coordinator; another tab is optional.
 
@@ -69,26 +69,27 @@ After verifying native UI, explicitly start parent-only `oyo_watch` with the exa
 
 For saved feedback, follow Oyo review's discussion and native-reply procedure. Status-only events authorize neither replies nor integration/publication. Requested edits follow the linked feedback procedure: writer, tests, fresh independent review, bookmark update and verified live-session refresh.
 
-## 5. Integrate
+## 5. Consolidate
 
 Read [Finishing](finishing.md) before integration or cleanup. The coordinator performs finishing directly: one scripted preflight per bounded operation, fixed commands and verified postconditions. Keep Rex/Oyo ownership, approval and final verification in the parent. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
 
-For a PR, consolidate approved changes in the persistent task workspace and retain its identity across review rounds. After verified integration, remove redundant task workspaces, bookmarks and revisions outside the feature branch under Finishing's cleanup gates. Child cleanup excludes the PR coordinator; PR-lifetime retention applies only to actual PRs.
-
-For local-only work, follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup), including explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
+Consolidate approved changes in the persistent task workspace using [Integration](finishing.md#integration), retaining its identity across review rounds regardless of destination. Remove redundant child resources only under Finishing's cleanup gates; preserve the coordinator and approved work until final integration.
 
 ## 6. Refactor history (optional)
 
-When useful or requested, follow [History refactoring](finishing.md#history-refactoring) to squash, reorder or reword the feature branch before publication. For local-only work, perform this step in the task workspace before step 5's approved source integration. Preserve the approved result and verify the rewritten history before continuing.
+When useful or requested, follow [History refactoring](finishing.md#history-refactoring) in the task workspace before final integration. Preserve the approved result and verify the rewritten history before continuing.
 
-## 7. Publish and follow through (optional)
+## 7. Merge locally or through GitHub
 
-When GitHub publication or an existing PR is explicitly requested, read [GitHub PR lifecycle](github-pr.md). Publish only with specific consent, integrate reviewed fixes into the same task revision, verify each published head, and retain the task while awaiting merge. Pushes remain manual; never push to remote.
+Resolve the destination here, using an explicit request or associated PR when available; ask only if still unspecified. Require approval of the exact reviewed changes and destination.
 
-A published PR is not completion. Follow the fix/review loop until merge is verified or the operator explicitly chooses another ending. Merge and outbound GitHub messages require their own consent; the workflow does not authorize either. Report when merge monitoring is inactive rather than implying unattended follow-through.
+- **Local:** follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup), including verified source integration, explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
+- **GitHub:** read [GitHub PR lifecycle](github-pr.md). Publish only with specific consent, integrate reviewed fixes into the same task revision, verify each published head, and retain the task until merge is verified or the operator explicitly chooses another ending. Pushes remain manual; never push to remote. Merge and outbound GitHub messages require their own consent. Report inactive merge monitoring explicitly.
+
+Task-workspace consolidation and PR publication are intermediate states, not completion.
 
 ## 8. Close
 
-**Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. For the optional GitHub branch, include the PR URL and verified merge state; an open PR remains awaiting merge. Never imply that local consolidation merged a PR or that cleanup published work.
+**Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. For GitHub integration, include the PR URL and verified merge state; an open PR remains awaiting merge. Never imply that local consolidation merged a PR or that cleanup published work.
 
 The linked files are workflow references, not independent skills. Resolve their links relative to this file's directory, including when reading it directly.

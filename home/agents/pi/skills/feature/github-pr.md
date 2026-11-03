@@ -1,6 +1,6 @@
 # GitHub PR lifecycle
 
-Optional branch of the feature workflow. Enter only when the operator requests GitHub publication or explicitly associates an existing PR. A request to edit this workflow does neither. Local-only tasks skip this branch. Opt-in permits read-only GitHub queries for the identified repository/PR, not remote writes or `jj git fetch`; fetch requires separate consent.
+GitHub destination at final integration, after the shared implementation, review and consolidation flow. Enter when the operator chooses GitHub publication or explicitly associates an existing PR; no setup-time choice is required. A request to edit this workflow does neither. Local integration skips this branch. Opt-in permits read-only GitHub queries for the identified repository/PR, not remote writes or `jj git fetch`; fetch requires separate consent.
 
 If publication is declined before a PR exists, retain recoverable work until the operator chooses local-only integration or explicit discard; do not wait for a nonexistent PR to end. If publication is requested after local-only completion, reuse the retained task workspace, or recreate it from the recorded integrated revision if teardown already removed it, and repeat scope, tests and review checks before publication.
 
