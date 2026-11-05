@@ -446,7 +446,7 @@ test("pending reviews survive turns and only task-owned panes close on done", ()
   assert.ok(
     skill.includes('rex block close -s "$feature_session" "$review_block"'),
   );
-  assert.match(skill, /Preserve the feature Rex session and Pi tab/i);
+  assert.match(skill, /Preserve the shared Rex session and Pi tab/i);
   assert.match(skill, /terminated before cleanup/i);
   assert.match(skill, /preexisting.*pane/i);
   assert.match(skill, /named JJ bookmark/);
@@ -487,7 +487,7 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
   assert.match(module, /feature = \.\/pi\/skills\/feature/);
   assert.match(
     read("./skills/feature/SKILL.md"),
-    /Read \[Feature tabs\].*one Rex session per feature/i,
+    /Read \[Feature tabs\].*one Rex tab per feature/i,
   );
   assert.match(
     read("./skills/feature/SKILL.md"),
@@ -508,22 +508,24 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
   assert.ok(skill.includes("pi_bin=$(command -v pi)"));
   assert.ok(
     skill.includes(
-      'rex new "$feature_label" --window Pi -c "$feature_cwd" --json -- "$pi_bin" --name "$feature_label" -- "$brief"',
+      'rex window new -s "$feature_session" "$feature_label" -c "$feature_cwd" --json -- "$pi_bin" --name "$feature_label" -- "$brief"',
     ),
   );
-  const launch = skill.split("\n").find((line) => line.startsWith("rex new "));
+  const launch = skill
+    .split("\n")
+    .find((line) => line.startsWith("rex window new "));
   assert.doesNotMatch(launch, /sh -c|--print|--resume|--continue|--inherit/);
-  assert.match(skill, /oyo-review.*Task workspace.*before session launch/);
-  assert.match(skill, /initial_windows\[0\]\.block_ids\[0\]/);
-  assert.match(skill, /session\.select.*session_id/);
-  assert.match(skill, /never.*caller.*session.*feature_session/i);
+  assert.match(skill, /oyo-review.*Task workspace.*before tab launch/);
+  assert.match(skill, /Save.*\.window_id.*\.block_ids\[0\]/i);
+  assert.match(skill, /caller.*REX_SESSION.*feature_session/i);
+  assert.doesNotMatch(skill, /^rex new |rex session rename |rex kill /m);
   assert.match(skill, /source-relative subdirectory/);
   assert.match(skill, /own.*REX_SESSION.*REX_BLOCK.*never.*caller/i);
   assert.match(skill, /process.*capture|capture.*process/i);
   assert.match(skill, /timeout.*inspect.*retry/i);
   assert.match(
     skill,
-    /own this persistent task workspace.*Rex session.*Pi tab/i,
+    /own this persistent task workspace.*Pi tab.*shared Rex session/i,
   );
 });
 
@@ -535,7 +537,7 @@ test("review splits beside Pi in its feature session and preserves Pi", () => {
     assert.match(instructions, /Oyo.*split/i);
     assert.doesNotMatch(instructions, /separate Review tab/i);
   }
-  assert.match(skill, /never.*app focus.*another feature session/i);
+  assert.match(skill, /never.*app focus.*another feature.*tab/i);
   assert.match(skill, /never.*Pi tab or feature coordinator workspace/i);
   assert.match(
     read("./skills/feature/feature-tabs.md"),
@@ -830,7 +832,7 @@ test("both destinations consolidate approved work in the persistent task workspa
     feature,
     /Reuse the existing task workspace across review rounds and revisions/i,
   );
-  assert.match(feature, /new session only.*no.*task-owned session/i);
+  assert.match(feature, /new tab only.*no live coordinator/i);
   assert.match(
     feature,
     /additional writer workspaces follow.*Workspace assignment/i,
@@ -866,7 +868,7 @@ test("integration stops delivery before mutation and rejects multi-change childr
   );
 });
 
-test("owning parent keeps Rex and Pi names aligned with task activity", () => {
+test("owning parent keeps tab and Pi names aligned without renaming the shared session", () => {
   const parent = read("./skills/feature/SKILL.md");
   const feature = read("./skills/feature/feature-tabs.md");
   assert.match(
@@ -875,10 +877,7 @@ test("owning parent keeps Rex and Pi names aligned with task activity", () => {
   );
   assert.match(parent, /Feature tabs.*ownership checks and updates/i);
   assert.match(parent, /meaningful phase changes.*feature-tabs/i);
-  assert.match(
-    feature,
-    /Name the feature session at creation.*initial tab `Pi`/i,
-  );
+  assert.match(feature, /Name the feature tab at creation.*feature_label/i);
   assert.match(feature, /owning Pi.*same task \+ activity title/i);
   for (const fragment of [
     'rex block inspect -s "$REX_SESSION" "$REX_BLOCK" --json',
@@ -891,18 +890,20 @@ test("owning parent keeps Rex and Pi names aligned with task activity", () => {
     "done",
     "rex skill show",
     "rex window rename --help",
-    "rex session rename --help",
-    'rex session rename "$REX_SESSION" "$title"',
     "set_session_name({ name: title })",
     'rex session inspect "$REX_SESSION" --json',
   ])
     assert.ok(feature.includes(fragment), fragment);
   assert.match(feature, /verify.*own.*REX_SESSION.*REX_BLOCK/i);
-  assert.match(feature, /Never rename.*unrelated.*session.*focused tab/i);
-  assert.match(feature, /Rex session.*Rex tab.*Pi conversation.*same.*title/i);
+  assert.match(
+    feature,
+    /Never rename.*shared session.*unrelated.*focused tab/i,
+  );
+  assert.doesNotMatch(feature, /rex session rename/);
+  assert.match(feature, /Rex tab.*Pi conversation.*same.*title/i);
   assert.match(feature, /after launch.*resume.*meaningful phase changes/i);
   assert.match(feature, /read back.*names.*report.*partial/i);
-  assert.match(parent, /Rex session.*Pi conversation.*names/i);
+  assert.match(parent, /Pi conversation name/i);
   assert.match(feature, /meaningful phase changes.*not per command/i);
   assert.match(feature, /No Rex.*nonblocking.*report failures/i);
   assert.match(feature, /never guess IDs/i);
@@ -926,7 +927,7 @@ test("task setup precedes writers and routes implementation to its feature sessi
     /Create or verify one persistent task workspace and its ownership record/,
   );
   assert.match(parent, /Require explicit operator approval to integrate/);
-  assert.match(setup, /caller may prepare.*before.*session launch/i);
+  assert.match(setup, /caller may prepare.*before.*tab launch/i);
   assert.match(parent, /verified task coordinator.*continue/i);
   assert.match(parent, /hand off.*stop.*caller/i);
   assert.doesNotMatch(setup, /separate interactive Pi\/tab is optional/i);

@@ -14,7 +14,7 @@ Parent Pi sessions coordinate this workflow. Child agents follow their assigned 
 
 Establish the goal, scope, constraints and completion evidence. Ask about material ambiguity before dispatch. Use the same isolation, implementation and review flow for every feature. Defer the local-versus-GitHub choice to final integration; do not ask at task setup.
 
-Read [Feature tabs](feature-tabs.md) to create or reuse one Rex session per feature, with the interactive coordinator in its Pi tab and optional Oyo in a split beside Pi. If this Pi is the verified task coordinator, continue; otherwise hand off and stop feature implementation in the caller. Requests to configure this workflow launch nothing. Keep a concise task + activity tab title on meaningful phase changes, synchronized with the Rex session and Pi conversation names; read [Feature tabs](feature-tabs.md#tab-title) for ownership checks and updates.
+Read [Feature tabs](feature-tabs.md) to create or reuse one Rex tab per feature in an existing shared session, with the interactive coordinator in that tab and optional Oyo in a split beside Pi. If this Pi is the verified task coordinator, continue; otherwise hand off and stop feature implementation in the caller. Requests to configure this workflow launch nothing. Keep a concise task + activity tab title on meaningful phase changes, synchronized with the Pi conversation name; preserve the shared Rex session name; read [Feature tabs](feature-tabs.md#tab-title) for ownership checks and updates.
 
 ## 2. Prepare isolation
 
