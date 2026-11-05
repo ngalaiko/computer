@@ -366,7 +366,10 @@ test("human review starts with impacts and keeps Oyo optional", () => {
     parent,
     /Read \[Oyo review\]\(oyo-review\.md\) before opening the implementation diff/i,
   );
-  assert.match(parent, /Read \[Impact review\]\(impact-review\.md\).*human review/i);
+  assert.match(
+    parent,
+    /Read \[Impact review\]\(impact-review\.md\).*human review/i,
+  );
   assert.match(skill, /only when.*useful.*requested/i);
   assert.doesNotMatch(skill, /open review automatically/i);
   assert.match(
@@ -389,9 +392,16 @@ test("impact review covers consequences, evidence, questions and revisions", () 
   const impact = read("./skills/feature/impact-review.md");
   const parent = read("./skills/feature/SKILL.md");
   for (const category of [
-    "Behavior", "Database", "API/events", "Infrastructure", "Security", "Operations",
-    "Verification", "Decisions",
-  ]) assert.ok(impact.includes(`${category}:`), category);
+    "Behavior",
+    "Database",
+    "API/events",
+    "Infrastructure",
+    "Security",
+    "Operations",
+    "Verification",
+    "Decisions",
+  ])
+    assert.ok(impact.includes(`${category}:`), category);
   for (const requirement of [
     /complete feature delta.*pinned base/i,
     /before\/after/i,
@@ -403,7 +413,8 @@ test("impact review covers consequences, evidence, questions and revisions", () 
     /fresh independent review/i,
     /explicit.*approval.*exact.*changes.*destination/i,
     /outside.*repository/i,
-  ]) assert.match(impact, requirement);
+  ])
+    assert.match(impact, requirement);
   assert.match(parent, /independent reviewer.*semantic impacts/i);
   assert.match(parent, /initial.*summary.*Pi/i);
 });
@@ -412,11 +423,15 @@ test("Rex launches the resolved executable rather than relying on login PATH", (
   const skill = read("./skills/feature/oyo-review.md");
   assert.ok(skill.includes("oy_bin=$(command -v oy)"));
   assert.match(skill, /absolute.*executable|executable.*absolute/);
-  const split = skill.split("\n").find((line) => line.startsWith("rex split "));
-  assert.ok(split);
-  assert.ok(split.includes('--split=right --ratio 67 -c "$workspace"'));
-  assert.ok(split.includes('-- "$oy_bin" @ --session "$review_session"'));
-  assert.doesNotMatch(split, /-- oy(?:\s|$)/);
+  const launch = skill
+    .split("\n")
+    .find((line) => line.startsWith("rex split "));
+  assert.ok(launch);
+  assert.ok(launch.includes('-s "$feature_session" -b "$REX_BLOCK"'));
+  assert.ok(launch.includes('--split=right --ratio 67 -c "$workspace"'));
+  assert.ok(launch.includes('-- "$oy_bin" @ --session "$review_session"'));
+  assert.doesNotMatch(launch, /-- oy(?:\s|$)/);
+  assert.doesNotMatch(skill, /rex window new |rex window close /);
   assert.match(
     skill,
     /process exited.*close only.*task-created failed pane.*retry/i,
@@ -429,8 +444,9 @@ test("pending reviews survive turns and only task-owned panes close on done", ()
   assert.match(skill, /from readiness.*across user turns.*user says done/i);
   assert.match(skill, /user says done.*close only.*task-created split/i);
   assert.ok(
-    skill.includes('rex block close -s "$REX_SESSION" "$review_block"'),
+    skill.includes('rex block close -s "$feature_session" "$review_block"'),
   );
+  assert.match(skill, /Preserve the feature Rex session and Pi tab/i);
   assert.match(skill, /terminated before cleanup/i);
   assert.match(skill, /preexisting.*pane/i);
   assert.match(skill, /named JJ bookmark/);
@@ -471,7 +487,7 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
   assert.match(module, /feature = \.\/pi\/skills\/feature/);
   assert.match(
     read("./skills/feature/SKILL.md"),
-    /Read \[Feature tabs\].*starting a separate interactive coordinator; another tab is optional/i,
+    /Read \[Feature tabs\].*one Rex session per feature/i,
   );
   assert.match(
     read("./skills/feature/SKILL.md"),
@@ -492,28 +508,34 @@ test("feature tabs deploy and route to independent interactive coordinators", ()
   assert.ok(skill.includes("pi_bin=$(command -v pi)"));
   assert.ok(
     skill.includes(
-      'rex window new -s "$REX_SESSION" "$feature_label" -c "$feature_cwd" --json -- "$pi_bin" --name "$feature_label" -- "$brief"',
+      'rex new "$feature_label" --window Pi -c "$feature_cwd" --json -- "$pi_bin" --name "$feature_label" -- "$brief"',
     ),
   );
-  const launch = skill
-    .split("\n")
-    .find((line) => line.startsWith("rex window new -s"));
+  const launch = skill.split("\n").find((line) => line.startsWith("rex new "));
   assert.doesNotMatch(launch, /sh -c|--print|--resume|--continue|--inherit/);
-  assert.match(skill, /oyo-review.*Task workspace.*before tab launch/);
+  assert.match(skill, /oyo-review.*Task workspace.*before session launch/);
+  assert.match(skill, /initial_windows\[0\]\.block_ids\[0\]/);
+  assert.match(skill, /session\.select.*session_id/);
+  assert.match(skill, /never.*caller.*session.*feature_session/i);
   assert.match(skill, /source-relative subdirectory/);
   assert.match(skill, /own.*REX_SESSION.*REX_BLOCK.*never.*caller/i);
   assert.match(skill, /process.*capture|capture.*process/i);
   assert.match(skill, /timeout.*inspect.*retry/i);
   assert.match(
     skill,
-    /own this persistent task workspace\/tab; keep it alive while Pi or tab is active/i,
+    /own this persistent task workspace.*Rex session.*Pi tab/i,
   );
 });
 
-test("review stays beside its feature Pi and never closes the coordinator", () => {
+test("review splits beside Pi in its feature session and preserves Pi", () => {
   const skill = read("./skills/feature/oyo-review.md");
-  assert.match(skill, /owning feature Pi.*same tab/i);
-  assert.match(skill, /never.*app focus.*another feature tab/i);
+  assert.match(skill, /owning feature Pi.*same.*session.*same.*tab/i);
+  for (const path of ["SKILL.md", "feature-tabs.md"]) {
+    const instructions = read(`./skills/feature/${path}`);
+    assert.match(instructions, /Oyo.*split/i);
+    assert.doesNotMatch(instructions, /separate Review tab/i);
+  }
+  assert.match(skill, /never.*app focus.*another feature session/i);
   assert.match(skill, /never.*Pi tab or feature coordinator workspace/i);
   assert.match(
     read("./skills/feature/feature-tabs.md"),
@@ -808,7 +830,7 @@ test("both destinations consolidate approved work in the persistent task workspa
     feature,
     /Reuse the existing task workspace across review rounds and revisions/i,
   );
-  assert.match(feature, /new tab only under the launch conditions above/i);
+  assert.match(feature, /new session only.*no.*task-owned session/i);
   assert.match(
     feature,
     /additional writer workspaces follow.*Workspace assignment/i,
@@ -853,7 +875,11 @@ test("owning parent keeps its Rex tab title aligned with task activity", () => {
   );
   assert.match(parent, /Feature tabs.*ownership checks and updates/i);
   assert.match(parent, /meaningful phase changes.*feature-tabs/i);
-  assert.match(feature, /feature_label.*initial title.*owning Pi.*updates/i);
+  assert.match(
+    feature,
+    /Name the feature session at creation.*initial tab `Pi`/i,
+  );
+  assert.match(feature, /owning Pi.*activity tab title/i);
   for (const fragment of [
     'rex block inspect -s "$REX_SESSION" "$REX_BLOCK" --json',
     ".block.window_id",
@@ -871,14 +897,14 @@ test("owning parent keeps its Rex tab title aligned with task activity", () => {
   assert.match(feature, /Never rename.*session.*unrelated.*focused tab/i);
   assert.match(feature, /meaningful phase changes.*not per command/i);
   assert.match(feature, /No Rex.*nonblocking.*report failures/i);
-  assert.match(feature, /without creating UI or guessing IDs/i);
+  assert.match(feature, /never guess IDs/i);
   assert.match(
     feature,
     /`review-flow: implementing`, `testing`, `review`, `blocked`, or `done`/,
   );
 });
 
-test("task setup precedes writers without requiring a new Pi or tab", () => {
+test("task setup precedes writers and routes implementation to its feature session", () => {
   const parent = read("./skills/feature/SKILL.md");
   const review = read("./skills/feature/oyo-review.md");
   const setup = review.split("## Task workspace")[1]?.split("## Prepare")[0];
@@ -892,7 +918,10 @@ test("task setup precedes writers without requiring a new Pi or tab", () => {
     /Create or verify one persistent task workspace and its ownership record/,
   );
   assert.match(parent, /Require explicit operator approval to integrate/);
-  assert.match(setup, /without launching another Pi or tab/i);
+  assert.match(setup, /caller may prepare.*before.*session launch/i);
+  assert.match(parent, /verified task coordinator.*continue/i);
+  assert.match(parent, /hand off.*stop.*caller/i);
+  assert.doesNotMatch(setup, /separate interactive Pi\/tab is optional/i);
   assert.match(
     setup,
     /empty workspace.*does not require integration approval/i,
@@ -948,7 +977,7 @@ test("persistent PR identity survives consolidation and coordinator teardown", (
   );
   assert.match(review, /sole PR ref/i);
   assert.match(feature, /oyo-review.*Task workspace.*before.*launch/i);
-  assert.match(feature, /Continue in its existing tab when live/i);
+  assert.match(feature, /Continue in its existing Pi tab when live/i);
   assert.match(feature, /Ambiguous ownership blocks launch/i);
   assert.match(feature, /Child cleanup excludes this coordinator workspace/i);
 });
@@ -1016,13 +1045,13 @@ test("cleanup scope, review refs, coordinator discovery and parent paths stay ex
   );
   assert.match(
     review,
-    /optional dedicated coordinator runtime fields.*Rex session\/window\/block.*PID/i,
+    /dedicated coordinator runtime fields after verified launch.*Rex session\/window\/block.*PID/i,
   );
   assert.match(feature, /save.*runtime fields.*after verified launch/i);
   assert.match(feature, /recorded Rex IDs.*process cwd.*identity.*PID reuse/i);
   assert.match(
     feature,
-    /missing or stale.*process cwds.*Rex listing.*ambiguity blocks launch/i,
+    /missing or stale.*process cwds.*Rex listing.*Ambiguous ownership blocks launch/is,
   );
   assert.match(feature, /never launch a duplicate live coordinator/i);
   assert.match(

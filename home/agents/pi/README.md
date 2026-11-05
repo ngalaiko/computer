@@ -1,7 +1,9 @@
 # Feature workflow
 
 Activate `/skill:feature` for a task to use workspace isolation, delegation,
-Rex tabs, and impact-first review in Pi. Oyo is optional drill-down. Other tasks use the current revision without this flow.
+one Rex session per feature, and impact-first review in Pi. Each feature session
+has its coordinator's Pi tab, with optional Oyo review in a split on the right.
+Other tasks use the current revision without this flow.
 The skill owns these rules; its impact, Oyo and tab procedures are plain references,
 not automatically discoverable skills. Apply Home Manager and reload Pi after changes.
 

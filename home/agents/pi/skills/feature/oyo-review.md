@@ -4,9 +4,9 @@ Parent owns UI; workers/reviewers remain one-shot. Shared safety checks apply to
 
 ## Task workspace
 
-Set up or resume the persistent feature workspace before launching writers or editing repository files. A parent in the default workspace can coordinate it without launching another Pi or tab. Creating an empty workspace and its identity does not require integration approval; incorporating reviewed changes still does.
+Set up or resume the persistent feature workspace before launching writers or editing repository files. The caller may prepare task identity and isolation before feature session launch; implementation belongs to the verified coordinator in that feature's dedicated Rex session. Creating an empty workspace and its identity does not require integration approval; incorporating reviewed changes still does.
 
-Choose a stable unique task key before a PR exists; associate repository identity and PR URL when available. Use one persistent task bookmark named `task/<key>`, distinct from temporary child review bookmarks. Store a local ownership record at `~/.pi/agent/jj-workspaces/<key>.json`, outside the repository: task key, repository root/identity, optional PR URL, workspace name and absolute path, and persistent task bookmark. Include optional dedicated coordinator runtime fields: Rex session/window/block IDs and PID. No task metadata in commit messages; keep them human-facing.
+Choose a stable unique task key before a PR exists; associate repository identity and PR URL when available. Use one persistent task bookmark named `task/<key>`, distinct from temporary child review bookmarks. Store a local ownership record at `~/.pi/agent/jj-workspaces/<key>.json`, outside the repository: task key, repository root/identity, optional PR URL, workspace name and absolute path, and persistent task bookmark. Record dedicated coordinator runtime fields after verified launch: Rex session/window/block IDs and PID. Track the optional Oyo split's block ID and shared window ID separately from Pi's block ID and Oyo's native session name. No task metadata in commit messages; keep them human-facing.
 
 To resume across sessions, read the ownership record and inspect its bookmark with `jj bookmark list`, `jj log -r <task-bookmark>` and `jj workspace list`. Verify the recorded absolute paths and repository/task/PR identity against the actual workspace root, working-copy revision and bookmark; ask on ambiguity, missing paths, conflicting bookmarks or ownership. Reuse the matching task workspace, not a workspace per revision. Add the PR URL to the record when available, keeping the task key and bookmark name stable.
 
@@ -22,7 +22,7 @@ Verify `jj root`, `jj workspace list` and `jj log -r @` in the new workspace, th
 cd "$task_workspace" && jj bookmark create "$task_bookmark" -r "$task_base"
 ```
 
-Use the actual verified absolute path and identity values. Run all subsequent repository commands with `cd "$task_workspace" &&` (or the assigned absolute child workspace for child work); the process's original cwd need not change. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. Keep the default/source workspace unchanged. Assign serial and parallel work under [Workspace assignment](SKILL.md#workspace-assignment). Before any approved task revision exists, pin the intended task base and point the persistent task bookmark there. Record approved and pending snapshot identities separately in the ownership record; preserve the approved revision while serial work accumulates in task `@` or its empty successor after a checkpoint. Move the persistent task bookmark only after approved integration. Keep one task-owned pending bookmark, `task/<key>/pending`, on the latest pending serial snapshot; verify this pending bookmark and record its full identity before session end, teardown or blocked integration. Keep it distinct from the approved task bookmark. Use temporary review bookmarks for parallel child work; preserve failed attempts under recovery bookmarks before replacing them. Remove pending and recovery bookmarks only under Finishing's redundancy/discard gates. A separate interactive Pi/tab is optional and follows feature-tabs launch conditions, not a prerequisite for task setup.
+Use the actual verified absolute path and identity values. Run all subsequent repository commands with `cd "$task_workspace" &&` (or the assigned absolute child workspace for child work); the process's original cwd need not change. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. Keep the default/source workspace unchanged. Assign serial and parallel work under [Workspace assignment](SKILL.md#workspace-assignment). Before any approved task revision exists, pin the intended task base and point the persistent task bookmark there. Record approved and pending snapshot identities separately in the ownership record; preserve the approved revision while serial work accumulates in task `@` or its empty successor after a checkpoint. Move the persistent task bookmark only after approved integration. Keep one task-owned pending bookmark, `task/<key>/pending`, on the latest pending serial snapshot; verify this pending bookmark and record its full identity before session end, teardown or blocked integration. Keep it distinct from the approved task bookmark. Use temporary review bookmarks for parallel child work; preserve failed attempts under recovery bookmarks before replacing them. Remove pending and recovery bookmarks only under Finishing's redundancy/discard gates. Follow [Feature tabs](feature-tabs.md) to create or reuse the dedicated feature session and Pi tab before implementation.
 
 ## Prepare
 
@@ -39,19 +39,19 @@ On the pane host resolve `oy_bin=$(command -v oy)`; require an absolute executab
 
 Use the installed executable/docs, not repository-supplied binary paths or extensions. No auto-installs, extra Pi packages, repository extension loading or repository extension trust. Missing prerequisites or documentation/connection failures block UI only: report and await user instruction; never auto-install or substitute tools.
 
-Use the owning feature Pi's `REX_SESSION`/`REX_BLOCK` in the same tab, never app focus or another feature tab. Resolve stale/missing context with documented `rex whoami --json`, `rex ls --json` and session/block inspection; ask on ambiguity. Verify workspace and executable on that host.
+Use the owning feature Pi's verified `REX_SESSION` as `feature_session`: the same feature session and same Pi tab, with Oyo in a split beside Pi. Verify it and the Pi's `REX_BLOCK` against the task ownership record; never use app focus or another feature session. Resolve stale/missing context with documented `rex whoami --json`, `rex ls --json` and session/block inspection; ask on ambiguity. Verify workspace and executable on that host.
 
 ## Show
 
 Run every Oyo command from `cd "$workspace" &&`. Use `"$oy_bin" control list --json` to inspect existing sessions. Choose a unique task-owned `review_session` name before launch. Reuse only after verifying PID, cwd/workspace, target and exact file list against this child. Ask on ambiguity or requested mismatches; never retarget unrelated sessions.
 
-Open beside the parent, giving Oyo two thirds and Pi one third. Explicit `@` is mandatory even after a bookmark exists:
+Open Oyo to the right of Pi in the verified feature session and Pi tab, giving Oyo two thirds and Pi one third. Reuse an existing owned split only after verifying its shared window, session, process and snapshot; do not create a duplicate. Explicit `@` is mandatory even after a bookmark exists:
 
 ```sh
-rex split -s "$REX_SESSION" -b "$REX_BLOCK" --split=right --ratio 67 -c "$workspace" --label Review --json -- "$oy_bin" @ --session "$review_session"
+rex split -s "$feature_session" -b "$REX_BLOCK" --split=right --ratio 67 -c "$workspace" --label Review --json -- "$oy_bin" @ --session "$review_session"
 ```
 
-Save `.block_ids[0]` as `review_block`, session/window IDs and task ownership. Inspect `rex block call -s "$REX_SESSION" -b "$review_block" process` and `rex capture -s "$REX_SESSION" -b "$review_block" --trim`. Require a live Oyo process; match its actual PID and cwd to the control session's `pid` and `workspace`. The native session name is not a Rex ID. Every control operation uses this exact session:
+Save `.block_ids[0]` as `review_block`, with session ID and task ownership. Inspect the new block and require its `.block.window_id` to match Pi's verified window; a split does not create a new tab. Inspect `rex block call -s "$feature_session" -b "$review_block" process` and `rex capture -s "$feature_session" -b "$review_block" --trim`. Require a live Oyo process; match its actual PID and cwd to the control session's `pid` and `workspace`. The native session name is not a Rex ID. Every control operation uses this exact session:
 
 ```sh
 "$oy_bin" control get --session "$review_session" --json
@@ -133,7 +133,7 @@ Target changes use the sequence-application guard above; a printed sequence alon
 
 Report complete unresolved thread counts, or unknown/unavailable, in the review summary. Resolution is not integration approval.
 
-When the user says done, summarize, stop the watcher with `oyo_watch({ action: "stop" })` and verify it stopped before closing UI, then close only the task-created split with `rex block close -s "$REX_SESSION" "$review_block"`; never close the Pi tab or feature coordinator workspace. Verify all task-owned UI and processes terminated before cleanup. Never close preexisting/user-owned panes; defer workspace deletion while a reused pane uses it. Stop delivery before workspace cleanup; never auto-resume it.
+When the user says done, summarize, stop the watcher with `oyo_watch({ action: "stop" })` and verify it stopped before closing UI, then close only the task-created split with `rex block close -s "$feature_session" "$review_block"`; never close the Pi tab or feature coordinator workspace. Preserve the feature Rex session and Pi tab, including any other panes. Verify all task-owned UI and processes terminated before cleanup. Never close preexisting/user-owned panes; defer workspace deletion while a reused pane uses it. Stop delivery before workspace cleanup; never auto-resume it.
 
 ## Finishing handoff
 
