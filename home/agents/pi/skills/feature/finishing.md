@@ -1,6 +1,6 @@
 # Finishing
 
-Read before approved integration, history rewriting or cleanup. [Oyo review](oyo-review.md) owns workspace setup and human review; this file owns finishing gates. Local consolidation is not publication or PR merge.
+Read before approved integration, history rewriting or cleanup. [Oyo review](oyo-review.md) owns workspace setup and optional diff UI; [Impact review](impact-review.md) owns human review; this file owns finishing gates. Local consolidation is not publication or PR merge.
 
 ## Operation
 
@@ -58,7 +58,7 @@ After verified integration and these gates, remove only task-created redundant r
 
 Consolidation is shared by both destinations and precedes the final local-versus-GitHub choice. Retain the persistent task workspace across review rounds and revisions; extra writer workspaces follow [Workspace assignment](SKILL.md#workspace-assignment). Closing a child review does not end the task.
 
-Integration requires explicit operator approval. Explicitly stop `oyo_watch` and verify it stopped before any integration rebase or consolidation. Resume only explicitly after reverified native UI if still reviewing. A multi-change child violates the one-working-copy contract: stop, report and ask; never silently integrate only `@` or consolidate an unverified stack.
+Integration requires explicit operator approval. If Oyo delivery was started, explicitly stop `oyo_watch` and verify it stopped before any integration rebase or consolidation. An unused Oyo UI requires neither the watcher tool nor thread queries. Resume only explicitly after reverified native UI if still reviewing. A multi-change child violates the one-working-copy contract: stop, report and ask; never silently integrate only `@` or consolidate an unverified stack.
 
 Serial work already resides in the task workspace; finalize it there without copying it through another workspace. For parallel work, integrate only each writer's delta from its recorded base; include shared pending feature work once. Preserve pinned bases until every affected writer exits and its delta is verified. Obtain approval for the complete combined result; changed content or integration context requires affected tests and fresh independent review.
 

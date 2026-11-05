@@ -1,8 +1,8 @@
 # Feature workflow
 
 Activate `/skill:feature` for a task to use workspace isolation, delegation,
-Rex tabs, and Oyo review. Other tasks use the current revision without this flow.
-The skill owns these rules; its Oyo and tab procedures are plain references,
+Rex tabs, and impact-first review in Pi. Oyo is optional drill-down. Other tasks use the current revision without this flow.
+The skill owns these rules; its impact, Oyo and tab procedures are plain references,
 not automatically discoverable skills. Apply Home Manager and reload Pi after changes.
 
 # Subagents
@@ -186,7 +186,7 @@ node --experimental-strip-types --test home/agents/pi/oyo-review.test.mjs
 # Feature finishing
 
 `skills/feature/finishing.md` owns integration, history and cleanup gates;
-`oyo-review.md` owns isolation and human review. `/skill:feature` stays the entry
+`oyo-review.md` owns isolation and optional diff UI; `impact-review.md` owns human review. `/skill:feature` stays the entry
 point. The coordinator performs finishing directly and owns Rex/Oyo, approval,
 process checks and final verification. Run the read-only
 `scripts/finishing-check.mjs` once per bounded operation, execute its fixed commands

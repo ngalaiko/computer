@@ -1,6 +1,6 @@
 # Oyo review
 
-Parent owns UI; workers/reviewers remain one-shot. Shared safety checks apply to all tasks. PR integration and retention rules apply only to actual PRs; local-only tasks follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup), the sole exception to keeping default/source unchanged. After child exit and tests/reviewer finish, report results and open review automatically. Protect the workspace from readiness across user turns until the user says done, including before pane creation. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.
+Parent owns UI; workers/reviewers remain one-shot. Shared safety checks apply to all tasks. PR integration and retention rules apply only to actual PRs; local-only tasks follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup), the sole exception to keeping default/source unchanged. Start human review with [Impact review](impact-review.md); open Oyo only when useful for the requested drill-down or explicitly requested. Protect the workspace from readiness across user turns until the user says done, including before pane creation. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.
 
 ## Task workspace
 
@@ -127,7 +127,7 @@ Serial feedback edits reuse the same task workspace and pending `@`. Before requ
 "$oy_bin" control target --session "$review_session" @
 ```
 
-Target changes use the sequence-application guard above; a printed sequence alone proves only queueing. After confirmed application, verify matching control metadata shows target `@` and exact file coverage. Bound the wait; user input wins, so reinspect after interaction. Then recheck the unchanged JJ commit, change_id and summary plus status identity/fingerprint as above. Do not refresh an unverified or unopened session.
+Target changes use the sequence-application guard above; a printed sequence alone proves only queueing. After confirmed application, verify matching control metadata shows target `@` and exact file coverage. Bound the wait; user input wins, so reinspect after interaction. Then recheck the unchanged JJ commit, change_id and summary plus status identity/fingerprint as above. Do not refresh an unverified or unopened session. Follow [Impact review](impact-review.md#revise-and-finish) to present the revised impacts and verification before continuing questions.
 
 ## Done
 

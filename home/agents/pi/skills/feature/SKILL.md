@@ -59,15 +59,15 @@ Use background agents and continue independent work. Keep at most two children a
 
 ## 4. Verify and review
 
-Inspect actual changes against the brief; a child's summary is not evidence. Record relevant test outcomes against the snapshot and environment. Reuse verified evidence only for matching content, scope/base and environment; rerun affected checks after changes, not merely phase transitions. Start a fresh reviewer for each independent review, supplying requirements, absolute workspace path and its JJ diff, without implementation conversations or another agent's review history. The parent runs review test commands.
+Inspect actual changes against the brief; a child's summary is not evidence. Record relevant test outcomes against the snapshot and environment. Reuse verified evidence only for matching content, scope/base and environment; rerun affected checks after changes, not merely phase transitions. Start a fresh reviewer for each independent review, supplying requirements, absolute workspace path and its JJ diff, without implementation conversations or another agent's review history. The parent runs review test commands. Brief the independent reviewer on implementation defects and semantic impacts across the complete feature delta from its pinned base, not just the latest child delta.
 
 **Ready for human review:** the diff matches scope, tests have recorded outcomes, and independent findings are addressed or explicitly reported as blockers. Do not claim readiness with missing evidence.
 
-Read [Oyo review](oyo-review.md) before opening the implementation diff in Rex. The parent owns UI and protects the reviewed workspace from readiness through user completion. Follow its snapshot, session and file-coverage checks before claiming the diff is loaded.
+Read [Impact review](impact-review.md) before human review. Present the initial impact summary in Pi, then wait for questions; retain snapshot-bound evidence and explicit unknowns. Keep the reviewed workspace stable across turns. Requested edits follow Impact review's revision procedure.
 
-After verifying native UI, explicitly start parent-only `oyo_watch` with the exact workspace, native session and trusted executable. Read its initial result before claiming delivery active. A missing tool requires Pi reload; report delivery inactive and use on-demand reads. Restart only explicitly after fresh verification.
+Read [Oyo review](oyo-review.md) before opening the implementation diff in Rex, only for useful or requested drill-down. The parent owns UI and follows its snapshot, session and file-coverage checks before claiming the diff is loaded. After verifying native UI, explicitly start parent-only `oyo_watch` and read its initial result before claiming delivery active. If Oyo remains unopened, no watcher is required.
 
-For saved feedback, follow Oyo review's discussion and native-reply procedure. Status-only events authorize neither replies nor integration/publication. Requested edits follow the linked feedback procedure: writer, tests, fresh independent review, bookmark update and verified live-session refresh.
+For saved feedback, follow Oyo review's discussion and native-reply procedure. Status-only events authorize neither replies nor integration/publication.
 
 ## 5. Consolidate
 

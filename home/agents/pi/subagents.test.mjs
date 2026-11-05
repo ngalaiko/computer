@@ -357,7 +357,7 @@ test("deploys Oyo alone without changing one-shot child roles or Darwin browser 
   assert.doesNotMatch(prompt("worker"), /oyo|walkthrough/i);
 });
 
-test("ready child reviews open automatically and retain the integration gate", () => {
+test("human review starts with impacts and keeps Oyo optional", () => {
   const skill = read("./skills/feature/oyo-review.md");
   const parent = read("./skills/feature/SKILL.md");
   assert.match(skill, /^# Oyo review/);
@@ -366,10 +366,9 @@ test("ready child reviews open automatically and retain the integration gate", (
     parent,
     /Read \[Oyo review\]\(oyo-review\.md\) before opening the implementation diff/i,
   );
-  assert.match(
-    skill,
-    /After child exit and tests\/reviewer finish.*open review automatically/i,
-  );
+  assert.match(parent, /Read \[Impact review\]\(impact-review\.md\).*human review/i);
+  assert.match(skill, /only when.*useful.*requested/i);
+  assert.doesNotMatch(skill, /open review automatically/i);
   assert.match(
     read("./skills/feature/finishing.md"),
     /Integration requires explicit operator approval/,
@@ -384,6 +383,29 @@ test("ready child reviews open automatically and retain the integration gate", (
     read("./skills/feature/finishing.md"),
     /explicit integration approval and verified integration.*remove redundant task resources/i,
   );
+});
+
+test("impact review covers consequences, evidence, questions and revisions", () => {
+  const impact = read("./skills/feature/impact-review.md");
+  const parent = read("./skills/feature/SKILL.md");
+  for (const category of [
+    "Behavior", "Database", "API/events", "Infrastructure", "Security", "Operations",
+    "Verification", "Decisions",
+  ]) assert.ok(impact.includes(`${category}:`), category);
+  for (const requirement of [
+    /complete feature delta.*pinned base/i,
+    /before\/after/i,
+    /checked.*unchanged.*unknown/i,
+    /evidence.*predictions.*unknowns/i,
+    /questions.*naturally/i,
+    /Oyo.*only when.*useful.*requested/i,
+    /what changed since.*review/i,
+    /fresh independent review/i,
+    /explicit.*approval.*exact.*changes.*destination/i,
+    /outside.*repository/i,
+  ]) assert.match(impact, requirement);
+  assert.match(parent, /independent reviewer.*semantic impacts/i);
+  assert.match(parent, /initial.*summary.*Pi/i);
 });
 
 test("Rex launches the resolved executable rather than relying on login PATH", () => {
