@@ -4,21 +4,28 @@ One feature per persistent task workspace and dedicated Rex session. The session
 
 ## Tab title
 
-Name the feature session at creation with a concise task label; name its initial tab `Pi`. The owning Pi keeps a concise task + current activity tab title, e.g. `review-flow: implementing`, `testing`, `review`, `blocked`, or `done`. Update on meaningful phase changes, not per command; skip unchanged titles.
+Name the feature session at creation with a concise task label; name its initial tab `Pi`. The owning Pi keeps the Rex session, Rex tab and Pi conversation on the same task + activity title, e.g. `review-flow: implementing`, `testing`, `review`, `blocked`, or `done`. Synchronize after launch, on resume and on meaningful phase changes, not per command; skip unchanged names. Keep the task label recognizable through review, feedback, blocked and awaiting-merge states; use `done` only after verified completion.
 
-Read `rex skill show` and `rex window rename --help`. Before renaming, verify your own `REX_SESSION`/`REX_BLOCK` against the task ownership record using:
+Read `rex skill show`, `rex session rename --help` and `rex window rename --help`. Before renaming, verify your own `REX_SESSION`/`REX_BLOCK` and dedicated session ownership against the task ownership record using:
 
 ```sh
 rex block inspect -s "$REX_SESSION" "$REX_BLOCK" --json
 ```
 
-Take the full `window_id` from `.block.window_id`; the verified own pane is ownership evidence, and current task context supplies the title. No separate task-tab registry is required. Rename only that verified owned tab:
+Take the full `window_id` from `.block.window_id`; the verified own pane is ownership evidence, and current task context supplies the title. No separate task-tab registry is required. Rename only the verified task-owned session and Pi tab; set the current Pi conversation's name through its native tool:
 
 ```sh
+rex session rename "$REX_SESSION" "$title"
 rex window rename -s "$REX_SESSION" "$window_id" "$title"
 ```
 
-Never rename the session or an unrelated/focused tab based on focus. No Rex or missing/unverifiable context is nonblocking for title updates: skip the update and report failures; never guess IDs. Session launch prerequisites below still apply.
+```js
+set_session_name({ name: title });
+```
+
+Use the same concrete title in all three calls. The tool uses Pi's live session API, persists the name and verifies it; no `/name` injection into a running terminal or direct session-file edits. Read back Rex names with `rex session inspect "$REX_SESSION" --json` and verify the tool result. Record the last verified names in the existing ownership record, keeping stable IDs, task key, workspace and bookmarks unchanged. Read back all names before claiming synchronization; report any partial update or failure and retry only the missing updates after ownership verification.
+
+Never rename an unrelated session or focused tab based on focus. No Rex or missing/unverifiable context is nonblocking for title updates: skip only the unsafe Rex updates and report failures; never guess IDs. Pi naming remains independent of Rex. A missing `set_session_name` tool requires managed deployment and Pi reload; report Pi naming unavailable rather than claiming it updated. Session launch prerequisites below still apply.
 
 ## Prepare
 
@@ -43,7 +50,7 @@ Build `brief` as one self-contained argument starting with the requested task, i
 - This task carries the user's explicit feature-workflow activation. Read `<feature_skill>` before working; resolve its reference links against its containing directory.
 - You own this persistent task workspace, dedicated Rex session and Pi tab. Verify your own runtime identity and save it in the task ownership record before implementation. Keep it alive while Pi or tab is active and until Finishing's completion and teardown gates pass. Reuse it across review rounds and revisions; closing child review does not end the task.
 - Work only in this feature workspace; assign children under SKILL.md's Workspace assignment policy. Child cleanup excludes this coordinator workspace. Keep default/source untouched until approved final local integration. Follow finishing.md for approved consolidation; defer the integration destination to the end.
-- Maintain your tab title with concise task + current activity using the Tab title procedure.
+- Maintain the Rex session name, Pi tab title and Pi conversation name with the same concise task + current activity using the Tab title procedure, including after startup, resume and feedback.
 - Use your own `REX_SESSION`/`REX_BLOCK`, never the original caller IDs. Start human review with the impact summary in Pi. Optional Oyo belongs in a split beside Pi in your dedicated session; follow oyo-review before opening it.
 
 Start a fresh interactive Pi in a new feature session using the installed help's `--name` and `--` message syntax:

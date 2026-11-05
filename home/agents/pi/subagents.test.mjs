@@ -866,7 +866,7 @@ test("integration stops delivery before mutation and rejects multi-change childr
   );
 });
 
-test("owning parent keeps its Rex tab title aligned with task activity", () => {
+test("owning parent keeps Rex and Pi names aligned with task activity", () => {
   const parent = read("./skills/feature/SKILL.md");
   const feature = read("./skills/feature/feature-tabs.md");
   assert.match(
@@ -879,7 +879,7 @@ test("owning parent keeps its Rex tab title aligned with task activity", () => {
     feature,
     /Name the feature session at creation.*initial tab `Pi`/i,
   );
-  assert.match(feature, /owning Pi.*activity tab title/i);
+  assert.match(feature, /owning Pi.*same task \+ activity title/i);
   for (const fragment of [
     'rex block inspect -s "$REX_SESSION" "$REX_BLOCK" --json',
     ".block.window_id",
@@ -891,10 +891,18 @@ test("owning parent keeps its Rex tab title aligned with task activity", () => {
     "done",
     "rex skill show",
     "rex window rename --help",
+    "rex session rename --help",
+    'rex session rename "$REX_SESSION" "$title"',
+    "set_session_name({ name: title })",
+    'rex session inspect "$REX_SESSION" --json',
   ])
     assert.ok(feature.includes(fragment), fragment);
   assert.match(feature, /verify.*own.*REX_SESSION.*REX_BLOCK/i);
-  assert.match(feature, /Never rename.*session.*unrelated.*focused tab/i);
+  assert.match(feature, /Never rename.*unrelated.*session.*focused tab/i);
+  assert.match(feature, /Rex session.*Rex tab.*Pi conversation.*same.*title/i);
+  assert.match(feature, /after launch.*resume.*meaningful phase changes/i);
+  assert.match(feature, /read back.*names.*report.*partial/i);
+  assert.match(parent, /Rex session.*Pi conversation.*names/i);
   assert.match(feature, /meaningful phase changes.*not per command/i);
   assert.match(feature, /No Rex.*nonblocking.*report failures/i);
   assert.match(feature, /never guess IDs/i);

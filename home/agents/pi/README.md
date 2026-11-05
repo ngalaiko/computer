@@ -3,9 +3,16 @@
 Activate `/skill:feature` for a task to use workspace isolation, delegation,
 one Rex session per feature, and impact-first review in Pi. Each feature session
 has its coordinator's Pi tab, with optional Oyo review in a split on the right.
+The coordinator keeps its Rex session, tab and Pi conversation names synchronized
+with the task and activity. The parent-only `set_session_name` tool uses Pi's native
+session API; Rex names use its CLI.
 Other tasks use the current revision without this flow.
 The skill owns these rules; its impact, Oyo and tab procedures are plain references,
 not automatically discoverable skills. Apply Home Manager and reload Pi after changes.
+
+```sh
+node --test home/agents/pi/session-name.test.mjs
+```
 
 # Subagents
 

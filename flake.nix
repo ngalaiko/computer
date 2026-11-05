@@ -192,6 +192,14 @@
             node --experimental-strip-types --test ${./home/agents/pi}/skill-policy.test.mjs
             touch $out
           '';
+        pi-session-name =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          pkgs.runCommand "pi-session-name" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+            node --test ${./.}/home/agents/pi/session-name.test.mjs
+            touch $out
+          '';
         pi-subagents =
           let
             pkgs = nixpkgs.legacyPackages.${system};
