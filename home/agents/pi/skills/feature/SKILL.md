@@ -16,6 +16,8 @@ Establish the goal, scope, constraints and completion evidence. Ask about materi
 
 Read [Feature tabs](feature-tabs.md) to create or reuse one Rex tab per feature in an existing shared session, with the interactive coordinator in that tab and optional Oyo in a split beside Pi. If this Pi is the verified task coordinator, continue; otherwise hand off and stop feature implementation in the caller. Requests to configure this workflow launch nothing. Keep a concise task + activity tab title on meaningful phase changes, synchronized with the Pi conversation name; preserve the shared Rex session name; read [Feature tabs](feature-tabs.md#tab-title) for ownership checks and updates.
 
+For the verified coordinator, read [Rex activity](rex-activity.md) before work. Report feature milestones through Rex's native status record alongside name updates; use structured process/events APIs for lifecycle checks. Preserve Pi's native status and explicit approval gates.
+
 ## 2. Prepare isolation
 
 Read [Oyo review — Task workspace](oyo-review.md#task-workspace) before repository edits or writer launches. Create or verify one persistent task workspace and its ownership record; reuse it across revisions. Select an explicit base and keep the default/source workspace untouched until approved local-only integration.

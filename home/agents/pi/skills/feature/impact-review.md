@@ -10,7 +10,7 @@ Record the base, full reviewed commit/change IDs, workspace, scope and verificat
 
 ## Present
 
-Post the initial summary in Pi automatically when implementation and review evidence are ready. Lead with consequential risks or blockers. Use one or two sentences per category:
+Post the initial summary in Pi automatically when implementation and review evidence are ready. After presenting it, report `review-ready` under [Rex activity](rex-activity.md); keep feature completion distinct from a settled Pi turn. Lead with consequential risks or blockers. Use one or two sentences per category:
 
 ```text
 Impact review

@@ -75,6 +75,7 @@ in
     ".pi/agent/extensions/jj-footer.ts".source = ./pi/jj-footer.ts;
     ".pi/agent/extensions/skill-policy.ts".source = ./pi/skill-policy.ts;
     ".pi/agent/extensions/session-name".source = ./pi/session-name;
+    ".pi/agent/extensions/feature-status".source = ./pi/feature-status;
     ".pi/agent/extensions/oyo-review".source = ./pi/oyo-review;
     ".pi/agent/subagents.json".text = builtins.toJSON subagentSettings;
     ".pi/agent/mcp.json".text = builtins.toJSON { inherit (cfg) mcpServers; };

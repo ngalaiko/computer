@@ -6,12 +6,16 @@ Each feature tab contains its Pi coordinator, with optional Oyo review in a spli
 The coordinator keeps its tab and Pi conversation names synchronized with the task
 and activity, leaving the shared Rex session name unchanged. The parent-only `set_session_name` tool uses Pi's native
 session API; Rex names use its CLI.
+The parent-only `feature_status` tool adds feature milestones to Rex Activity without
+replacing Pi's native status. Review-ready, questions, approval, failure and completion
+remain distinct. Rex controls notifications; no separate attention service is installed.
+See [Rex activity](skills/feature/rex-activity.md) for reception checks and lifecycle APIs.
 Other tasks use the current revision without this flow.
 The skill owns these rules; its impact, Oyo and tab procedures are plain references,
 not automatically discoverable skills. Apply Home Manager and reload Pi after changes.
 
 ```sh
-node --test home/agents/pi/session-name.test.mjs
+node --test home/agents/pi/{session-name,feature-status}.test.mjs
 ```
 
 # Subagents
