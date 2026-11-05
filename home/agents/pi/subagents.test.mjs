@@ -74,7 +74,7 @@ test("feature orchestration requires explicit activation", () => {
 
 test("upstream settings disable fallback, nesting, Git isolation, and optional orchestrators", () => {
   assert.deepEqual(settings(), {
-    maxConcurrent: 2,
+    maxConcurrent: 4,
     maxConcurrentForeground: 2,
     maxSubagentDepth: 1,
     fallbackSubagent: "none",
@@ -173,7 +173,7 @@ test("parent orchestration is one-shot, event-driven, and explicit about JJ path
     "children retain the parent's cwd",
     "absolute",
     "prompt-only",
-    "two",
+    "four",
     "completion notification",
     "rather than polling",
     "persistent task workspace",

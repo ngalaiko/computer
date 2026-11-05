@@ -1,5 +1,5 @@
 {
-  "maxConcurrent": 2,
+  "maxConcurrent": 4,
   "maxConcurrentForeground": 2,
   "maxSubagentDepth": 1,
   "fallbackSubagent": "none",

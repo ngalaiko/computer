@@ -79,10 +79,10 @@ agent. `Agent({resume: "<id>", ...})` continues a completed conversation; use a
 fresh reviewer instead for each independent review. Supply requirements, paths,
 and `jj diff`, not implementation reasoning or another agent's history.
 
-`maxConcurrent: 2` and `maxConcurrentForeground: 2` bound **separate** pools,
+`maxConcurrent: 4` and `maxConcurrentForeground: 2` bound **separate** pools,
 not a combined total. Foreground resume bypasses its pool, and handing foreground
 work to the background can exceed the background cap. The parent must maintain
-a combined two-active-child policy. Prefer background dispatch throughout.
+a combined four-active-child policy. Prefer background dispatch throughout.
 Finished runs do not require actor-style slot cleanup. `/agents` and FleetView
 inspect live conversations; persisted upstream sessions can be resumed.
 

@@ -57,7 +57,7 @@ Keep child workspaces under `~/.pi/agent/jj-workspaces/`. Give each agent a uniq
 - Assigned absolute workspace and file paths; shell commands begin with `cd <assigned_workspace> &&`. Agent has no cwd parameter: children retain the parent's cwd. These restrictions are prompt-only, not runtime isolation.
 - Expected result and stop condition. Implementation writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence; the coordinator owns committing after approval. Before replacing a failed attempt, duplicate its snapshot into a separate recovery revision with a task-owned recovery bookmark; a bookmark on mutable `@` follows rewrites and does not preserve the attempt. Incremental corrections can continue in the same `@`. Report blockers rather than widening scope.
 
-Use background agents and continue independent work. Keep at most two children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
+Use background agents and continue independent work. Keep at most four children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
 
 ## 4. Verify and review
 
