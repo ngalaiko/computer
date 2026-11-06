@@ -33,7 +33,7 @@ Save the summary and its snapshot/evidence references outside every repository w
 
 Let the user ask questions naturally; wait after the summary rather than starting a mandatory walkthrough. Answer the requested topic with before/after behavior, consequences and evidence; inspect source or run relevant safe checks when needed. Keep answers scoped, and label anything unverified.
 
-Use diagrams, API examples, migration details or Oyo only when useful for the requested drill-down or explicitly requested. Read [Oyo review](oyo-review.md) before opening the implementation diff. Oyo prerequisites block that UI only, not the summary or chat discussion. Start its watcher only after verifying native UI; without an opened Oyo session, no watcher or thread queries are required.
+Use diagrams, API examples or migration details when useful for the requested drill-down or explicitly requested. Showcase longer text in a read-only Vim split under [Feature tabs](feature-tabs.md#show-text-and-diffs); use [Oyo review](oyo-review.md) for implementation diffs. Oyo prerequisites block that UI only, not the summary or chat discussion. Start its watcher only after verifying native UI; without an opened Oyo session, no watcher or thread queries are required.
 
 ## Revise and finish
 

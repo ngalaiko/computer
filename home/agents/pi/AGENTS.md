@@ -1,1 +1,1 @@
-Feature workflow rules apply only after explicit `/skill:feature` activation for the task. A coordinator launched through that activated workflow inherits activation for the same task.
+Feature workflow rules apply only after explicit `/skill:feature` activation for the task. A verified coordinator resuming that task inherits activation.
