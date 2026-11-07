@@ -4,13 +4,13 @@ Human review starts in Pi with consequences, not a file list or code diff. Keep 
 
 ## Prepare
 
-After writers exit and verification finishes, inspect the complete feature delta against its pinned base, including prior task revisions. Give the fresh independent reviewer the requirements, base and snapshot IDs, absolute workspace and JJ diff. Ask for implementation defects and semantic impacts, including affected callers, contracts, configuration and indirect consequences. The coordinator verifies the findings against source and recorded checks.
+After writers exit, complete [Verification and review](verification.md), including full-feature coverage and validated findings. Build the impact summary from the matching snapshot's verification record; preserve its criterion/check mapping, risk tier and unknowns.
 
 Record the base, full reviewed commit/change IDs, workspace, scope and verification environment. Hold the snapshot stable across questions; recheck identity before answering or showing evidence. Drift pauses review until affected verification and the summary are refreshed.
 
 ## Present
 
-Post the initial summary in Pi automatically when implementation and review evidence are ready. After presenting it, report `review-ready` under [Rex activity](rex-activity.md); keep feature completion distinct from a settled Pi turn. Lead with consequential risks or blockers. Use one or two sentences per category:
+Post the initial summary in Pi automatically when implementation and review evidence are ready. Report `review-ready` under [Rex activity](rex-activity.md) only when [Verification and review](verification.md)'s Ready criterion holds. For a blocked summary, report `question` when an operator decision is needed, otherwise `failed`; describe the missing evidence or unresolved defects. Keep feature completion distinct from a settled Pi turn. Lead with consequential risks or blockers. Use one or two sentences per category:
 
 ```text
 Impact review
@@ -37,6 +37,6 @@ Use diagrams, API examples or migration details when useful for the requested dr
 
 ## Revise and finish
 
-For requested edits, record the reviewed snapshot and pause review; stop any active Oyo watcher before writes. Reuse the task workspace and pending revision, delegate the edits, rerun affected checks and obtain fresh independent review. Update the pending snapshot record, preserve the approved task tip, and refresh any verified open Oyo session under its feedback procedure. Present what changed since the previous review, updated impacts, verification and remaining decisions; update the saved summary before continuing questions.
+For requested edits, record the reviewed snapshot and pause review; stop any active Oyo watcher before writes. Reuse the task workspace and pending revision, delegate the edits, rerun affected checks and follow [Convergence](verification.md#convergence) for independent re-review. Update the pending snapshot record, preserve the approved task tip, and refresh any verified open Oyo session under its feedback procedure. Present what changed since the previous review, updated impacts, verification and remaining decisions; update the saved summary before continuing questions.
 
 Review completion and resolved comments are not approval. Require explicit operator approval of the exact reviewed changes and destination under [Finishing](finishing.md). If Oyo was opened, follow its thread reporting and UI shutdown gates; otherwise report Oyo unused, not zero unresolved threads. Remove the saved review artifact only with task ownership-record cleanup under Finishing's completion and recoverability gates.

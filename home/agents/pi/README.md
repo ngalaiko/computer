@@ -198,18 +198,7 @@ node --experimental-strip-types --test home/agents/pi/oyo-review.test.mjs
 
 # Feature finishing
 
-`skills/feature/finishing.md` owns integration, history and cleanup gates;
-`oyo-review.md` owns isolation and optional diff UI; `impact-review.md` owns human review. `/skill:feature` stays the entry
-point. The coordinator performs finishing directly and owns Rex/Oyo, approval,
-process checks and final verification. Run the read-only
-`scripts/finishing-check.mjs` once per bounded operation, execute its fixed commands
-and verify postconditions. The checker neither authorizes nor performs cleanup.
-
-Delegate substantial implementation to `worker`, mechanical edits to
-`small-worker`. Reuse tests/review only for matching content, scope/base and
-environment. Record delegated model, duration, retries and corrections in
-`~/.pi/agent/finishing-trials/`; include detailed costs only when automatically
-available. Retain records across task cleanup.
+[workspace.md](skills/feature/workspace.md) owns isolation; [verification.md](skills/feature/verification.md) checks and review convergence; [finishing.md](skills/feature/finishing.md) integration, history and cleanup; [impact-review.md](skills/feature/impact-review.md) human review; [oyo-review.md](skills/feature/oyo-review.md) optional UI.
 
 # Skill policy
 

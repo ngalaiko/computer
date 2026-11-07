@@ -1,6 +1,6 @@
 # Finishing
 
-Read before approved integration, history rewriting or cleanup. [Oyo review](oyo-review.md) owns workspace setup and optional diff UI; [Impact review](impact-review.md) owns human review; this file owns finishing gates. Local consolidation is not publication or PR merge.
+Read before approved integration, history rewriting or cleanup. [Task workspace](workspace.md) owns isolation; [Oyo review](oyo-review.md) owns optional diff UI; [Impact review](impact-review.md) owns human review; this file owns finishing gates. Local consolidation is not publication or PR merge.
 
 ## Operation
 
@@ -15,7 +15,7 @@ Conflict resolution is implementation, not approved finishing: brief `worker` fo
 
 ## Verification evidence
 
-Reuse recorded tests and independent review only when content, reviewed scope/base and environment match the resulting operation. A phase change alone does not require a rerun. Changed content or integration context requires affected tests and fresh independent review; content changes also require renewed approval. Always verify identities and final integration postconditions. Missing evidence remains a blocker.
+Follow [Verification and review](verification.md) for evidence reuse, affected checks and bounded independent re-review. Changed content or integration context requires refreshed evidence; content changes also require renewed approval. Always verify identities and final integration postconditions. Missing evidence remains a blocker.
 
 ## Scripted preflight
 
@@ -60,7 +60,7 @@ Consolidation is shared by both destinations and precedes the final local-versus
 
 Integration requires explicit operator approval. If Oyo delivery was started, explicitly stop `oyo_watch` and verify it stopped before any integration rebase or consolidation. An unused Oyo UI requires neither the watcher tool nor thread queries. Resume only explicitly after reverified native UI if still reviewing. A multi-change child violates the one-working-copy contract: stop, report and ask; never silently integrate only `@` or consolidate an unverified stack.
 
-Serial work already resides in the task workspace; finalize it there without copying it through another workspace. For parallel work, integrate only each writer's delta from its recorded base; include shared pending feature work once. Preserve pinned bases until every affected writer exits and its delta is verified. Obtain approval for the complete combined result; changed content or integration context requires affected tests and fresh independent review.
+Serial work already resides in the task workspace; finalize it there without copying it through another workspace. For parallel work, integrate only each writer's delta from its recorded base; include shared pending feature work once. Preserve pinned bases until every affected writer exits and its delta is verified. Obtain approval for the complete combined result; changed content or integration context requires affected checks and independent re-review under [Verification and review](verification.md).
 
 After approved identity/review/tests, consolidate approved work into atomic, bisectable commits in the task workspace. Include previously approved task work and approved changes from child workspaces for the same task; child commit boundaries are disposable. Preserve one logical change per commit. Never combine different tasks. Verify the task identity, exact approved child changes, existing task revisions and intended base before mutation; stop and ask if ownership or scope is ambiguous. Reuse the task workspace rather than creating one per review round. Keep default/source unchanged during consolidation; only approved final local integration may change it.
 
@@ -70,7 +70,7 @@ Rebase approved inputs onto the intended task base as needed, then consolidate o
 
 Optionally squash, split, reorder or reword feature-branch revisions after consolidation and before final local integration or GitHub publication. Rewrite only in the task workspace; never rewrite default/source under this step. Preserve atomic, bisectable commits; confirm material history-shape changes with the operator. Apply Revision safety before rewriting and scope changes to recorded task-owned revisions; preserve the intended base and unrelated history. Rewriting published history requires explicit approval; pushes remain manual.
 
-Record the approved tip, base and tree before rewriting. Verify the resulting history is conflict-free and its final tree and complete base-to-tip diff match the approved result. Content changes require affected tests, fresh independent review and renewed integration approval. Commit nonempty work with `jj commit -m "…"`, leaving `@` empty and undescribed; point the persistent task bookmark at the described tip. Record its updated full commit/change IDs and remove redundant task-owned revisions under Cleanup. Published-head verification must use the rewritten identity.
+Record the approved tip, base and tree before rewriting. Verify the resulting history is conflict-free and its final tree and complete base-to-tip diff match the approved result. Content changes require affected checks, independent re-review under [Verification and review](verification.md) and renewed integration approval. Commit nonempty work with `jj commit -m "…"`, leaving `@` empty and undescribed; point the persistent task bookmark at the described tip. Record its updated full commit/change IDs and remove redundant task-owned revisions under Cleanup. Published-head verification must use the rewritten identity.
 
 ## Cleanup
 

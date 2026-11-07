@@ -1,28 +1,6 @@
 # Oyo review
 
-Parent owns UI; workers/reviewers remain one-shot. Shared safety checks apply to all tasks. PR integration and retention rules apply only to actual PRs; local-only tasks follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup), the sole exception to keeping default/source unchanged. Start human review with [Impact review](impact-review.md); open Oyo only when useful for the requested drill-down or explicitly requested. Protect the workspace from readiness across user turns until the user says done, including before pane creation. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.
-
-## Task workspace
-
-Set up or resume the persistent feature workspace before launching writers or editing repository files. The current Pi adopts its existing tab under [Feature tabs](feature-tabs.md); implementation belongs to that verified coordinator. Creating an empty workspace and its identity does not require integration approval; incorporating reviewed changes still does.
-
-Choose a stable unique task key before a PR exists; associate repository identity and PR URL when available. Use one persistent task bookmark named `task/<key>`, distinct from temporary child review bookmarks. Store a local ownership record at `~/.pi/agent/jj-workspaces/<key>.json`, outside the repository: task key, repository root/identity, optional PR URL, workspace name and absolute path, and persistent task bookmark. Record adopted coordinator runtime fields after verification: Rex session/window/block IDs, Pi PID and original process cwd; mark the tab as adopted, not task-created. Track the optional Oyo split's block ID and shared window ID separately from Pi's block ID and Oyo's native session name. No task metadata in commit messages; keep them human-facing.
-
-To resume across sessions, read the ownership record and inspect its bookmark with `jj bookmark list`, `jj log -r <task-bookmark>` and `jj workspace list`. Verify the recorded absolute paths and repository/task/PR identity against the actual workspace root, working-copy revision and bookmark; ask on ambiguity, missing paths, conflicting bookmarks or ownership. Reuse the matching task workspace, not a workspace per revision. Add the PR URL to the record when available, keeping the task key and bookmark name stable.
-
-Only if no matching task exists, choose a unique workspace name and absolute `task_workspace` under `~/.pi/agent/jj-workspaces/`. Record the default/source root and working-copy identity. Select a stable intended base, not mutable default/source `@` containing unrelated work; ask if ambiguous. From the source root, create an empty task working copy at that base:
-
-```sh
-jj --config git.colocate=false workspace add --name "$workspace_name" -r "$task_base" "$task_workspace"
-```
-
-Verify `jj root`, `jj workspace list` and `jj log -r @` in the new workspace, then create its bookmark there and save the verified local ownership record:
-
-```sh
-cd "$task_workspace" && jj bookmark create "$task_bookmark" -r "$task_base"
-```
-
-Use the actual verified absolute path and identity values. Run all subsequent repository commands with `cd "$task_workspace" &&` (or the assigned absolute child workspace for child work); the process's original cwd need not change. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. Keep the default/source workspace unchanged. Assign serial and parallel work under [Workspace assignment](SKILL.md#workspace-assignment). Before any approved task revision exists, pin the intended task base and point the persistent task bookmark there. Record approved and pending snapshot identities separately in the ownership record; preserve the approved revision while serial work accumulates in task `@` or its empty successor after a checkpoint. Move the persistent task bookmark only after approved integration. Keep one task-owned pending bookmark, `task/<key>/pending`, on the latest pending serial snapshot; verify this pending bookmark and record its full identity before session end, teardown or blocked integration. Keep it distinct from the approved task bookmark. Use temporary review bookmarks for parallel child work; preserve failed attempts under recovery bookmarks before replacing them. Remove pending and recovery bookmarks only under Finishing's redundancy/discard gates. Verify adoption of the current Pi tab under [Feature tabs](feature-tabs.md) before implementation.
+Parent owns UI; workers/reviewers remain one-shot. [Task workspace](workspace.md) owns isolation, identity and retention. Start human review with [Impact review](impact-review.md); open Oyo only when useful for the requested drill-down or explicitly requested. Keep workspace, bookmark, full commit and stable change ID, exact native session name, PID, Rex session/window/block ownership and file coverage in context.
 
 ## Prepare
 
@@ -121,7 +99,7 @@ OYO_REVIEW_AUTHOR_TYPE=agent OYO_REVIEW_AUTHOR_NAME=Pi "$oy_bin" review comment 
 
 Verify returned identity and root with a fresh comment read. If posting fails, report it; never claim it posted or blindly retry an uncertain write. No remote pull/push/publication without specific operator consent for that operation/message.
 
-Serial feedback edits reuse the same task workspace and pending `@`. Before requested edits, record the reviewed snapshot, stop the watcher and pause review; keep other writers out of that workspace. Resume the worker one-shot, retest and obtain fresh independent review. Record the pending task snapshot for serial work, or update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated task tip. Verify the existing live session before refreshing the same implementation target; restart delivery only explicitly after fresh UI verification:
+Serial feedback edits reuse the same task workspace and pending `@`. Before requested edits, record the reviewed snapshot, stop the watcher and pause review; keep other writers out of that workspace. Resume the worker one-shot, retest and follow [Convergence](verification.md#convergence) for independent re-review. Record the pending task snapshot for serial work, or update the temporary child review bookmark; keep the persistent task bookmark on the approved consolidated task tip. Verify the existing live session before refreshing the same implementation target; restart delivery only explicitly after fresh UI verification:
 
 ```sh
 "$oy_bin" control target --session "$review_session" @

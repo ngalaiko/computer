@@ -17,7 +17,7 @@ Take the full window ID from `.block.window_id`. Verify the live Pi process and 
 
 Before adopting, inspect existing task ownership records, JJ workspaces and recorded coordinator processes. Verify task/repository identity, optional PR, workspace and live runtime IDs; guard against PID reuse. If another live Pi owns this task, hand off to that coordinator and stop implementation here. If this tab owns another unfinished feature, ask before changing ownership. Ambiguous ownership blocks adoption; never create a duplicate coordinator.
 
-Read [Oyo review — Task workspace](oyo-review.md#task-workspace) to create or reuse the persistent task workspace. Record the source-relative subdirectory and verify it exists beneath the absolute task workspace. Keep Pi's original process cwd unchanged; use absolute task-workspace paths for file tools and `cd "$task_workspace" &&` for repository commands. Preserve source/default during implementation.
+Read [Task workspace](workspace.md) to create or reuse the persistent task workspace. Record the source-relative subdirectory and verify it exists beneath the absolute task workspace. Keep Pi's original process cwd unchanged; use absolute task-workspace paths for file tools and `cd "$task_workspace" &&` for repository commands. Preserve source/default during implementation.
 
 Save the verified session/window/block IDs, Pi PID and original process cwd in the task ownership record, marking the coordinator tab as adopted, not task-created. Preserve stable task key, workspace and bookmarks on resume. Recheck identity before updating stale runtime fields. Synchronize the tab and conversation title below, then report the adopted tab and task workspace. Continue implementation in this conversation.
 

@@ -12,7 +12,7 @@ Parent Pi sessions coordinate this workflow. Child agents follow their assigned 
 
 ## 1. Define the task
 
-Establish the goal, scope, constraints and completion evidence. Ask about material ambiguity before dispatch. Use the same isolation, implementation and review flow for every feature. Defer the local-versus-GitHub choice to final integration; do not ask at task setup.
+Establish the goal, scope and constraints. Read [Verification and review](verification.md) before dispatch: map acceptance criteria to checks and expected results, then choose risk-based verification depth. Resolve material ambiguity before dispatch. Keep isolation and approval gates for every feature. Defer the local-versus-GitHub choice to final integration; do not ask at task setup.
 
 Read [Feature tabs](feature-tabs.md) to adopt the current Pi conversation and Rex tab as the coordinator; keep this process and history without launching another Pi or tab. Verify ownership before implementation; hand off if another live coordinator owns the task. Showcase text in Vim splits and implementation diffs in Oyo splits beside Pi under that reference. Keep the tab title synchronized with the Pi conversation's task + activity name on meaningful phase changes; preserve the shared session name.
 
@@ -20,7 +20,7 @@ For the verified coordinator, read [Rex activity](rex-activity.md) before work. 
 
 ## 2. Prepare isolation
 
-Read [Oyo review — Task workspace](oyo-review.md#task-workspace) before repository edits or writer launches. Create or verify one persistent task workspace and its ownership record; reuse it across revisions. Select an explicit base and keep the default/source workspace untouched until approved local-only integration.
+Read [Task workspace](workspace.md) before repository edits or writer launches. Create or verify one persistent task workspace and its ownership record; reuse it across revisions. Select an explicit base and keep the default/source workspace untouched until approved local-only integration.
 
 Use absolute task-workspace-rooted paths for parent file tools and `cd <task_workspace> &&` for repository commands. Preserve the source-relative subdirectory where applicable.
 
@@ -61,9 +61,9 @@ Use background agents and continue independent work. Keep at most four children 
 
 ## 4. Verify and review
 
-Inspect actual changes against the brief; a child's summary is not evidence. Record relevant test outcomes against the snapshot and environment. Reuse verified evidence only for matching content, scope/base and environment; rerun affected checks after changes, not merely phase transitions. Start a fresh reviewer for each independent review, supplying requirements, absolute workspace path and its JJ diff, without implementation conversations or another agent's review history. The parent runs review test commands. Brief the independent reviewer on implementation defects and semantic impacts across the complete feature delta from its pinned base, not just the latest child delta.
+Follow [Verification and review](verification.md) for recorded outcomes, fresh independent review, finding validation and the three-round convergence cap. Verify the complete feature delta before narrowing correction reviews. Keep evidence and findings in the task's verification record.
 
-**Ready for human review:** the diff matches scope, tests have recorded outcomes, and independent findings are addressed or explicitly reported as blockers. Do not claim readiness with missing evidence.
+**Ready for human review:** scope matches, every acceptance criterion has observed evidence, required reviews are complete and verified findings are addressed. Missing evidence or unresolved defects block readiness.
 
 Read [Impact review](impact-review.md) before human review. Present the initial impact summary in Pi, then wait for questions; retain snapshot-bound evidence and explicit unknowns. Keep the reviewed workspace stable across turns. Requested edits follow Impact review's revision procedure.
 
