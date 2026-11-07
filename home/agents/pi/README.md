@@ -211,10 +211,6 @@ environment. Record delegated model, duration, retries and corrections in
 `~/.pi/agent/finishing-trials/`; include detailed costs only when automatically
 available. Retain records across task cleanup.
 
-```sh
-node --test home/agents/pi/finishing-{check,workflow}.test.mjs
-```
-
 # Skill policy
 
 `feature` is explicit-only. `skill-policy.ts` advertises coding skills, Encore, Rex, and `pi-subagents` guidance

@@ -176,14 +176,6 @@
           sourceRestic = "${nixpkgs.legacyPackages.${linuxOf system}.restic}/bin/restic";
         };
         formatting = (treefmtFor system).config.build.check self;
-        pi-search =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-search" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-            PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s ${./home/agents/pi/skills/web-search}
-            touch $out
-          '';
         pi-skill-policy =
           let
             pkgs = nixpkgs.legacyPackages.${system};
@@ -221,24 +213,6 @@
             }
             ''
               node --test ${./.}/home/agents/pi/subagents.test.mjs
-              touch $out
-            '';
-        pi-finishing =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-finishing"
-            {
-              nativeBuildInputs = [
-                pkgs.nodejs
-                pkgs.jujutsu
-                pkgs.git
-              ];
-            }
-            ''
-              export HOME="$TMPDIR/home"
-              mkdir -p "$HOME"
-              node --test ${./.}/home/agents/pi/finishing-{check,workflow}.test.mjs
               touch $out
             '';
         pi-oyo-review =

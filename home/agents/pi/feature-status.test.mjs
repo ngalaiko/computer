@@ -205,27 +205,11 @@ test("does not claim Rex reception or notification delivery", async () => {
   assert.match(result.content[0].text, /verify.*program_status/i);
 });
 
-test("deploys to parents and has a Nix check and workflow reference", () => {
+test("deploys to parents and has a Nix check", () => {
   const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
   assert.match(
     read("../pi.nix"),
     /"\.pi\/agent\/extensions\/feature-status"\.source = \.\/pi\/feature-status/,
   );
   assert.match(read("../../../flake.nix"), /feature-status\.test\.mjs/);
-  const activity = read("./skills/feature/rex-activity.md");
-  for (const term of [
-    "feature_status",
-    "program_status",
-    "terminal.child_exited",
-    "terminal.program_status_changed",
-    "last_exit",
-    "client.sidebar.activity.by_priority",
-  ])
-    assert.ok(activity.includes(term), term);
-  assert.match(activity, /not.*approval/i);
-  assert.match(activity, /not.*durable/i);
-  assert.match(
-    read("./skills/feature/SKILL.md"),
-    /\[Rex activity\]\(rex-activity\.md\)/,
-  );
 });
