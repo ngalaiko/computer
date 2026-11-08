@@ -28,9 +28,6 @@
   environment.systemPackages = [
     # nix-darwin needs mas on PATH to install masApps
     pkgs.mas
-    # Transcripted has no cask/MAS listing; packaged from its release DMG and
-    # linked into /Applications/Nix Apps.
-    pkgs.transcripted
   ];
 
   users.users."nikita".home = "/Users/nikita";

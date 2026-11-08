@@ -8,7 +8,6 @@ final: prev: {
   };
 
   obsidian-headless = final.callPackage ./packages/obsidian-headless { };
-  transcripted = final.callPackage ./packages/transcripted { };
   vault-sync = final.callPackage ./packages/vault-sync { };
   wherenow = final.callPackage ./packages/wherenow { };
 }

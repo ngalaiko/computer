@@ -87,7 +87,6 @@
         lib.filterAttrs (_: lib.meta.availableOn pkgs.stdenv.hostPlatform) {
           inherit (pkgs)
             obsidian-headless
-            transcripted
             vault-sync
             wherenow
             ;
