@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { realpathSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { registerOyoWatch } from "./oyo-review/watch.mjs";
 
@@ -26,7 +34,7 @@ const Type = new Proxy(
   },
 );
 
-function fixture(t) {
+function fixture(t, { native = false } = {}) {
   const f = {
     comments: [],
     messages: [],
@@ -92,7 +100,7 @@ function fixture(t) {
     };
   };
   registerOyoWatch(pi, Type, {
-    exec,
+    ...(native ? {} : { exec }),
     schedule(callback) {
       f.timers.add(callback);
       return callback;
@@ -102,12 +110,13 @@ function fixture(t) {
     },
   });
   f.act = (action, extra = {}) => f.tool.execute("test", { action, ...extra });
-  f.start = () =>
+  f.start = (extra = {}) =>
     f.act("start", {
       workspace,
       session: "review-exact",
       oyBin: process.execPath,
       jjBin: process.execPath,
+      ...extra,
     });
   f.tick = async () => {
     assert.equal(f.timers.size, 1, "one nonoverlapping scheduled poll");
@@ -119,6 +128,98 @@ function fixture(t) {
   t.after(() => f.act("stop"));
   return f;
 }
+
+test("native CLI polling tolerates forced JJ color without snapshotting and fences change replacement", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "oyo-watch-cli-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const f = fixture(t, { native: true });
+  const stateFile = join(directory, "state.json");
+  const workingCopy = join(directory, "working-copy");
+  writeFileSync(workingCopy, "unsnapshotted edits");
+  const save = () =>
+    writeFileSync(
+      stateFile,
+      JSON.stringify({
+        control: f.control,
+        status: f.status,
+        change: f.change,
+        comments: f.comments,
+      }),
+    );
+  const cli = (name, body) => {
+    const path = join(directory, name);
+    writeFileSync(
+      path,
+      `#!${process.execPath}
+const { readFileSync, writeFileSync } = require("node:fs");
+const state = JSON.parse(readFileSync(${JSON.stringify(stateFile)}, "utf8"));
+const args = process.argv.slice(2);
+${body}
+`,
+      { mode: 0o755 },
+    );
+    return path;
+  };
+  const jjBin = cli(
+    "jj",
+    `
+if (!["root", "log"].includes(args[0])) process.exit(1);
+if (!args.includes("--ignore-working-copy"))
+  writeFileSync(${JSON.stringify(workingCopy)}, "snapshotted");
+if (args[0] === "root") console.log(state.control.workspace);
+else {
+  const revision = args[args.indexOf("-r") + 1];
+  if (revision !== "@" && !state.change.startsWith(revision)) process.exit(1);
+  console.log(args.includes("--color=never")
+    ? state.change : "\\x1b[35m" + state.change + "\\x1b[0m");
+}`,
+  );
+  const oyBin = cli(
+    "oy",
+    `
+let result;
+if (args[0] === "control" && args[1] === "get")
+  result = { ok: true, session: state.control.name, data: state.control };
+else if (args[0] === "review" && args[1] === "status") result = state.status;
+else if (args[0] === "review" && args[1] === "comment")
+  result = { version: 1, reviewKey: state.status.reviewKey,
+    target: "working tree", comments: state.comments };
+else process.exit(1);
+console.log(JSON.stringify(result));
+`,
+  );
+  f.comments = [human(1, "Saved baseline")];
+  save();
+  const initial = (await f.start({ oyBin, jjBin })).details;
+  assert.equal(initial.available, true);
+  assert.equal(initial.feedback[0].body, "Saved baseline");
+  assert.equal(initial.identity.changeId, change);
+  assert.equal(f.messages.length, 0);
+  assert.equal(readFileSync(workingCopy, "utf8"), "unsnapshotted edits");
+
+  f.status.diffFingerprint = "ordinary edit";
+  f.comments[0].body = "Please retest";
+  save();
+  await f.tick();
+  assert.equal(f.messages[0].details.event.changes[0].action, "edited");
+  assert.equal(
+    f.messages[0].details.event.changes[0].comment.body,
+    "Please retest",
+  );
+  assert.deepEqual((await f.statusResult()).identity, initial.identity);
+  assert.equal(readFileSync(workingCopy, "utf8"), "unsnapshotted edits");
+
+  f.change = "abcdefghzzzzzzzzzzzzzzzzzzzzzzzz";
+  f.comments.push(human(2, "Replacement feedback"));
+  save();
+  await f.tick();
+  const stopped = await f.statusResult();
+  assert.equal(stopped.running, false);
+  assert.match(stopped.error, /identity/i);
+  assert.equal(f.messages[1].details.event.kind, "error");
+  assert.ok(!f.messages[1].content.includes("Replacement feedback"));
+  assert.equal(readFileSync(workingCopy, "utf8"), "unsnapshotted edits");
+});
 
 test("explicit start returns a baseline; saved untyped feedback wakes only its parent once", async (t) => {
   const f = fixture(t);

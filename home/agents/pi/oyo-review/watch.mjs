@@ -270,13 +270,19 @@ export function registerOyoWatch(
   async function snapshot(state) {
     const { oyBin, jjBin, workspace } = state.input;
     const before = await control(state);
-    if ((await canonical(await run(state, jjBin, ["root"]))) !== workspace)
+    if (
+      (await canonical(
+        await run(state, jjBin, ["root", "--ignore-working-copy"]),
+      )) !== workspace
+    )
       throw identityError();
     const changeArgs = (revision) => [
       "log",
       "-r",
       revision,
       "--no-graph",
+      "--color=never",
+      "--ignore-working-copy",
       "-T",
       "change_id",
     ];
