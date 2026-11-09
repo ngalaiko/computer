@@ -164,72 +164,47 @@
 
       # `nix flake check` fails if the tree isn't treefmt-clean. CI relies on this
       # instead of a bespoke `nix fmt && git diff` step.
-      checks = lib.genAttrs allSystems (system: {
-        backup-dependencies = import ./modules/nixos/exedev/backup-dependencies-test.nix {
+      checks = lib.genAttrs allSystems (
+        system:
+        let
           pkgs = nixpkgs.legacyPackages.${system};
-          inherit ((exedevFor (linuxOf system))) config;
-        };
-        backup-restore = import ./modules/nixos/exedev/backup-test.nix {
-          pkgs = nixpkgs.legacyPackages.${system};
-          script = (exedevFor (linuxOf system)).config.systemd.services.backup-restore.script;
-          sourceRestic = "${nixpkgs.legacyPackages.${linuxOf system}.restic}/bin/restic";
-        };
-        formatting = (treefmtFor system).config.build.check self;
-        pi-skill-policy =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-skill-policy" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-            node --experimental-strip-types --test ${./home/agents/pi}/skill-policy.test.mjs
-            touch $out
-          '';
-        pi-feature-status =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-feature-status" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-            node --test ${./.}/home/agents/pi/feature-status.test.mjs
-            touch $out
-          '';
-        pi-session-name =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-session-name" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-            node --test ${./.}/home/agents/pi/session-name.test.mjs
-            touch $out
-          '';
-        pi-subagents =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-subagents"
-            {
-              nativeBuildInputs = [
-                pkgs.nodejs
-                pkgs.python3
-              ];
-            }
-            ''
-              node --test ${./.}/home/agents/pi/subagents.test.mjs
-              touch $out
-            '';
-        pi-oyo-review =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-oyo-review" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-            node --experimental-strip-types --test ${./.}/home/agents/pi/oyo-review.test.mjs
-            touch $out
-          '';
-        pi-command-guards =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          pkgs.runCommand "pi-command-guards" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-            node --experimental-strip-types --test ${./home/agents/pi}/command-guards.test.mjs
-            touch $out
-          '';
-      });
+          pi = pkgs.pi-coding-agent;
+        in
+        {
+          inherit (repoPackagesFor system) vault-sync wherenow;
+          backup-dependencies = import ./modules/nixos/exedev/backup-dependencies-test.nix {
+            inherit pkgs;
+            inherit ((exedevFor (linuxOf system))) config;
+          };
+          backup-restore = import ./modules/nixos/exedev/backup-test.nix {
+            inherit pkgs;
+            script = (exedevFor (linuxOf system)).config.systemd.services.backup-restore.script;
+            sourceRestic = "${nixpkgs.legacyPackages.${linuxOf system}.restic}/bin/restic";
+          };
+          formatting = (treefmtFor system).config.build.check self;
+          pi =
+            pkgs.runCommand "pi-tests"
+              {
+                nativeBuildInputs = [
+                  pkgs.nodejs
+                  pkgs.python3
+                ];
+                PI_TEST_TUI = "${pi}/lib/node_modules/pi-monorepo/node_modules/@earendil-works/pi-tui/dist/index.js";
+              }
+              ''
+                node --experimental-strip-types --test ${./.}/home/agents/pi/*.test.mjs
+                touch $out
+              '';
+          navigation =
+            pkgs.runCommand "navigation-tests" { nativeBuildInputs = [ pkgs.neovim-unwrapped ]; }
+              ''
+                export HOME="$TMPDIR"
+                cd ${./.}
+                nvim --headless -u NONE -l home/neovim/rex-navigator.test.lua
+                nvim --headless -u NONE -l hosts/macbook/home/rex/navigation.test.lua
+                touch $out
+              '';
+        }
+      );
     };
 }

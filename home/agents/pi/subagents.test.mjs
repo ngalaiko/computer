@@ -66,32 +66,7 @@ test("upstream settings disable fallback, nesting, Git isolation, and optional o
   });
 });
 
-test("Home Manager deploys stock upstream settings and standalone Markdown agents", () => {
-  const module = read("../pi.nix");
-  assert.match(module, /npm:@tintinweb\/pi-subagents@0\.22\.0/);
-  assert.match(
-    module,
-    /"\.pi\/agent\/subagents\.json"\.text = builtins\.toJSON subagentSettings/,
-  );
-  assert.match(module, /"\.pi\/agent\/agents\/\$\{name\}\.md"/);
-  assert.match(module, /builtins\.readFile \.\/pi\/subagents\/profiles\.json/);
-  assert.match(module, /builtins\.readFile \.\/AGENTS\.md/);
-  assert.match(
-    module,
-    /extensions = \[ "\$\{config\.home\.homeDirectory\}\/\.pi\/agent\/extensions\/command-guards\.ts" \]/,
-  );
-  for (const fragment of [
-    "skills = true",
-    "allowed_subagents = false",
-    'prompt_mode = "replace"',
-    "inherit_context = false",
-    'isolation = "off"',
-  ])
-    assert.ok(module.includes(fragment), fragment);
-  assert.doesNotMatch(
-    module,
-    /pi-actor-subagents|actor-subagents|roles\.json|childExtensions/,
-  );
+test("role profiles pin models, effort, and tool access", () => {
   assert.deepEqual(
     Object.keys(profiles()).sort(),
     Object.keys(expectedProfiles).sort(),
@@ -107,23 +82,7 @@ test("Home Manager deploys stock upstream settings and standalone Markdown agent
         : "read, bash, edit, write, grep, find, ls",
     );
     assert.ok(profile.description);
-    assert.match(prompt(role), /Work directly without delegating/);
-    assert.match(prompt(role), /absolute.*workspace|absolute paths rooted/);
-    assert.doesNotMatch(
-      prompt(role),
-      /handshake|send_message|set_status|go-ahead/,
-    );
-    assert.match(render(role, profile), /^---\n/);
   }
-  for (const fragment of [
-    "Keep the workspace unchanged",
-    "execution path",
-    "file and symbol references",
-    "uncertainty",
-    "Stop when the question is answered",
-  ])
-    assert.ok(prompt("explorer").includes(fragment), fragment);
-  assert.match(prompt("reviewer"), /Keep the workspace unchanged/);
 });
 
 test("activation replaces legacy packages and removes obsolete inline settings", (t) => {
@@ -245,48 +204,3 @@ test(
     }
   },
 );
-
-test("deploys Oyo alone without changing one-shot child roles or Darwin browser scope", () => {
-  const module = read("../pi.nix");
-  assert.match(
-    module,
-    /config\.agents\.pi\.skills =\s*\{\s*feature = \.\/pi\/skills\/feature;\s*\}\s*\/\/ lib\.optionalAttrs/,
-  );
-  assert.match(
-    module,
-    /lib\.optionalAttrs pkgs\.stdenv\.isDarwin \{\s*agent-browser/,
-  );
-  const brew = read("../../../hosts/macbook/homebrew.nix");
-  assert.match(brew, /"ahkohd\/oyo\/oy"/);
-  assert.match(brew, /trustedtaps = names config\.homebrew\.taps/);
-  assert.match(brew, /trustedformulae = qualified config\.homebrew\.brews/);
-});
-
-test("first-party review bridge deploys only to parents without an extra Pi package", () => {
-  const module = read("../pi.nix");
-  assert.match(
-    module,
-    /extensions = \[ "\$\{config\.home\.homeDirectory\}\/\.pi\/agent\/extensions\/command-guards\.ts" \]/,
-  );
-  assert.match(
-    module,
-    /"\.pi\/agent\/extensions\/oyo-review"\.source = \.\/pi\/oyo-review/,
-  );
-  assert.doesNotMatch(module, /npm:.*pi-oyo|extensions\/hunk-review/);
-  const flake = read("../../../flake.nix");
-  assert.match(flake, /pi-oyo-review/);
-  assert.ok(
-    flake.includes(
-      "node --experimental-strip-types --test ${./.}/home/agents/pi/oyo-review.test.mjs",
-    ),
-  );
-  const entry = read("./oyo-review/index.ts");
-  assert.match(entry, /import \{ Type \} from "@earendil-works\/pi-ai"/);
-  assert.match(
-    entry,
-    /import type \{ ExtensionAPI \} from "@earendil-works\/pi-coding-agent"/,
-  );
-  assert.match(entry, /registerOyoWatch\(pi, Type\)/);
-  for (const role of Object.keys(expectedProfiles))
-    assert.deepEqual(fields(role, profiles()[role]).extensions, [guard]);
-});

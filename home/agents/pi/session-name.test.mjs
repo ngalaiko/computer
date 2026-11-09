@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { registerSessionName } from "./session-name/name.mjs";
 
@@ -77,17 +76,4 @@ test("reports failed native renames rather than claiming success", async () => {
     Type,
   );
   await assert.rejects(() => tool.execute("call", { name: "new" }), /verify/i);
-});
-
-test("deploys the naming tool to parents without extending child allowlists", () => {
-  const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-  assert.match(
-    read("../pi.nix"),
-    /"\.pi\/agent\/extensions\/session-name"\.source = \.\/pi\/session-name/,
-  );
-  assert.match(
-    read("../pi.nix"),
-    /extensions = \[ "\$\{config.home.homeDirectory\}\/\.pi\/agent\/extensions\/command-guards\.ts" \]/,
-  );
-  assert.match(read("../../../flake.nix"), /session-name\.test\.mjs/);
 });

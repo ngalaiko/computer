@@ -111,10 +111,19 @@ and removes the obsolete inline `settings.json` subagents block while retaining
 other settings. Home Manager removes obsolete actor-managed settings/roles files.
 Old actor sessions are not migrated; existing untracked files are not deleted.
 
-Network-free checks:
+Run all configured checks with `nix flake check`. The Pi check includes the
+pinned TUI dependency for footer tests:
 
 ```sh
-node --experimental-strip-types --test home/agents/pi/{subagents,skill-policy,command-guards}.test.mjs
+nix build .#checks.$(nix eval --impure --raw --expr builtins.currentSystem).pi
+```
+
+For local JavaScript runs, point `PI_TEST_TUI` at the installed
+`@earendil-works/pi-tui/dist/index.js`:
+
+```sh
+PI_TEST_TUI=/absolute/path/to/pi-tui/dist/index.js \
+node --experimental-strip-types --test home/agents/pi/*.test.mjs
 ```
 
 Optional parser integration uses a read-only upstream checkout or unpacked npm

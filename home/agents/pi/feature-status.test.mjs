@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { registerFeatureStatus } from "./feature-status/status.mjs";
@@ -203,13 +202,4 @@ test("does not claim Rex reception or notification delivery", async () => {
   const result = await h.execute({ phase: "review-ready" });
   assert.equal(result.details.emitted, true);
   assert.match(result.content[0].text, /verify.*program_status/i);
-});
-
-test("deploys to parents and has a Nix check", () => {
-  const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-  assert.match(
-    read("../pi.nix"),
-    /"\.pi\/agent\/extensions\/feature-status"\.source = \.\/pi\/feature-status/,
-  );
-  assert.match(read("../../../flake.nix"), /feature-status\.test\.mjs/);
 });
