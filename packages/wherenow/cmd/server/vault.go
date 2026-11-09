@@ -43,8 +43,6 @@ func strp(p *string) string {
 	return strings.TrimSpace(*p)
 }
 
-func fileExists(p string) bool { _, err := os.Stat(p); return err == nil }
-
 // localTime parses the RFC3339 timestamp and renders it in the configured zone.
 // The zone decides which day's note a point links to.
 func (e Entry) localTime() (time.Time, bool) {
@@ -143,23 +141,56 @@ func shortID(id string) string {
 // the migraine events. One note per minute — if that name already holds another
 // position, it is overwritten (latest wins), no suffix. Only a foreign note at
 // the same name (e.g. a migraine, which has no UUID id) is stepped around with a
-// " (<shortid>)" suffix, so wherenow never clobbers a hand-written note. Must be
-// called with storeMu held.
-func targetPath(e Entry, t time.Time) string {
+// " (<shortid>)" suffix, then numbered suffixes if needed. Every candidate is
+// checked for ownership. Must be called with storeMu held.
+func targetPath(e Entry, t time.Time) (string, error) {
 	base := t.Format("2006-01-02 1504")
-	cand := filepath.Join(vaultDir, base+".md")
-	if fileExists(cand) {
-		if _, err := uuid.Parse(readNoteID(cand)); err != nil {
-			// occupied by a non-position note — don't clobber it.
-			cand = filepath.Join(vaultDir, base+" ("+shortID(strings.ToLower(e.ID))+").md")
+	for n := 0; ; n++ {
+		name := base
+		if n > 0 {
+			suffix := shortID(e.ID)
+			if n > 1 {
+				suffix += "-" + strconv.Itoa(n)
+			}
+			name += " (" + suffix + ")"
+		}
+		cand := filepath.Join(vaultDir, name+".md")
+		owner, err := noteOwner(cand)
+		if os.IsNotExist(err) {
+			return cand, nil
+		}
+		if err != nil {
+			return "", err
+		}
+		if owner != "" {
+			return cand, nil
+		}
+		if n == 0 {
+			// A foreign base name must not disable latest-position-per-minute.
+			for id, path := range index {
+				if !strings.HasPrefix(filepath.Base(path), base+" (") {
+					continue
+				}
+				owner, err := noteOwner(path)
+				if err != nil || owner != id {
+					continue
+				}
+				entry, ok := readNote(path)
+				if !ok || entry.ID != id {
+					continue
+				}
+				when, ok := entry.localTime()
+				if ok && when.Format("2006-01-02 1504") == base {
+					return path, nil
+				}
+			}
 		}
 	}
-	return cand
 }
 
-// writeNote upserts e's note and updates the index. The filename derives from
-// the (immutable) timestamp, so an existing id keeps its name across PATCHes; a
-// different position that maps to the same name supersedes it (latest wins).
+// writeNote upserts e's note. Positions in the same local minute supersede each
+// other (latest write wins). Index updates and old-path removal follow a
+// successful replacement.
 func writeNote(e Entry) error {
 	t, ok := e.localTime()
 	if !ok {
@@ -171,22 +202,60 @@ func writeNote(e Entry) error {
 		return err
 	}
 	id := strings.ToLower(e.ID)
-	target := targetPath(e, t)
-	if old, ok := index[id]; ok && old != target {
-		os.Remove(old) // our own note moved (rare — only if the timestamp changed)
+	target, err := targetPath(e, t)
+	if err != nil {
+		return err
 	}
-	// Another position already at this name is now superseded — drop its stale
-	// index entry so a later PATCH/DELETE of that id can't touch this note.
+	old := index[id]
+	if err := writeIfChanged(target, noteContent(e, t)); err != nil {
+		return err
+	}
+	// Evict superseded positions only after the replacement is written.
 	for k, v := range index {
 		if v == target && k != id {
 			delete(index, k)
 		}
 	}
-	if err := writeIfChanged(target, noteContent(e, t)); err != nil {
+	index[id] = target
+	if old != "" && old != target {
+		_, err := removeOwnedNote(old, id)
 		return err
 	}
-	index[id] = target
 	return nil
+}
+
+// noteOwner checks the file, not the startup index. Non-regular files and notes
+// without a UUID are foreign.
+func noteOwner(path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+	if !info.Mode().IsRegular() {
+		return "", nil
+	}
+	id := readNoteID(path)
+	if _, err := uuid.Parse(id); err != nil {
+		return "", nil
+	}
+	return id, nil
+}
+
+func removeOwnedNote(path, id string) (bool, error) {
+	owner, err := noteOwner(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if owner != id {
+		return false, nil
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return false, err
+	}
+	return true, nil
 }
 
 func deleteNote(id string) (bool, error) {
@@ -197,21 +266,28 @@ func deleteNote(id string) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+	deleted, err := removeOwnedNote(p, id)
+	if err != nil {
 		return false, err
 	}
 	delete(index, id)
-	return true, nil
+	return deleted, nil
 }
 
 func getEntry(id string) (Entry, bool) {
 	storeMu.Lock()
-	p, ok := index[strings.ToLower(id)]
-	storeMu.Unlock()
+	defer storeMu.Unlock()
+	id = strings.ToLower(id)
+	p, ok := index[id]
 	if !ok {
 		return Entry{}, false
 	}
-	return readNote(p)
+	owner, err := noteOwner(p)
+	if err != nil || owner != id {
+		return Entry{}, false
+	}
+	e, ok := readNote(p)
+	return e, ok && e.ID == id
 }
 
 // listEntries returns the position notes as entries, newest first, up to limit
@@ -368,5 +444,41 @@ func writeIfChanged(path, content string) error {
 	if cur, err := os.ReadFile(path); err == nil && string(cur) == content {
 		return nil // byte-identical: skip so Obsidian Sync stays quiet.
 	}
-	return os.WriteFile(path, []byte(content), 0o644)
+	mode := os.FileMode(0o644)
+	info, err := os.Lstat(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err == nil && info.Mode().IsRegular() {
+		mode = info.Mode().Perm()
+	}
+	f, err := os.CreateTemp(filepath.Dir(path), ".wherenow-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	if err := f.Chmod(mode); err != nil {
+		f.Close()
+		return err
+	}
+	if _, err := f.WriteString(content); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	// Recheck ownership before atomically replacing the destination.
+	owner, err := noteOwner(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err == nil && owner == "" {
+		return fmt.Errorf("refusing to replace foreign note %s", path)
+	}
+	return os.Rename(f.Name(), path)
 }

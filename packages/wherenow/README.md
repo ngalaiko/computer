@@ -3,8 +3,8 @@
 Self-hosted backend for [Where Now?](https://apps.apple.com/se/app/where-now/id6757414541?l=en-GB),
 an iOS app for tracking where you've been.
 
-Instead of a database, wherenow writes each position straight into an
-[Obsidian](https://obsidian.md) vault as one markdown note, so the points show
+Instead of a database, wherenow writes positions straight into an
+[Obsidian](https://obsidian.md) vault as markdown notes, so the points show
 up in the daily note they belong to (and on a map). It runs as a service next to
 the vault on my [computer](https://github.com/ngalaiko/computer) box.
 
@@ -31,9 +31,10 @@ id: 0b5e…-…-…
 free-text note, if any
 ```
 
-Notes are named `YYYY-MM-DD HHMM.md` in local time (a ` (<shortid>)` suffix
-disambiguates two points in the same minute, and keeps wherenow from ever
-clobbering another note that already owns that name).
+Notes are named `YYYY-MM-DD HHMM.md` in local time. The latest write for a local
+minute replaces its previous position. Foreign notes are preserved using a
+checked ` (<shortid>)` suffix, numbered on collision. Writes replace files
+atomically; failed writes leave the index and previous note intact.
 
 ### API
 
