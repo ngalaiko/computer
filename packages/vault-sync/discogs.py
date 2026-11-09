@@ -100,6 +100,9 @@ def sync_release(
             return "updated"
         return None
 
+    for a in artists:
+        vaultlib.ensure_person_note(notes, a, artist_template)
+
     path, base = vaultlib.unique_note_path(notes, title, year)
 
     cover_file = None
@@ -117,12 +120,10 @@ def sync_release(
             print(f"  war: cover download failed for {title}: {e}", file=sys.stderr)
             cover_file = None
 
-    for a in artists:
-        vaultlib.ensure_person_note(notes, a, artist_template)
-
-    vaultlib.write_note(
+    if not vaultlib.write_note(
         path, album_note(album_template, year, artists, cover_file, url, lp_date)
-    )
+    ):
+        return None
     index[url.rstrip("/")] = path
     kind = "owned" if lp_date else "wishlist"
     print(f"  new album ({kind}): {os.path.basename(path)}  ({', '.join(artists)})")

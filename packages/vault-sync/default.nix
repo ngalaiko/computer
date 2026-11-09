@@ -16,7 +16,7 @@ stdenv.mkDerivation {
   doCheck = true;
   checkPhase = ''
     ${python3}/bin/python3 -m py_compile vaultlib.py letterboxd.py discogs.py finance.py
-    ${python3}/bin/python3 -m unittest discover -p test_finance.py
+    ${python3}/bin/python3 -m unittest discover -p 'test_*.py'
   '';
 
   installPhase = ''

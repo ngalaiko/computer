@@ -11,6 +11,7 @@ note's body and any manual frontmatter edits are always preserved.
 import os
 import re
 import urllib.request
+import uuid
 
 # Obsidian forbids these in note/attachment filenames. Map the structural ones
 # to a dash and drop the rest, then collapse whitespace — matching how the
@@ -76,15 +77,18 @@ def index_by_field(references_dir, key):
 
 
 def unique_note_path(references_dir, title, year):
-    """Pick a filename for a new note: ``<title>.md``, disambiguated with a
-    ``(year)`` suffix only if the plain name is already taken — the vault's
-    "add a parenthetical only to disambiguate" rule."""
+    """Pick an unused filename, adding a year then a counter on collisions."""
     base = sanitize(title)
     plain = os.path.join(references_dir, f"{base}.md")
-    if not os.path.exists(plain):
+    if not os.path.lexists(plain):
         return plain, base
     disambig = sanitize(f"{title} ({year})")
-    return os.path.join(references_dir, f"{disambig}.md"), disambig
+    candidate = disambig
+    counter = 2
+    while os.path.lexists(os.path.join(references_dir, f"{candidate}.md")):
+        candidate = f"{disambig} ({counter})"
+        counter += 1
+    return os.path.join(references_dir, f"{candidate}.md"), candidate
 
 
 def add_list_item(path, key, item):
@@ -132,9 +136,7 @@ def add_list_item(path, key, item):
             return False
         lines.insert(j, f"  - {quoted_item}\n")
 
-    with open(path, "w", encoding="utf-8") as f:
-        f.write("".join(lines))
-    return True
+    return _write_atomic(path, "".join(lines), replace=True)
 
 
 def set_scalar_if_empty(path, key, value):
@@ -151,11 +153,9 @@ def set_scalar_if_empty(path, key, value):
     if fm_end is None:
         return False
     for i in range(1, fm_end):
-        if lines[i].rstrip("\n") == f"{key}:":  # present but empty
+        if lines[i].rstrip() == f"{key}:":  # present but empty
             lines[i] = f"{key}: {value}\n"
-            with open(path, "w", encoding="utf-8") as f:
-                f.write("".join(lines))
-            return True
+            return _write_atomic(path, "".join(lines), replace=True)
     return False
 
 
@@ -214,13 +214,38 @@ def render_template(template_path, fields=None):
     return "".join(rendered)
 
 
+def _write_atomic(path, text, *, replace):
+    temporary = os.path.join(
+        os.path.dirname(path), f".{os.path.basename(path)}.{uuid.uuid4().hex}.tmp"
+    )
+    try:
+        # Normal creation mode preserves the vault's default sharing ACLs.
+        with open(
+            os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666),
+            "w",
+            encoding="utf-8",
+        ) as output:
+            if replace:
+                os.fchmod(output.fileno(), os.stat(path).st_mode & 0o777)
+            output.write(text)
+            output.flush()
+            os.fsync(output.fileno())
+        if replace:
+            os.replace(temporary, path)
+        else:
+            try:
+                os.link(temporary, path)
+            except FileExistsError:
+                return False
+        return True
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
 def write_note(path, text):
-    """Create a note. Never overwrites an existing file."""
-    if os.path.exists(path):
-        return False
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text)
-    return True
+    """Atomically create a note without overwriting an existing path."""
+    return _write_atomic(path, text, replace=False)
 
 
 def download(url, dest, headers=None):

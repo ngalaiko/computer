@@ -120,6 +120,10 @@ def main(username, vault):
                 print(f"  + watched {entry['watched']}: {os.path.basename(existing)}")
             continue
 
+        directors = scrape_directors(entry["url"])
+        for d in directors:
+            vaultlib.ensure_person_note(notes, d, director_template)
+
         path, base = vaultlib.unique_note_path(notes, entry["title"], entry["year"])
 
         poster_file = None
@@ -137,11 +141,7 @@ def main(username, vault):
                 )
                 poster_file = None
 
-        directors = scrape_directors(entry["url"])
-        for d in directors:
-            vaultlib.ensure_person_note(notes, d, director_template)
-
-        vaultlib.write_note(
+        if not vaultlib.write_note(
             path,
             movie_note(
                 movie_template,
@@ -152,7 +152,9 @@ def main(username, vault):
                 entry["liked"],
                 entry["watched"],
             ),
-        )
+        ):
+            continue
+        index[entry["url"].rstrip("/")] = path
         created += 1
         print(
             f"  new movie: {os.path.basename(path)}  (dir: {', '.join(directors) or '?'})"
