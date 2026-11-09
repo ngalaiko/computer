@@ -59,7 +59,11 @@ Keep child workspaces under `~/.pi/agent/jj-workspaces/`. Give each agent a uniq
 
 Use background agents and continue independent work. Keep at most four children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
 
-## 4. Verify and review
+## 4. Simplify
+
+Inspect the complete feature delta for unnecessary complexity. Delegate substantive simplification to a writer under existing workspace rules. Remove redundant code, needless abstractions and avoidable indirection while preserving acceptance criteria, observable behavior and scope. Record applied simplifications or a concrete no-change rationale in the task verification record. Later corrections repeat simplification before re-verification. The resulting snapshot proceeds through required verification and independent review.
+
+## 5. Verify and review
 
 Follow [Verification and review](verification.md) for recorded outcomes, fresh independent review, finding validation and the three-round convergence cap. Verify the complete feature delta before narrowing correction reviews. Keep evidence and findings in the task's verification record.
 
@@ -71,17 +75,17 @@ Read [Oyo review](oyo-review.md) before opening the implementation diff in Rex, 
 
 For saved feedback, follow Oyo review's discussion and native-reply procedure. Status-only events authorize neither replies nor integration/publication.
 
-## 5. Consolidate
+## 6. Consolidate
 
 Read [Finishing](finishing.md) before integration or cleanup. The coordinator performs finishing directly: one scripted preflight per bounded operation, fixed commands and verified postconditions. Keep Rex/Oyo ownership, approval and final verification in the parent. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
 
 Consolidate approved changes in the persistent task workspace using [Integration](finishing.md#integration), retaining its identity across review rounds regardless of destination. Remove redundant child resources only under Finishing's cleanup gates; preserve the coordinator and approved work until final integration.
 
-## 6. Refactor history (optional)
+## 7. Refactor history (optional)
 
 When useful or requested, follow [History refactoring](finishing.md#history-refactoring) in the task workspace before final integration. Preserve the approved result and verify the rewritten history before continuing.
 
-## 7. Merge locally or through GitHub
+## 8. Merge locally or through GitHub
 
 Resolve the destination here, using an explicit request or associated PR when available; ask only if still unspecified. Require approval of the exact reviewed changes and destination.
 
@@ -90,7 +94,7 @@ Resolve the destination here, using an explicit request or associated PR when av
 
 Task-workspace consolidation and PR publication are intermediate states, not completion.
 
-## 8. Close
+## 9. Close
 
 **Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. For GitHub integration, include the PR URL and verified merge state; an open PR remains awaiting merge. Never imply that local consolidation merged a PR or that cleanup published work.
 
