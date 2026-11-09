@@ -1,21 +1,43 @@
 # Task workspace
 
-Set up or resume the persistent feature workspace before launching writers or editing repository files. The current Pi adopts its existing tab under [Feature tabs](feature-tabs.md); implementation belongs to that verified coordinator. Creating an empty workspace and its identity does not require integration approval; incorporating reviewed changes still does. Protect the reviewed snapshot across user turns, even without Oyo. Keep default/source unchanged except under approved [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup). Apply [Finishing](finishing.md)'s destination-specific completion and retention gates; review completion alone authorizes no integration or teardown.
+Read before repository edits or writer launches. [Feature tabs](feature-tabs.md) owns coordinator adoption; this file owns task identity and isolation. [Finishing](finishing.md) owns approval and cleanup.
 
-Choose a stable unique task key before a PR exists; associate repository identity and PR URL when available. Use one persistent task bookmark named `task/<key>`, distinct from temporary child review bookmarks. Store a local ownership record at `~/.pi/agent/jj-workspaces/<key>.json`, outside the repository: task key, repository root/identity, optional PR URL, workspace name and absolute path, and persistent task bookmark. Record adopted coordinator runtime fields after verification: Rex session/window/block IDs, Pi PID and original process cwd; mark the tab as adopted, not task-created. Track the optional Oyo split's block ID and shared window ID separately from Pi's block ID and Oyo's native session name. No task metadata in commit messages; keep them human-facing.
+## Identity
 
-To resume across sessions, read the ownership record and inspect its bookmark with `jj bookmark list`, `jj log -r <task-bookmark>` and `jj workspace list`. Verify the recorded absolute paths and repository/task/PR identity against the actual workspace root, working-copy revision and bookmark; ask on ambiguity, missing paths, conflicting bookmarks or ownership. Reuse the matching task workspace, not a workspace per revision. Add the PR URL to the record when available, keeping the task key and bookmark name stable.
+Choose a stable unique task key before a PR exists. Store machine identity outside the repository at `~/.pi/agent/jj-workspaces/<key>.json`:
 
-Only if no matching task exists, choose a unique workspace name and absolute `task_workspace` under `~/.pi/agent/jj-workspaces/`. Record the default/source root and working-copy identity. Select a stable intended base, not mutable default/source `@` containing unrelated work; ask if ambiguous. From the source root, create an empty task working copy at that base:
+- Task key, repository identity, source root and recorded source working-copy identity; optional PR URL.
+- Intended base, workspace name and canonical absolute path; persistent bookmark `task/<key>`.
+- Adopted coordinator's Rex session/window/block IDs, Pi PID and original cwd. Track optional view block IDs and Oyo native session separately.
+- Pending snapshot, reviewed checkpoint (`review_base`, `review_tip`, tree), and approved checkpoint/destination as separate full identities.
+- Task-owned child workspaces, bases, temporary/recovery bookmarks and resources when present.
+
+Keep evidence, findings, simplification rationale and human summary together in `<key>-review.md` beside this record, under [Verification and review](verification.md). On resume, merge any legacy `<key>-verification.md` evidence into the review record before retiring the duplicate; preserve provenance and unresolved findings.
+
+Inspect existing records, `jj workspace list`, `jj bookmark list` and `jj log -r <task-bookmark>` before creation or resume. Verify repository/task/PR identity, paths, working-copy revision, bookmark and live coordinator. Ask on missing paths, conflicting identity or ambiguous ownership; hand off if another live coordinator owns the task. Reuse the task key and workspace across revisions.
+
+## Create
+
+Only if no matching task exists, select a stable intended base without unrelated source work. Choose a unique workspace name and absolute path under `~/.pi/agent/jj-workspaces/`. Record source identity, then create from the verified source root:
 
 ```sh
 jj --config git.colocate=false workspace add --name "$workspace_name" -r "$task_base" "$task_workspace"
 ```
 
-Verify `jj root`, `jj workspace list` and `jj log -r @` in the new workspace, then create its bookmark there and save the verified local ownership record:
+Verify `jj root`, `jj workspace list` and `jj log -r @` in the new workspace, then create the persistent bookmark at the base:
 
 ```sh
 cd "$task_workspace" && jj bookmark create "$task_bookmark" -r "$task_base"
 ```
 
-Use the actual verified absolute path and identity values. Run all subsequent repository commands with `cd "$task_workspace" &&` (or the assigned absolute child workspace for child work); the process's original cwd need not change. Parent file tools must use absolute task-workspace-rooted paths; relative read/edit/write paths would touch default. Keep the default/source workspace unchanged. Assign serial and parallel work under [Workspace assignment](SKILL.md#workspace-assignment). Before any approved task revision exists, pin the intended task base and point the persistent task bookmark there. Record approved and pending snapshot identities separately in the ownership record; preserve the approved revision while serial work accumulates in task `@` or its empty successor after a checkpoint. Move the persistent task bookmark only after approved integration. Keep one task-owned pending bookmark, `task/<key>/pending`, on the latest pending serial snapshot; verify this pending bookmark and record its full identity before session end, teardown or blocked integration. Keep it distinct from the approved task bookmark. Use temporary review bookmarks for parallel child work; preserve failed attempts under recovery bookmarks before replacing them. Remove pending and recovery bookmarks only under Finishing's redundancy/discard gates. Verify adoption of the current Pi tab under [Feature tabs](feature-tabs.md) before implementation.
+Save verified identity and coordinator ownership. Preserve the source-relative subdirectory and verify it exists in the task workspace.
+
+## Use
+
+Use absolute assigned-workspace-rooted file paths and `cd "$task_workspace" &&` for repository commands; Pi's original cwd stays unchanged. Keep source/default untouched until approved [local integration](finishing.md#local-only-integration-and-cleanup).
+
+The persistent bookmark identifies the approved task tip, initially the intended base. Pending composition may change task `@` without moving the approved bookmark. Keep `task/<key>/pending` on the latest pending serial snapshot; verify and record its full identity before session end or blocked integration. Serial checkpoints may create an empty successor; subsequent edits use that successor while preserving approved history. Move the persistent bookmark only after [approved checkpointing](finishing.md#integration).
+
+Before replacing a failed attempt or editing a reviewed checkpoint in place, duplicate it into a separate recovery revision with a non-`task/` bookmark. Record original/recovery IDs and verify parent, tree and diff equivalence; use the preserved copy for correction comparisons. A bookmark on mutable `@` follows rewrites and does not preserve the snapshot. Use temporary bookmarks for parallel child review. Remove pending/recovery refs only under [Cleanup](finishing.md#cleanup).
+
+Record the complete review range from intended base to pending or committed tip, independent of whether `@` is empty. Hold that checkpoint stable during review; drift requires affected verification and an updated summary. A task bookmark or successful command alone proves neither ownership nor reviewed content.

@@ -15,7 +15,7 @@ rex block call -s "$REX_SESSION" -b "$REX_BLOCK" process
 
 Take the full window ID from `.block.window_id`. Verify the live Pi process and PID, not app focus or a label. Resolve absent/stale context with `rex whoami --json`, `rex ls --json` and block/session inspection; ask on ambiguity. Missing or unverifiable Rex context blocks adoption; report it and ask rather than launching elsewhere.
 
-Before adopting, inspect existing task ownership records, JJ workspaces and recorded coordinator processes. Verify task/repository identity, optional PR, workspace and live runtime IDs; guard against PID reuse. If another live Pi owns this task, hand off to that coordinator and stop implementation here. If this tab owns another unfinished feature, ask before changing ownership. Ambiguous ownership blocks adoption; never create a duplicate coordinator.
+Before adopting, verify [task identity and ownership](workspace.md#identity), including recorded coordinator processes; guard against PID reuse. If this tab owns another unfinished feature, ask before changing ownership.
 
 Read [Task workspace](workspace.md) to create or reuse the persistent task workspace. Record the source-relative subdirectory and verify it exists beneath the absolute task workspace. Keep Pi's original process cwd unchanged; use absolute task-workspace paths for file tools and `cd "$task_workspace" &&` for repository commands. Preserve source/default during implementation.
 
@@ -57,4 +57,4 @@ Oyo owns its native-session, snapshot, file-coverage and watcher checks; a Vim v
 
 ## Retention and cleanup
 
-Retain the task workspace across review rounds and revisions under [Finishing](finishing.md). Adoption does not make the current Pi/tab disposable. Preserve this conversation and its original cwd; no coordinator exit is required merely to finish the task. Before workspace removal, verify no process cwd, UI, watcher or child uses it. If Pi itself uses that workspace as cwd, retain it until independently verified exit. Apply destination-specific completion, approval and recoverability gates; never remove live work or close the adopted tab as feature cleanup.
+Follow [Cleanup](finishing.md#cleanup) for resource release and destination-specific retention. Preserve this adopted conversation/tab, original cwd and shared session.

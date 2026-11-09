@@ -88,18 +88,11 @@ inspect live conversations; persisted upstream sessions can be resumed.
 
 ## JJ workspaces
 
-For explicitly activated feature tasks, use one persistent workspace per feature.
-Serial writers, retries and feedback reuse it; read-only agents inspect it directly.
-Follow [Workspace assignment](skills/feature/SKILL.md#workspace-assignment).
-Only concurrent implementation writers need extra isolation; pin the verified task
-snapshot as `writer_base` before creating an additional workspace:
-
-```sh
-cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r "$writer_base" <absolute-path>
-```
-
-Keep workspaces under `~/.pi/agent/jj-workspaces/` and preserve package-relative
-subdirectories. Ignored files, dependencies, and secrets are not copied.
+For activated feature tasks, follow [Task workspace](skills/feature/workspace.md)
+for persistent isolation and [Parallel writers](skills/feature/parallel-work.md)
+only for concurrent implementation. [Finishing](skills/feature/finishing.md) owns
+composition, approval and cleanup gates. Ignored files, dependencies and secrets
+are not copied into new workspaces.
 `Agent` has **no per-invocation cwd parameter**: the child retains the parent's cwd.
 Require absolute paths and explicit shell `cd` into the supplied workspace.
 This is prompt-only workspace discipline, not runtime isolation. Read-only tool
@@ -108,10 +101,8 @@ scoping also does not restrict which paths can be read.
 Upstream cross-extension RPC supports a real `options.cwd` for tools, while still
 loading the parent's project configuration. That API is not exposed by the standard
 `Agent` tool and is not wired here. Built-in Git worktrees are disabled to avoid
-Git commands and automatic commits. Integration requires explicit operator
-approval. Disposable child cleanup follows verified approved integration and
-ownership/process gates; task and coordinator teardown also require explicit
-completion. See `skills/feature/finishing.md`.
+Git commands and automatic commits. Pending composition stays inside task
+isolation; destination integration requires explicit approval.
 
 ## Apply and test
 
@@ -148,7 +139,9 @@ and [RPC cwd](https://github.com/tintinweb/pi-subagents/blob/master/docs/rpc.md)
 # Oyo feedback
 
 Home Manager deploys the first-party `oyo-review/` extension directory to parents;
-children retain command guards only. Delivery is inactive until deployed, Pi
+children retain command guards only. The bridge supports JJ `@` targets; feature
+Git-range reviews use on-demand feedback reads under
+[Oyo review](skills/feature/oyo-review.md). Delivery is inactive until deployed, Pi
 reloaded, and `oyo_watch` explicitly started after verifying the native Oyo UI.
 Supply its exact native session name, absolute workspace and trusted absolute
 `oyBin` (optional absolute `jjBin`). Read the initial tool result before claiming
@@ -158,7 +151,8 @@ counts without also sending an initial notification.
 Saved additions, body edits, deletions and root resolve/reopen changes wake the
 owning Pi via visible follow-up messages. No agent-to-human notification UI,
 publication, reply writes or automatic resolution. Replies use the native CLI
-with explicit agent identity per `oyo-review`. Only local feedback qualifies:
+with explicit agent identity and message-specific consent under
+[Oyo review](skills/feature/oyo-review.md#feedback-and-consent). Only local feedback qualifies:
 provider-backed comment bodies are filtered even without authorType; roots/status
 still count with unknown actors. Agent/bot bodies and metadata-only
 changes do not echo. Missing authorType is not authenticated human provenance;
@@ -184,7 +178,7 @@ stops from errors. Stop and verify stopped before integration rebase/source
 movement, closing Oyo or workspace cleanup. Actual session_tree and session_shutdown
 (including reload) abort pending work and fence late callbacks; canceled before-tree
 navigation does not stop delivery. Shutdown emits no automatic notification/turn. Nothing auto-resumes; explicit restart returns native durable comments
-as a fresh baseline. See the first-party skill for identity checks, native reply
+as a fresh baseline. See the Oyo review reference for identity checks, native reply
 limitations and cleanup gates. Invalid basic start input preserves an existing
 watch; snapshot/native-identity failure after deliberate replacement leaves the
 previous watch unavailable.
@@ -198,7 +192,7 @@ node --experimental-strip-types --test home/agents/pi/oyo-review.test.mjs
 
 # Feature finishing
 
-[workspace.md](skills/feature/workspace.md) owns isolation; [verification.md](skills/feature/verification.md) checks and review convergence; [finishing.md](skills/feature/finishing.md) integration, history and cleanup; [impact-review.md](skills/feature/impact-review.md) human review; [oyo-review.md](skills/feature/oyo-review.md) optional UI.
+[workspace.md](skills/feature/workspace.md) owns identity and isolation; [parallel-work.md](skills/feature/parallel-work.md) concurrent writers; [verification.md](skills/feature/verification.md) evidence and review convergence; [finishing.md](skills/feature/finishing.md) approval, integration and cleanup; [impact-review.md](skills/feature/impact-review.md) human review; [oyo-review.md](skills/feature/oyo-review.md) optional UI. Evidence and the impact summary share `<key>-review.md` beside the ownership record.
 
 # Skill policy
 

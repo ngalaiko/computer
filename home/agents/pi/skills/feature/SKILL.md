@@ -6,96 +6,66 @@ disable-model-invocation: true
 
 # Feature
 
-Apply only to the task explicitly activated with `/skill:feature`. A verified coordinator resuming that task inherits activation; ordinary tasks stay in the current revision. Requests to configure this workflow do not activate it.
+Apply only to the task explicitly activated with `/skill:feature`. A verified coordinator resuming that task inherits activation. Requests to configure this workflow do not activate it; ordinary tasks stay in the current revision.
 
-Parent Pi sessions coordinate this workflow. Child agents follow their assigned role.
+The parent coordinates; children follow their assigned role. Three states distinguish local preparation from approval:
 
-## 1. Define the task
+- **Pending composition:** implementation and combined writer deltas inside task isolation; no integration approval needed.
+- **Reviewed checkpoint:** pinned base, tip and tree with matching verification and independent review.
+- **Approved destination integration:** explicit consent for that reviewed result and its destination under [Approval](finishing.md#approval).
 
-Establish the goal, scope and constraints. Read [Verification and review](verification.md) before dispatch: map acceptance criteria to checks and expected results, then choose risk-based verification depth. Resolve material ambiguity before dispatch. Keep isolation and approval gates for every feature. Defer the local-versus-GitHub choice to final integration; do not ask at task setup.
+## 1. Define
 
-Read [Feature tabs](feature-tabs.md) to adopt the current Pi conversation and Rex tab as the coordinator; keep this process and history without launching another Pi or tab. Verify ownership before implementation; hand off if another live coordinator owns the task. Showcase text in Vim splits and implementation diffs in Oyo splits beside Pi under that reference. Keep the tab title synchronized with the Pi conversation's task + activity name on meaningful phase changes; preserve the shared session name.
+Establish goal, scope, constraints and acceptance criteria. Read [Verification and review](verification.md) to map criteria to checks and expected results and choose risk-based depth. Resolve material ambiguity before dispatch. Defer the local-versus-GitHub choice until approval unless already specified.
 
-For the verified coordinator, read [Rex activity](rex-activity.md) before work. Report feature milestones through Rex's native status record alongside name updates; use structured process/events APIs for lifecycle checks. Preserve Pi's native status and explicit approval gates.
+Read [Feature tabs](feature-tabs.md) to adopt the current Pi conversation and Rex tab; verify task ownership before implementation. Read [Rex activity](rex-activity.md) for milestone reporting. UI ownership and status never replace durable task identity or approval.
 
-## 2. Prepare isolation
+## 2. Isolate
 
-Read [Task workspace](workspace.md) before repository edits or writer launches. Create or verify one persistent task workspace and its ownership record; reuse it across revisions. Select an explicit base and keep the default/source workspace untouched until approved local-only integration.
+Read [Task workspace](workspace.md) before repository edits or writer launches. Create or resume one persistent task workspace, with a stable intended base, task bookmark and ownership record. Use absolute assigned-workspace paths for file tools and `cd <assigned_workspace> &&` for repository commands; children retain the parent's cwd.
 
-Use absolute task-workspace-rooted paths for parent file tools and `cd <task_workspace> &&` for repository commands. Preserve the source-relative subdirectory where applicable.
+**Ready:** task identity, intended base, source identity, workspace and ownership are verified. Preserve source/default until approved local integration.
 
-**Ready:** task identity, intended base, absolute workspace path, persistent bookmark and saved ownership record are verified, including the source root and working-copy identity.
+## 3. Implement and simplify
 
-## 3. Delegate
+Delegate independent implementation and substantive review; keep trivial lookups in the parent. Inspect current role/model configuration and availability before dispatch; select explicitly:
 
-Resolve material ambiguity before assigning one-shot tasks. Delegate independent implementation, bounded edits and substantive review; keep trivial lookups in the parent.
+| Role           | Assignment                                                                  |
+| -------------- | --------------------------------------------------------------------------- |
+| `explorer`     | Bounded read-only investigation.                                            |
+| `small-worker` | Bounded, low-uncertainty edits.                                             |
+| `worker`       | Implementation judgment; medium thinking, high for difficult work.          |
+| `reviewer`     | Fresh read-only review; strongest available for broad or high-risk changes. |
 
-| Role           | Use                                                                                |
-| -------------- | ---------------------------------------------------------------------------------- |
-| `explorer`     | Bounded codebase questions and noisy investigation; read-only.                     |
-| `small-worker` | Bounded, low-uncertainty edits; escalate ambiguity to `worker`.                    |
-| `worker`       | Cross-file implementation; set thinking to `medium`, or `high` for difficult work. |
-| `reviewer`     | Fresh independent review; read-only.                                               |
+Give each child a unique name and self-contained brief: goal, scope, constraints, absolute workspace/paths, expected result, checks and stop condition. Return ambiguity to the coordinator. Escalate a failed bounded attempt once rather than repeating it unchanged.
 
-Choose the role and model explicitly for each dispatch. Use `small-worker` for mechanical edits with complete acceptance criteria, `worker` for implementation or debugging judgment, and the strongest available reviewer for broad or high-risk review. A smaller reviewer may handle a narrowly scoped mechanical diff; preserve independent review. Return ambiguity to the coordinator and escalate a failed bounded attempt once rather than repeating the same cheap dispatch.
+Serial writers reuse the task workspace, one writer at a time, including the parent. Writers leave one nonempty change at `@`, changed paths and test evidence; the coordinator owns checkpointing. Apply [snapshot preservation](workspace.md#use) before replacing failures or editing reviewed work; other incremental corrections may continue in place. Read [Parallel writers](parallel-work.md) only when implementation writers must run concurrently.
 
-Verify availability of the four configured role models, especially `claude-code-cli/opus`, before dispatch: pins can fall back to the parent. Use `/agents` and FleetView to inspect conversations, progress and availability. Child extensions are limited to command guards; nested delegation and built-in Git worktree isolation are disabled.
+Use background agents while independent work remains; keep at most four children active. Otherwise yield for notification rather than polling. Retrieve full results, inspect actual changes, and use steering or resume for follow-ups.
 
-### Workspace assignment
+Inspect the complete pending composition for redundant code, needless abstractions and avoidable indirection. Delegate substantive simplification. Preserve acceptance criteria, behavior and scope; record applied simplifications or a concrete no-change rationale. Repeat after corrections, before re-verification.
 
-One persistent workspace per feature. Serial writers reuse the task workspace across implementation, retries and feedback rounds; only one writer may use the task workspace at a time, including the parent. Read-only agents use the workspace being inspected; hold its snapshot stable during review.
+## 4. Verify and review
 
-Additional workspaces are only for concurrent implementation writers whose changes need isolation. Reuse an idle task-owned parallel workspace only after its previous delta is integrated and recoverability verified; reset its empty working copy to the new `writer_base` before assignment. Otherwise create only the extra workspaces needed for that concurrency. Before branching, pause task writes and record the verified full commit ID of the current task snapshot as `writer_base`, including pending feature work. Record each parallel writer's base and assigned scope. Keep task `@` frozen until all parallel writers exit and their deltas are verified; concurrent writes use child workspaces. Preserve the base through reconciliation. Create from the pinned ID, not mutable task `@`:
+Follow [Verification and review](verification.md): check the complete composed delta, validate findings and enforce the three-round convergence cap. Hold the reviewed snapshot stable.
 
-```sh
-cd "$task_workspace" && jj --config git.colocate=false workspace add --name <unique-name> -r "$writer_base" <absolute-child-path>
-```
+**Ready:** every acceptance criterion has observed evidence, required independent reviews are complete, and verified findings are addressed. Missing evidence or unresolved defects block readiness.
 
-Keep child workspaces under `~/.pi/agent/jj-workspaces/`. Give each agent a unique name, short description and self-contained brief containing:
+Read [Impact review](impact-review.md), present the initial summary in Pi, then wait for questions. Save evidence and summary together in the task review record. Requested changes return to implementation and affected verification.
 
-- Goal, scope, constraints and completion evidence.
-- Assigned absolute workspace and file paths; shell commands begin with `cd <assigned_workspace> &&`. Agent has no cwd parameter: children retain the parent's cwd. These restrictions are prompt-only, not runtime isolation.
-- Expected result and stop condition. Implementation writers leave one nonempty working-copy change at `@` for review, with changed paths and test evidence; the coordinator owns committing after approval. Before replacing a failed attempt, duplicate its snapshot into a separate recovery revision with a task-owned recovery bookmark; a bookmark on mutable `@` follows rewrites and does not preserve the attempt. Incremental corrections can continue in the same `@`. Report blockers rather than widening scope.
+Read [Oyo review](oyo-review.md) only for useful or requested implementation-diff drill-down. Optional UI failures do not block Pi discussion.
 
-Use background agents and continue independent work. Keep at most four children active across foreground and background runs; upstream pools do not enforce this limit. When nothing independent remains, yield for completion notification rather than polling. Retrieve full results with `get_subagent_result`; use `steer_subagent` for running agents and `resume` for completed conversations.
+## 5. Approve destination
 
-## 4. Simplify
+Resolve local versus GitHub from the explicit request or associated PR; ask only if unspecified. Obtain approval of the exact reviewed result and destination under [Finishing](finishing.md#approval). Review completion, comments and status events are not approval.
 
-Inspect the complete feature delta for unnecessary complexity. Delegate substantive simplification to a writer under existing workspace rules. Remove redundant code, needless abstractions and avoidable indirection while preserving acceptance criteria, observable behavior and scope. Record applied simplifications or a concrete no-change rationale in the task verification record. Later corrections repeat simplification before re-verification. The resulting snapshot proceeds through required verification and independent review.
+## 6. Integrate and close
 
-## 5. Verify and review
+Read [Finishing](finishing.md). The coordinator checkpoints, optionally refactors history, integrates and cleans up directly, using bounded preflight operations and verified postconditions. Substantial conflict resolution returns to implementation and review.
 
-Follow [Verification and review](verification.md) for recorded outcomes, fresh independent review, finding validation and the three-round convergence cap. Verify the complete feature delta before narrowing correction reviews. Keep evidence and findings in the task's verification record.
+- **Local:** follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup).
+- **GitHub:** read [GitHub PR lifecycle](github-pr.md). Publication needs specific consent; pushes remain manual. Retain the task until verified merge or an explicit alternate ending.
 
-**Ready for human review:** scope matches, every acceptance criterion has observed evidence, required reviews are complete and verified findings are addressed. Missing evidence or unresolved defects block readiness.
+**Complete:** report verified changes, tests, review outcome, thread counts (or unknown/unused), integration status and retained resources or blockers. For GitHub, include the PR URL and verified merge state. A checkpoint or open PR is not completion.
 
-Read [Impact review](impact-review.md) before human review. Present the initial impact summary in Pi, then wait for questions; retain snapshot-bound evidence and explicit unknowns. Keep the reviewed workspace stable across turns. Requested edits follow Impact review's revision procedure.
-
-Read [Oyo review](oyo-review.md) before opening the implementation diff in Rex, only for useful or requested drill-down. The parent owns UI and follows its snapshot, session and file-coverage checks before claiming the diff is loaded. After verifying native UI, explicitly start parent-only `oyo_watch` and read its initial result before claiming delivery active. If Oyo remains unopened, no watcher is required.
-
-For saved feedback, follow Oyo review's discussion and native-reply procedure. Status-only events authorize neither replies nor integration/publication.
-
-## 6. Consolidate
-
-Read [Finishing](finishing.md) before integration or cleanup. The coordinator performs finishing directly: one scripted preflight per bounded operation, fixed commands and verified postconditions. Keep Rex/Oyo ownership, approval and final verification in the parent. Require explicit operator approval to integrate; review completion and resolved threads are not approval. Stop the watcher before integration or UI/workspace cleanup. Preserve recoverable pending work when blocked.
-
-Consolidate approved changes in the persistent task workspace using [Integration](finishing.md#integration), retaining its identity across review rounds regardless of destination. Remove redundant child resources only under Finishing's cleanup gates; preserve the coordinator and approved work until final integration.
-
-## 7. Refactor history (optional)
-
-When useful or requested, follow [History refactoring](finishing.md#history-refactoring) in the task workspace before final integration. Preserve the approved result and verify the rewritten history before continuing.
-
-## 8. Merge locally or through GitHub
-
-Resolve the destination here, using an explicit request or associated PR when available; ask only if still unspecified. Require approval of the exact reviewed changes and destination.
-
-- **Local:** follow [Local-only integration and cleanup](finishing.md#local-only-integration-and-cleanup), including verified source integration, explicit completion and coordinator-exit gates. PR-lifetime retention does not apply.
-- **GitHub:** read [GitHub PR lifecycle](github-pr.md). Publish only with specific consent, integrate reviewed fixes into the same task revision, verify each published head, and retain the task until merge is verified or the operator explicitly chooses another ending. Pushes remain manual; never push to remote. Merge and outbound GitHub messages require their own consent. Report inactive merge monitoring explicitly.
-
-Task-workspace consolidation and PR publication are intermediate states, not completion.
-
-## 9. Close
-
-**Complete:** report verified changes, tests, review outcome and unresolved thread counts (or unknown), integration status and retained resources or blockers. For GitHub integration, include the PR URL and verified merge state; an open PR remains awaiting merge. Never imply that local consolidation merged a PR or that cleanup published work.
-
-The linked files are workflow references, not independent skills. Resolve their links relative to this file's directory, including when reading it directly.
+References are not independent skills. Resolve their links relative to this directory.
