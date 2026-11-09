@@ -64,6 +64,7 @@ _: {
 
       agents.pi = {
         mcpServers = {
+          linear.url = "https://mcp.linear.app/mcp";
           plain.url = "https://mcp.plain.com/mcp";
           paper.url = "http://127.0.0.1:29979/mcp";
         };
