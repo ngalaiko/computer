@@ -58,6 +58,10 @@ in
     taps = [
       "ahkohd/oyo"
       "jsattler/tap"
+      {
+        name = "r3dbars/transcripted";
+        clone_target = "https://github.com/r3dbars/transcripted";
+      }
     ];
 
     brews = [
@@ -81,6 +85,7 @@ in
       "obsidian"
       "postico@1"
       "raycast"
+      "r3dbars/transcripted/transcripted"
       "secretive" # Secure Enclave SSH agent (see home/ssh.nix)
       "sublime-merge"
       "tailscale-app"
