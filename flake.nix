@@ -86,6 +86,7 @@
         in
         lib.filterAttrs (_: lib.meta.availableOn pkgs.stdenv.hostPlatform) {
           inherit (pkgs)
+            assistant-calendar
             obsidian-headless
             vault-sync
             wherenow
@@ -171,7 +172,7 @@
           pi = pkgs.pi-coding-agent;
         in
         {
-          inherit (repoPackagesFor system) vault-sync wherenow;
+          inherit (repoPackagesFor system) assistant-calendar vault-sync wherenow;
           backup-dependencies = import ./modules/nixos/exedev/backup-dependencies-test.nix {
             inherit pkgs;
             inherit ((exedevFor (linuxOf system))) config;

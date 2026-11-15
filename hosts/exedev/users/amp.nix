@@ -49,6 +49,7 @@ in
       chromium
       agent-browser
       himalaya
+      assistant-calendar
       sops
       age
       gh
