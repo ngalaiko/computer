@@ -7,6 +7,7 @@ final: prev: {
     inherit (prev) config;
   };
 
+  assistant-calendar = final.callPackage ./packages/assistant-calendar { };
   obsidian-headless = final.callPackage ./packages/obsidian-headless { };
   vault-sync = final.callPackage ./packages/vault-sync { };
   wherenow = final.callPackage ./packages/wherenow { };
